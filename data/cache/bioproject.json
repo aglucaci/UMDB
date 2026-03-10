@@ -23633,5 +23633,35 @@
       "bioproject_uid": "1419928",
       "bioproject_url": "https://www.ncbi.nlm.nih.gov/bioproject/1419928"
     }
+  },
+  "PRJNA1434650": {
+    "uid": "1434650",
+    "accession": "PRJNA1434650",
+    "title": "Experiment for studying the effect of inoculation on the performance of a photobioreactor",
+    "description": "Understand the relevance of inoculation in the domestic wastewater treatment process in a photobioreactor. This study explores the role of inoculation in the domestic wastewater treatment process in a photobioreactor and utilizes shotgun metagenomics to evaluate the dynamics of microbial community structures and profile their function genes.",
+    "organism": "",
+    "data_type": "Raw sequence reads",
+    "submission_date": "2026/03/10 00:00",
+    "last_update": "",
+    "center_name": "PSU",
+    "ncbi": {
+      "bioproject_uid": "1434650",
+      "bioproject_url": "https://www.ncbi.nlm.nih.gov/bioproject/1434650"
+    }
+  },
+  "PRJNA1434060": {
+    "uid": "1434060",
+    "accession": "PRJNA1434060",
+    "title": "Response Mechanism of Anammox Granular Sludge to  Fluoride Stress from Fluoride-Containing Photovoltaic Wastewater",
+    "description": "This study focuses on the concentration-dependent response mechanisms of anammox granular sludge (AnGS) to fluoride ion (F-) stress during the partial nitritation/anammox (PN/A) process, aiming to address the application limitations of PN/A in high-ammonia photovoltaic wastewater containing high F- levels. Laboratory-scale batch experiments were conducted with AnGS exposed to F- concentrations ranging from 0 to 800 mg/L for 30 days. System nitrogen removal performance, sludge morphology, extracellular polymeric substances (EPS) properties, and microbial activity were monitored, combined with metagenomic sequencing to analyze microbial community structure dynamics, functional gene expression, and metabolic pathway changes. Results revealed a hormetic effect at low F- level (50 mg/L), with nitrogen removal efficiency slightly elevated to 89%. Nitrogen removal efficiency declined significantly when F- concentration exceeded 300 mg/L, dropping to only 12% at 800 mg/L. A distinct threshold (approximately 300 mg/L F-) was identified for the shift of microbial survival strategies: at 0-300 mg/L F-, AnGS adopted a collective defense mode characterized by enhanced EPS secretion and in-situ CaF2 precipitation to form a protective barrier; at 300-500 mg/L F-, CaF2 precipitation formed a dense surface crust that impeded mass transfer, leading to decoupling of Candidatus Brocadia abundance and system performance; when F- concentration exceeded 500 mg/L, collective defense collapsed, and microbial communities switched to an independent cellular resistance mode, where fluoride-tolerant heterotrophs (e.g., Stenotrophomonas) were enriched with upregulated resistance genes (e.g., crcB/FEX, SOD, CAT, F0F1-ATPase, MexAB-OprM), while anammox bacteria (Candidatus Brocadia) were suppressed by oxidative stress and metabolic disruption. This study clarifies the microbial response mechanisms of AnGS to F- stress in PN/A process, providing mechanistic insights for process optimization and stable operation of PN/A technology in treating high-ammonia and fluoride-laden industrial wastewater.",
+    "organism": "",
+    "data_type": "Raw sequence reads",
+    "submission_date": "2026/03/08 00:00",
+    "last_update": "",
+    "center_name": "Taiyuan University of Technology",
+    "ncbi": {
+      "bioproject_uid": "1434060",
+      "bioproject_url": "https://www.ncbi.nlm.nih.gov/bioproject/1434060"
+    }
   }
 }
