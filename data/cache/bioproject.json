@@ -23848,5 +23848,20 @@
       "bioproject_uid": "1405237",
       "bioproject_url": "https://www.ncbi.nlm.nih.gov/bioproject/1405237"
     }
+  },
+  "PRJNA1243707": {
+    "uid": "1243707",
+    "accession": "PRJNA1243707",
+    "title": "activated sludge Raw sequence reads",
+    "description": "Normal 16S rRNA sequencing and metagenomic sequencing were conducted on the activated sludge samples from a wastewater treatment bioreactor.",
+    "organism": "activated sludge metagenome",
+    "data_type": "Raw sequence reads",
+    "submission_date": "2025/03/29 00:00",
+    "last_update": "",
+    "center_name": "Fuzhou University",
+    "ncbi": {
+      "bioproject_uid": "1243707",
+      "bioproject_url": "https://www.ncbi.nlm.nih.gov/bioproject/1243707"
+    }
   }
 }
