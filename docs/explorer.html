@@ -521,13 +521,31 @@
                 </div>
 
                 <div style="margin-top:10px">
-                  <label>AI annotation filter</label>
-                  <select id="aiFilter">
-                    <option value="">(any)</option>
-                    <option value="fixed">AI-fixed only</option>
-                    <option value="original">Original-only</option>
-                    <option value="insufficient">AI-insufficient metadata</option>
-                  </select>
+                  <label>AI metadata filters</label>
+                  <div class="checkrow" style="margin-top:8px">
+                    <label for="aiReviewedOnly">
+                      <input type="checkbox" id="aiReviewedOnly" />
+                      <span class="small">AI-reviewed only</span>
+                    </label>
+                  </div>
+                  <div class="checkrow">
+                    <label for="aiFixedOnly">
+                      <input type="checkbox" id="aiFixedOnly" />
+                      <span class="small">AI-fixed only</span>
+                    </label>
+                  </div>
+                  <div class="checkrow">
+                    <label for="aiInsufficientOnly">
+                      <input type="checkbox" id="aiInsufficientOnly" />
+                      <span class="small">AI-insufficient metadata</span>
+                    </label>
+                  </div>
+                  <div class="checkrow">
+                    <label for="aiUrbanOnly">
+                      <input type="checkbox" id="aiUrbanOnly" />
+                      <span class="small">AI urban-origin only</span>
+                    </label>
+                  </div>
                 </div>
 
                 <div class="checkrow">
@@ -723,7 +741,10 @@
   const center = el("center");
   const minYear = el("minYear");
   const maxYear = el("maxYear");
-  const aiFilter = el("aiFilter");
+  const aiReviewedOnly = el("aiReviewedOnly");
+  const aiFixedOnly = el("aiFixedOnly");
+  const aiInsufficientOnly = el("aiInsufficientOnly");
+  const aiUrbanOnly = el("aiUrbanOnly");
   const mode = el("mode");
   const perPageSel = el("perPage");
   const requireGeo = el("requireGeo");
@@ -851,8 +872,14 @@
   function hasAiFix(rec) {
     return !!getAiCuration(rec)?.ai_fixed;
   }
+  function hasAiReview(rec) {
+    return !!(getAiCuration(rec)?.reviewed || Object.keys(getAiCuration(rec) || {}).length);
+  }
   function getAiSufficiency(rec) {
     return lower(getAiCuration(rec)?.metadata_sufficiency || "");
+  }
+  function getAiUrbanOrigin(rec) {
+    return lower(getAiCuration(rec)?.urban_origin || "");
   }
   function getCenter(rec) {
     return rec?.runinfo_row?.CenterName || "";
@@ -1231,7 +1258,10 @@
     const wantCountry = norm(country.value);
     const wantCity = norm(city.value);
     const wantCenter = lower(center.value);
-    const wantAiFilter = norm(aiFilter?.value);
+    const wantAiReviewedOnly = !!(aiReviewedOnly && aiReviewedOnly.checked);
+    const wantAiFixedOnly = !!(aiFixedOnly && aiFixedOnly.checked);
+    const wantAiInsufficientOnly = !!(aiInsufficientOnly && aiInsufficientOnly.checked);
+    const wantAiUrbanOnly = !!(aiUrbanOnly && aiUrbanOnly.checked);
     const minY = parsedQ.minYear != null ? parsedQ.minYear : safeInt(minYear.value);
     const maxY = parsedQ.maxYear != null ? parsedQ.maxYear : safeInt(maxYear.value);
 
@@ -1281,14 +1311,17 @@
       if (!centers.some(c => c.includes(wantCenter))) return false;
     }
 
-    if (wantAiFilter === "fixed") {
+    if (wantAiReviewedOnly) {
+      if (!p.runs.some(hasAiReview)) return false;
+    }
+    if (wantAiFixedOnly) {
       if (!p.runs.some(hasAiFix)) return false;
     }
-    if (wantAiFilter === "original") {
-      if (p.runs.some(hasAiFix)) return false;
-    }
-    if (wantAiFilter === "insufficient") {
+    if (wantAiInsufficientOnly) {
       if (!p.runs.some(r => getAiSufficiency(r) === "insufficient")) return false;
+    }
+    if (wantAiUrbanOnly) {
+      if (!p.runs.some(r => getAiUrbanOrigin(r) === "urban")) return false;
     }
 
     if (parsedQ.fields.length || parsedQ.terms.length) {
@@ -1659,7 +1692,10 @@
     center.value = "";
     minYear.value = "";
     maxYear.value = "";
-    if (aiFilter) aiFilter.value = "";
+    if (aiReviewedOnly) aiReviewedOnly.checked = false;
+    if (aiFixedOnly) aiFixedOnly.checked = false;
+    if (aiInsufficientOnly) aiInsufficientOnly.checked = false;
+    if (aiUrbanOnly) aiUrbanOnly.checked = false;
     if (requireGeo) requireGeo.checked = true;
     if (excludeUnknown) excludeUnknown.checked = true;
     perPageSel.value = "100";
@@ -1711,7 +1747,12 @@
         center: center.value,
         min_year: minYear.value,
         max_year: maxYear.value,
-        ai_filter: aiFilter?.value || "",
+        ai_filters: {
+          reviewed_only: !!(aiReviewedOnly && aiReviewedOnly.checked),
+          fixed_only: !!(aiFixedOnly && aiFixedOnly.checked),
+          insufficient_only: !!(aiInsufficientOnly && aiInsufficientOnly.checked),
+          urban_only: !!(aiUrbanOnly && aiUrbanOnly.checked)
+        },
         require_geo: !!(requireGeo && requireGeo.checked),
         exclude_unknown: !!(excludeUnknown && excludeUnknown.checked)
       },
@@ -1845,7 +1886,12 @@ echo "[UrbanScope] completed FASTQ export into $OUTDIR/fastq"
         center: center.value,
         min_year: minYear.value,
         max_year: maxYear.value,
-        ai_filter: aiFilter?.value || ""
+        ai_filters: {
+          reviewed_only: !!(aiReviewedOnly && aiReviewedOnly.checked),
+          fixed_only: !!(aiFixedOnly && aiFixedOnly.checked),
+          insufficient_only: !!(aiInsufficientOnly && aiInsufficientOnly.checked),
+          urban_only: !!(aiUrbanOnly && aiUrbanOnly.checked)
+        }
       },
       projects: slice
     }, null, 2)], {type:"application/json"});
@@ -1899,7 +1945,9 @@ echo "[UrbanScope] completed FASTQ export into $OUTDIR/fastq"
     inp.addEventListener("keydown", (e) => { if (e.key === "Enter") applyFilters(); });
   });
 
-  if (aiFilter) aiFilter.addEventListener("change", applyFilters);
+  [aiReviewedOnly, aiFixedOnly, aiInsufficientOnly, aiUrbanOnly].forEach((box) => {
+    if (box) box.addEventListener("change", applyFilters);
+  });
   if (requireGeo) requireGeo.addEventListener("change", applyFilters);
   if (excludeUnknown) excludeUnknown.addEventListener("change", applyFilters);
 

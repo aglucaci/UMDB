@@ -60,6 +60,7 @@ jobs:
           NCBI_API_KEY: ${{ secrets.NCBI_API_KEY }}
           NCBI_EMAIL: ${{ secrets.NCBI_EMAIL }}
           NCBI_TOOL: urbanscope-srr-harvester
+          PYTHONDONTWRITEBYTECODE: "1"
         run: |
           set -euo pipefail
 
@@ -92,7 +93,8 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          git add data docs || true
+          git restore scripts/urbanscope_harvester/__pycache__ || true
+          git add .gitignore data docs || true
 
           git commit -m "UrbanScope AI curation $(date -u +'%Y-%m-%d')" || echo "No changes"
           git push
