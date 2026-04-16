@@ -45,6 +45,16 @@ on:
         required: false
         default: "14"
         type: string
+      ai_curate:
+        description: "Run AI-assisted metadata curation during the job"
+        required: false
+        default: false
+        type: boolean
+      ai_max_records:
+        description: "Optional cap for AI-curated records per run, leave 0 for no cap"
+        required: false
+        default: "0"
+        type: string
 
 permissions:
   contents: write
@@ -80,6 +90,7 @@ jobs:
           NCBI_API_KEY: ${{ secrets.NCBI_API_KEY }}
           NCBI_EMAIL: ${{ secrets.NCBI_EMAIL }}
           NCBI_TOOL: urbanscope-srr-harvester
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           set -euo pipefail
 
@@ -104,8 +115,14 @@ jobs:
             MAX_TOTAL="${{ github.event.inputs.max_total }}"
             STOP_AFTER_NEW_SRR="${{ github.event.inputs.stop_after_new_srr }}"
             RECENT_DAYS="${{ github.event.inputs.recent_days }}"
+            AI_CURATE="${{ github.event.inputs.ai_curate }}"
+            AI_MAX_RECORDS="${{ github.event.inputs.ai_max_records }}"
             YEAR="${{ github.event.inputs.year }}"
             mapfile -t PROFILE_ARGS < <(build_profile_args "${{ github.event.inputs.query_profiles }}")
+            AI_ARGS=()
+            if [ "$AI_CURATE" = "true" ]; then
+              AI_ARGS+=(--ai-curate --ai-max-records "$AI_MAX_RECORDS")
+            fi
 
             if [ "$MODE" = "crawl" ]; then
               python3 -m scripts.urbanscope_harvester.cli crawl \
@@ -115,6 +132,7 @@ jobs:
                 --stop-after-new-srr "$STOP_AFTER_NEW_SRR" \
                 --fetch-bioproject \
                 --fetch-biosample \
+                "${AI_ARGS[@]}" \
                 "${PROFILE_ARGS[@]}"
             elif [ "$MODE" = "backfill-year" ]; then
               if [ -z "$YEAR" ]; then
@@ -125,6 +143,7 @@ jobs:
                 --year "$YEAR" \
                 --fetch-bioproject \
                 --fetch-biosample \
+                "${AI_ARGS[@]}" \
                 "${PROFILE_ARGS[@]}"
             else
               python3 -m scripts.urbanscope_harvester.cli daily \
@@ -132,6 +151,7 @@ jobs:
                 --max-per-day 500 \
                 --fetch-bioproject \
                 --fetch-biosample \
+                "${AI_ARGS[@]}" \
                 "${PROFILE_ARGS[@]}"
             fi
           else

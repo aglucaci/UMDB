@@ -520,6 +520,16 @@
                   </div>
                 </div>
 
+                <div style="margin-top:10px">
+                  <label>AI annotation filter</label>
+                  <select id="aiFilter">
+                    <option value="">(any)</option>
+                    <option value="fixed">AI-fixed only</option>
+                    <option value="original">Original-only</option>
+                    <option value="insufficient">AI-insufficient metadata</option>
+                  </select>
+                </div>
+
                 <div class="checkrow">
                   <label for="requireGeo">
                     <input type="checkbox" id="requireGeo" checked />
@@ -713,6 +723,7 @@
   const center = el("center");
   const minYear = el("minYear");
   const maxYear = el("maxYear");
+  const aiFilter = el("aiFilter");
   const mode = el("mode");
   const perPageSel = el("perPage");
   const requireGeo = el("requireGeo");
@@ -825,14 +836,23 @@
   function getBPTitle(rec) {
     return rec?.bioproject?.title || rec?.bioproject?.bioproject_title || rec?.bioproject?.name || "";
   }
+  function getAiCuration(rec) {
+    return rec?.ai_curation || {};
+  }
   function getAssayClass(rec) {
-    return rec?.assay?.assay_class || rec?.runinfo_row?.LibraryStrategy || "Unknown";
+    return getAiCuration(rec)?.final_assay_class || rec?.assay?.assay_class || rec?.runinfo_row?.LibraryStrategy || "Unknown";
   }
   function getCountry(rec) {
-    return rec?.geo?.country || "";
+    return getAiCuration(rec)?.final_country || rec?.geo?.country || "";
   }
   function getCity(rec) {
-    return rec?.geo?.city || "";
+    return getAiCuration(rec)?.final_city || rec?.geo?.city || "";
+  }
+  function hasAiFix(rec) {
+    return !!getAiCuration(rec)?.ai_fixed;
+  }
+  function getAiSufficiency(rec) {
+    return lower(getAiCuration(rec)?.metadata_sufficiency || "");
   }
   function getCenter(rec) {
     return rec?.runinfo_row?.CenterName || "";
@@ -1211,6 +1231,7 @@
     const wantCountry = norm(country.value);
     const wantCity = norm(city.value);
     const wantCenter = lower(center.value);
+    const wantAiFilter = norm(aiFilter?.value);
     const minY = parsedQ.minYear != null ? parsedQ.minYear : safeInt(minYear.value);
     const maxY = parsedQ.maxYear != null ? parsedQ.maxYear : safeInt(maxYear.value);
 
@@ -1258,6 +1279,16 @@
     if (wantCenter) {
       const centers = p.runs.map(r => lower(getCenter(r)));
       if (!centers.some(c => c.includes(wantCenter))) return false;
+    }
+
+    if (wantAiFilter === "fixed") {
+      if (!p.runs.some(hasAiFix)) return false;
+    }
+    if (wantAiFilter === "original") {
+      if (p.runs.some(hasAiFix)) return false;
+    }
+    if (wantAiFilter === "insufficient") {
+      if (!p.runs.some(r => getAiSufficiency(r) === "insufficient")) return false;
     }
 
     if (parsedQ.fields.length || parsedQ.terms.length) {
@@ -1503,6 +1534,10 @@
       const lat = norm(getLatitude(rec)) || norm(fallback?.lat);
       const lon = norm(getLongitude(rec)) || norm(fallback?.lon);
       const coordLabel = lat && lon ? `${lat}, ${lon}` : (norm(fallback?.label) || lat || lon);
+      const ai = getAiCuration(rec);
+      const aiNote = ai?.reviewed
+        ? [ai.ai_fixed ? "AI-fixed" : "AI-reviewed", ai.metadata_sufficiency || "", ai.urban_origin || ""].filter(Boolean).join(" · ")
+        : "";
 
       return `
         <tr>
@@ -1514,6 +1549,7 @@
               : `<span class="mono">${escapeHtml(bs)}</span>`
             }
             ${coordLabel ? `<div class="sub">Lat/Lon: <span class="mono">${escapeHtml(coordLabel)}</span></div>` : ``}
+            ${aiNote ? `<div class="sub">${escapeHtml(aiNote)}</div>` : ``}
           </td>
           <td><span class="chip ${assay === "Unknown" ? "warn" : "good"}">${escapeHtml(assay)}</span></td>
           <td>${escapeHtml(ctry)}</td>
@@ -1623,6 +1659,7 @@
     center.value = "";
     minYear.value = "";
     maxYear.value = "";
+    if (aiFilter) aiFilter.value = "";
     if (requireGeo) requireGeo.checked = true;
     if (excludeUnknown) excludeUnknown.checked = true;
     perPageSel.value = "100";
@@ -1674,6 +1711,7 @@
         center: center.value,
         min_year: minYear.value,
         max_year: maxYear.value,
+        ai_filter: aiFilter?.value || "",
         require_geo: !!(requireGeo && requireGeo.checked),
         exclude_unknown: !!(excludeUnknown && excludeUnknown.checked)
       },
@@ -1698,7 +1736,8 @@
         layout: norm(getLayout(rec)),
         library_source: norm(getLibSource(rec)),
         sra_download_path: norm(getDownloadPath(rec)),
-        ncbi_srr_url: rec?.ncbi?.srr_url || ""
+        ncbi_srr_url: rec?.ncbi?.srr_url || "",
+        ai_curation: rec?.ai_curation || {}
       }))
     };
   }
@@ -1805,7 +1844,8 @@ echo "[UrbanScope] completed FASTQ export into $OUTDIR/fastq"
         city: city.value,
         center: center.value,
         min_year: minYear.value,
-        max_year: maxYear.value
+        max_year: maxYear.value,
+        ai_filter: aiFilter?.value || ""
       },
       projects: slice
     }, null, 2)], {type:"application/json"});
@@ -1859,6 +1899,7 @@ echo "[UrbanScope] completed FASTQ export into $OUTDIR/fastq"
     inp.addEventListener("keydown", (e) => { if (e.key === "Enter") applyFilters(); });
   });
 
+  if (aiFilter) aiFilter.addEventListener("change", applyFilters);
   if (requireGeo) requireGeo.addEventListener("change", applyFilters);
   if (excludeUnknown) excludeUnknown.addEventListener("change", applyFilters);
 

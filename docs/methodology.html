@@ -42,7 +42,7 @@
       <h1>Transparent derivation is part of the database, not an afterthought.</h1>
       <p>
         UrbanScope ingests public sequencing metadata, preserves run-level provenance, enriches records with project and location
-        context, and republishes the result as static web artifacts. This page describes the current workflow in reviewer-facing terms.
+        context, and republishes the result as versioned web artifacts. This page describes the current workflow in reviewer-facing terms.
       </p>
     </section>
 
@@ -130,6 +130,164 @@
     </section>
 
     <section class="section">
+      <div class="section-header">
+        <h2>Technical Documentation</h2>
+      </div>
+      <div class="split">
+        <div class="panel">
+          <div class="kicker">Acquisition Layer</div>
+          <h3>How records enter the database</h3>
+          <div class="info-list" style="margin-top:12px">
+            <div class="info-item">
+              <strong>Search strategy</strong>
+              UrbanScope queries public NCBI-linked resources with one or more urban-environment query profiles rather than relying on a single keyword expression. This increases recall for studies described with different vocabulary.
+            </div>
+            <div class="info-item">
+              <strong>Primary execution commands</strong>
+              The harvester is driven through <span class="mono">python3 -m scripts.urbanscope_harvester.cli</span> with the main commands <span class="mono">crawl</span>, <span class="mono">daily</span>, <span class="mono">backfill-year</span>, and <span class="mono">curate-ai</span>.
+            </div>
+            <div class="info-item">
+              <strong>Run-level accumulation</strong>
+              Newly discovered records are appended into year-scoped JSONL catalogs under <span class="mono">data/</span>, which function as the internal accumulation layer before the web release is rebuilt.
+            </div>
+            <div class="info-item">
+              <strong>Deduplication</strong>
+              The pipeline tracks seen SRA UIDs and SRR accessions so repeated crawl runs do not re-emit the same accession into the release catalogs.
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="kicker">Enrichment Layer</div>
+          <h3>How metadata are normalized and joined</h3>
+          <div class="info-list" style="margin-top:12px">
+            <div class="info-item">
+              <strong>RunInfo backbone</strong>
+              Each record starts from SRA RunInfo-style fields such as SRR accession, BioProject, BioSample, sequencing center, library strategy, release date, and run download path.
+            </div>
+            <div class="info-item">
+              <strong>BioProject joins</strong>
+              When enabled, linked BioProject records are cached and joined to add project accession, title, description, and related project-level context.
+            </div>
+            <div class="info-item">
+              <strong>BioSample joins</strong>
+              BioSample metadata are inspected for structured attributes, free-text descriptions, and location-related fields. If latitude and longitude are present, they are propagated into the record and used by the map views.
+            </div>
+            <div class="info-item">
+              <strong>Derived annotations</strong>
+              Geographic harmonization and assay-class labeling are computed from the original public metadata and added as derived fields rather than replacing the source record.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="split" style="margin-top:20px">
+        <div class="panel">
+          <div class="kicker">AI Review Layer</div>
+          <h3>How AI-assisted curation is applied</h3>
+          <div class="info-list" style="margin-top:12px">
+            <div class="info-item">
+              <strong>Purpose</strong>
+              AI review is used as a metadata curation layer, not as the source of record. It evaluates whether the available evidence is sufficient, whether a sample appears to come from an urban context, and whether country, city, or assay annotations likely need correction.
+            </div>
+            <div class="info-item">
+              <strong>Evidence inspected</strong>
+              The curation step considers the harvested record, linked BioSample metadata, linked BioProject metadata, titles, descriptions, and other available repository text together before writing an <span class="mono">ai_curation</span> object.
+            </div>
+            <div class="info-item">
+              <strong>Non-destructive output</strong>
+              Original metadata are preserved. AI-reviewed values are stored alongside them as final annotations such as <span class="mono">final_country</span>, <span class="mono">final_city</span>, and <span class="mono">final_assay_class</span>, plus review flags such as <span class="mono">metadata_sufficient</span>, <span class="mono">urban_origin</span>, and <span class="mono">ai_fixed</span>.
+            </div>
+            <div class="info-item">
+              <strong>Caching</strong>
+              AI reviews are cached so repeated runs do not need to re-curate unchanged records unless an overwrite pass is explicitly requested.
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="kicker">Publication Layer</div>
+          <h3>How the website is generated</h3>
+          <div class="info-list" style="margin-top:12px">
+            <div class="info-item">
+              <strong>Export rebuild</strong>
+              The exporter reconstructs the public release from internal catalogs and caches, then writes browser-consumable JSON into <span class="mono">docs/db/</span>.
+            </div>
+            <div class="info-item">
+              <strong>Chunked delivery</strong>
+              Large SRR collections are split into a manifest file plus one or more part files so the browser can stream the release in manageable pieces instead of loading one monolithic document.
+            </div>
+            <div class="info-item">
+              <strong>Client-side aggregation</strong>
+              The website loads SRR-level data in JavaScript and aggregates it into BioProject-level views, analytics panels, charts, maps, and export bundles directly in the browser.
+            </div>
+            <div class="info-item">
+              <strong>Release traceability</strong>
+              Each rebuild records a generation timestamp in the public manifest so readers can tell when the current release snapshot was produced.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>Operational Flow</h2>
+      </div>
+      <div class="panel">
+        <div class="info-list">
+          <div class="info-item">
+            <strong>1. Discovery crawl</strong>
+            A crawl, daily refresh, or year backfill queries the target search profiles and resolves matching SRA-linked records.
+          </div>
+          <div class="info-item">
+            <strong>2. Record ingestion</strong>
+            Matching UIDs are normalized into SRR-level records, deduplicated, and appended into the internal year-scoped catalogs under <span class="mono">data/</span>.
+          </div>
+          <div class="info-item">
+            <strong>3. Linked enrichment</strong>
+            Optional BioProject and BioSample fetches populate caches that support project descriptions, location harmonization, and sample-coordinate recovery.
+          </div>
+          <div class="info-item">
+            <strong>4. AI curation</strong>
+            If enabled, the curation layer reviews existing or newly harvested records and writes AI review objects into the curation cache.
+          </div>
+          <div class="info-item">
+            <strong>5. Public export rebuild</strong>
+            Export generation merges source metadata, derived annotations, and AI review fields into the public JSON release in <span class="mono">docs/db/</span>.
+          </div>
+          <div class="info-item">
+            <strong>6. Browser delivery</strong>
+            The explorer, analytics, charts, downloads, and global map all consume those published JSON artifacts directly in JavaScript.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>Automation And Reproducibility</h2>
+      </div>
+      <div class="card-grid">
+        <article class="panel">
+          <h3>Local execution</h3>
+          <p>
+            The same Python CLI used in development can be run locally for deep searches, targeted backfills, and full AI curation passes. This keeps the acquisition and publication logic aligned across local and hosted runs.
+          </p>
+        </article>
+        <article class="panel">
+          <h3>GitHub Actions execution</h3>
+          <p>
+            Repository workflows can run scheduled refreshes as well as manual full-dataset AI curation. The full-dataset workflow invokes <span class="mono">curate-ai</span>, rebuilds exported artifacts, and commits updated release files back into version control.
+          </p>
+        </article>
+        <article class="panel">
+          <h3>Versioned public release</h3>
+          <p>
+            Because the published database lives in tracked repository artifacts, each site update is inspectable as a versioned release snapshot rather than an opaque database mutation.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
       <div class="split">
         <div class="panel">
           <div class="kicker">Included Fields</div>
@@ -149,6 +307,10 @@
             <div class="info-item">
               <strong><span class="mono">assay</span></strong>
               Heuristic assay classifications derived from run metadata for high-level filtering and summary analytics.
+            </div>
+            <div class="info-item">
+              <strong><span class="mono">ai_curation</span></strong>
+              Optional AI-reviewed sufficiency, urban-origin, and corrected final annotations stored alongside the original metadata fields.
             </div>
           </div>
         </div>

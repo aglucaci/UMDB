@@ -24,10 +24,17 @@ def _find_year_catalog_prefixes() -> List[str]:
 
 def rebuild_srr_exports_chunked():
     prefixes = _find_year_catalog_prefixes()
+    from .config import BIOPROJECT_CACHE, BIOSAMPLE_CACHE, AI_CURATION_CACHE
+    ai_cache = read_json(AI_CURATION_CACHE, {})
 
     def all_records() -> Iterator[Dict[str, Any]]:
         for base in prefixes:
-            yield from iter_jsonl_glob(base)
+            for rec in iter_jsonl_glob(base):
+                srr = (rec.get("srr") or rec.get("runinfo_row", {}).get("Run") or "").strip()
+                if srr and isinstance(ai_cache.get(srr), dict):
+                    rec = dict(rec)
+                    rec["ai_curation"] = ai_cache[srr]
+                yield rec
 
     manifest = write_json_array_chunked(
         out_prefix=os.path.join(DB_DIR, "srr_records"),
@@ -50,13 +57,14 @@ def rebuild_srr_exports_chunked():
         "years": manifest["years"],
     })
 
-    from .config import BIOPROJECT_CACHE, BIOSAMPLE_CACHE
     bp_cache = read_json(BIOPROJECT_CACHE, {})
     if bp_cache:
         write_json(os.path.join(DB_DIR, "bioprojects.json"), bp_cache)
     bs_cache = read_json(BIOSAMPLE_CACHE, {})
     if bs_cache:
         write_json(os.path.join(DB_DIR, "biosamples.json"), bs_cache)
+    if ai_cache:
+        write_json(os.path.join(DB_DIR, "ai_curation.json"), ai_cache)
 
 def write_latest_srr_safe(latest_items: List[Dict[str, Any]]):
     payload = {"generated_utc": utc_now(), "count": len(latest_items), "items": latest_items}

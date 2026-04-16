@@ -6,6 +6,9 @@ EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
 NCBI_API_KEY = os.getenv("NCBI_API_KEY", "").strip()
 TOOL_NAME = os.getenv("NCBI_TOOL", "urbanscope-srr-harvester")
 NCBI_EMAIL = os.getenv("NCBI_EMAIL", "")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()
 
 """
 DEFAULT_QUERY = (
@@ -224,6 +227,7 @@ SEEN_SRR_RUNS = f"{DATA_DIR}/seen_srr_runs.txt"
 BIOSAMPLE_CACHE = f"{CACHE_DIR}/biosample.json"
 BIOPROJECT_CACHE = f"{CACHE_DIR}/bioproject.json"
 BIOPROJECT_UID_CACHE = f"{CACHE_DIR}/bioproject_uid.json"
+AI_CURATION_CACHE = f"{CACHE_DIR}/ai_curation.json"
 
 DOCS_LATEST_SRR = f"{DOCS_DIR}/latest_srr.json"
 DOCS_LATEST_DEBUG = f"{DOCS_DEBUG_DIR}/latest_report.json"

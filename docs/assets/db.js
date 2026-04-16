@@ -37,16 +37,20 @@
     return rec?.runinfo_row?.BioSample || rec?.geo?.biosample_accession || "";
   }
 
+  function getAiCuration(rec){
+    return rec?.ai_curation || {};
+  }
+
   function getCountry(rec){
-    return rec?.geo?.country || "";
+    return getAiCuration(rec)?.final_country || rec?.geo?.country || "";
   }
 
   function getCity(rec){
-    return rec?.geo?.city || "";
+    return getAiCuration(rec)?.final_city || rec?.geo?.city || "";
   }
 
   function getAssay(rec){
-    return rec?.assay?.assay_class || rec?.runinfo_row?.LibraryStrategy || "Unknown";
+    return getAiCuration(rec)?.final_assay_class || rec?.assay?.assay_class || rec?.runinfo_row?.LibraryStrategy || "Unknown";
   }
 
   function getCenter(rec){
@@ -178,6 +182,7 @@
     getCenter,
     getBioProject,
     getBioSample,
+    getAiCuration,
     groupProjects
   };
 })();

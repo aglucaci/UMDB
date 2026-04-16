@@ -4,17 +4,23 @@ from typing import Any, Dict, List
 
 from .config import (
     DEFAULT_QUERY, QUERY_PROFILES, DEFAULT_QUERY_PROFILE_NAMES,
-    BIOSAMPLE_CACHE, BIOPROJECT_CACHE, BIOPROJECT_UID_CACHE,
+    BIOSAMPLE_CACHE, BIOPROJECT_CACHE, BIOPROJECT_UID_CACHE, AI_CURATION_CACHE, OPENAI_MODEL, OPENAI_API_KEY,
     DOCS_LATEST_DEBUG, DATA_DIR
 )
-from .utils import ensure_dirs, load_set, read_json, write_json, append_jsonl
+from .utils import ensure_dirs, load_set, read_json, write_json, append_jsonl, iter_jsonl_glob
 from .ncbi import esearch_recent, esearch_day, esearch_history, esummary_sra
 from .ingest import ingest_uids_to_srr, debug_paths
 from .exports import rebuild_srr_exports_chunked, write_latest_srr_safe
+from .ai_curation import curate_records
 
 def build_argparser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
+
+    def add_ai_args(parser):
+        parser.add_argument("--ai-curate", action="store_true")
+        parser.add_argument("--ai-model", default=OPENAI_MODEL)
+        parser.add_argument("--ai-max-records", type=int, default=0)
 
     d = sub.add_parser("daily")
     d.add_argument("--days", type=int, default=1)  # kept for compatibility
@@ -26,6 +32,7 @@ def build_argparser() -> argparse.ArgumentParser:
     d.add_argument("--fetch-bioproject", action="store_true")
     d.add_argument("--runinfo-max-rows", type=int, default=200000)
     d.add_argument("--recent-days", type=int, default=7)
+    add_ai_args(d)
 
     b = sub.add_parser("backfill-year")
     b.add_argument("--year", type=int, required=True)
@@ -36,6 +43,7 @@ def build_argparser() -> argparse.ArgumentParser:
     b.add_argument("--fetch-biosample", action="store_true")
     b.add_argument("--fetch-bioproject", action="store_true")
     b.add_argument("--runinfo-max-rows", type=int, default=200000)
+    add_ai_args(b)
 
     c = sub.add_parser("crawl")
     c.add_argument("--query", default=DEFAULT_QUERY)
@@ -48,11 +56,19 @@ def build_argparser() -> argparse.ArgumentParser:
     c.add_argument("--runinfo-max-rows", type=int, default=200000)
     c.add_argument("--stop-after-new-srr", type=int, default=0)
     c.add_argument("--sort", default="date")
+    add_ai_args(c)
+
+    a = sub.add_parser("curate-ai")
+    a.add_argument("--model", default=OPENAI_MODEL)
+    a.add_argument("--max-records", type=int, default=0)
+    a.add_argument("--overwrite", action="store_true")
+    a.add_argument("--year", type=int, default=0)
     return ap
 
 def resolve_query_specs(args) -> List[Dict[str, str]]:
-    selected_profiles = args.query_profile or []
-    use_default_profiles = (args.query == DEFAULT_QUERY) and not selected_profiles
+    selected_profiles = getattr(args, "query_profile", None) or []
+    query = getattr(args, "query", DEFAULT_QUERY)
+    use_default_profiles = (query == DEFAULT_QUERY) and not selected_profiles
 
     if use_default_profiles:
       return [{"name": name, "query": QUERY_PROFILES[name]} for name in DEFAULT_QUERY_PROFILE_NAMES]
@@ -60,11 +76,14 @@ def resolve_query_specs(args) -> List[Dict[str, str]]:
     if selected_profiles:
       return [{"name": name, "query": QUERY_PROFILES[name]} for name in selected_profiles]
 
-    return [{"name": "custom", "query": args.query}]
+    return [{"name": "custom", "query": query}]
 
 def run():
     args = build_argparser().parse_args()
     ensure_dirs()
+
+    if ((getattr(args, "ai_curate", False) or args.cmd == "curate-ai") and not OPENAI_API_KEY):
+        raise RuntimeError("OPENAI_API_KEY is required for AI-assisted curation")
 
     from .config import SEEN_SRA_UIDS, SEEN_SRR_RUNS, DOCS_LATEST_SRR
 
@@ -74,6 +93,7 @@ def run():
     biosample_cache = read_json(BIOSAMPLE_CACHE, {})
     bp_cache = read_json(BIOPROJECT_CACHE, {})
     bp_uid_cache = read_json(BIOPROJECT_UID_CACHE, {})
+    ai_cache = read_json(AI_CURATION_CACHE, {})
 
     latest_added: List[Dict[str, Any]] = []
     reports: List[Dict[str, Any]] = []
@@ -116,6 +136,16 @@ def run():
                     debug=args.debug, runinfo_max_rows=args.runinfo_max_rows,
                 )
                 if added_srr:
+                    if args.ai_curate:
+                        ai_counts = curate_records(
+                            added_srr,
+                            ai_cache=ai_cache,
+                            biosample_cache=biosample_cache,
+                            bioproject_cache=bp_cache,
+                            model=args.ai_model,
+                            max_records=args.ai_max_records,
+                        )
+                        report.setdefault("ai_curation", ai_counts)
                     year = dt.date.today().year
                     append_jsonl(f"{DATA_DIR}/srr_catalog_{year}.jsonl", added_srr)
 
@@ -169,10 +199,20 @@ def run():
                     debug=args.debug, runinfo_max_rows=args.runinfo_max_rows,
                 )
                 if added_srr:
+                    if args.ai_curate:
+                        ai_counts = curate_records(
+                            added_srr,
+                            ai_cache=ai_cache,
+                            biosample_cache=biosample_cache,
+                            bioproject_cache=bp_cache,
+                            model=args.ai_model,
+                            max_records=args.ai_max_records,
+                        )
+                        report.setdefault("ai_curation", ai_counts)
                     append_jsonl(f"{DATA_DIR}/srr_catalog_{year}.jsonl", added_srr)
                 reports.append(report)
 
-        else:  # crawl
+        elif args.cmd == "crawl":
             print("CRAWLING SEARCHES")
             retstart = 0
             page = 0
@@ -218,6 +258,16 @@ def run():
                 new_srr_total += new_srr_count
 
                 if added_srr:
+                    if args.ai_curate:
+                        ai_counts = curate_records(
+                            added_srr,
+                            ai_cache=ai_cache,
+                            biosample_cache=biosample_cache,
+                            bioproject_cache=bp_cache,
+                            model=args.ai_model,
+                            max_records=args.ai_max_records,
+                        )
+                        report.setdefault("ai_curation", ai_counts)
                     this_year = dt.date.today().year
                     append_jsonl(f"{DATA_DIR}/srr_catalog_{this_year}.jsonl", added_srr)
 
@@ -234,6 +284,36 @@ def run():
                 if max_total and total_seen >= max_total:
                     break
 
+        else:  # curate-ai
+            records: List[Dict[str, Any]] = []
+            year_prefix = f"srr_catalog_{args.year}.jsonl" if args.year else None
+            from .exports import _find_year_catalog_prefixes
+            for base in _find_year_catalog_prefixes():
+                if year_prefix and year_prefix not in base:
+                    continue
+                for rec in iter_jsonl_glob(base):
+                    records.append(rec)
+                    if args.max_records and len(records) >= args.max_records:
+                        break
+                if args.max_records and len(records) >= args.max_records:
+                    break
+
+            ai_counts = curate_records(
+                records,
+                ai_cache=ai_cache,
+                biosample_cache=biosample_cache,
+                bioproject_cache=bp_cache,
+                model=args.model,
+                overwrite=args.overwrite,
+                max_records=args.max_records,
+            )
+            reports.append({
+                "tag": "curate_ai",
+                "generated_utc": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
+                "ai_curation": ai_counts,
+                "records_considered": len(records),
+            })
+
         write_latest_srr_safe(latest_added[:5000])
         write_json(DOCS_LATEST_DEBUG, {
             "generated_utc": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
@@ -246,3 +326,4 @@ def run():
         write_json(BIOSAMPLE_CACHE, biosample_cache)
         write_json(BIOPROJECT_CACHE, bp_cache)
         write_json(BIOPROJECT_UID_CACHE, bp_uid_cache)
+        write_json(AI_CURATION_CACHE, ai_cache)

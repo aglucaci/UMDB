@@ -72,6 +72,41 @@ This improves coverage for studies that do not all use the same vocabulary in ti
 
 Even with broader discovery, UrbanScope should still be treated as a high-recall public index rather than a guaranteed complete census of every urban microbiome study ever performed. Repository metadata are inconsistent, and some studies are only discoverable through follow-up curation.
 
+## AI-Assisted Curation
+
+UrbanScope can now add an AI-assisted curation layer on top of the original public metadata.
+
+This curation layer is designed to:
+
+- judge whether the available metadata are sufficient for city-level interpretation
+- decide whether the sample appears to come from a truly urban or city-associated context
+- inspect BioSample attributes, titles, descriptions, and run metadata together
+- propose corrected country, city, or assay annotations when the evidence supports it
+- preserve the original annotations while publishing AI-reviewed final values alongside them
+
+AI curation is stored separately in cache and merged into the published dataset at export time as an `ai_curation` object on each record. The original repository metadata remain unchanged.
+
+### AI Curation Fields
+
+When present, `ai_curation` can include fields such as:
+
+- `metadata_sufficiency`
+- `metadata_sufficient`
+- `urban_origin`
+- `confidence`
+- `environment_type`
+- `ai_fixed`
+- `original_country`
+- `original_city`
+- `original_assay_class`
+- `final_country`
+- `final_city`
+- `final_assay_class`
+- `reasoning_summary`
+- `evidence`
+
+The website can then distinguish between original-only records and AI-fixed records.
+
 ## Repository Layout
 
 The repository is organized around three main areas: harvesting code, intermediate data, and published web artifacts.
@@ -225,6 +260,76 @@ Although the exact command flow may evolve, a normal update cycle looks like thi
 5. Commit the updated data and published files.
 
 In other words, a repository update is also a database release.
+
+## Local AI Curation
+
+To use AI-assisted metadata curation locally, set your environment first:
+
+```bash
+export OPENAI_API_KEY="your_openai_api_key"
+export OPENAI_MODEL="gpt-4o-mini"
+export NCBI_API_KEY="your_ncbi_api_key"
+export NCBI_EMAIL="you@example.org"
+export NCBI_TOOL="urbanscope-srr-harvester"
+```
+
+You can curate newly harvested records during a deep crawl:
+
+```bash
+python3 -m scripts.urbanscope_harvester.cli crawl \
+  --fetch-biosample \
+  --fetch-bioproject \
+  --page-size 500 \
+  --sort date \
+  --max-total 0 \
+  --stop-after-new-srr 0 \
+  --ai-curate
+```
+
+You can also run AI curation against existing harvested records:
+
+```bash
+python3 -m scripts.urbanscope_harvester.cli curate-ai \
+  --model gpt-4o-mini \
+  --max-records 500
+```
+
+To overwrite previously cached AI reviews:
+
+```bash
+python3 -m scripts.urbanscope_harvester.cli curate-ai \
+  --model gpt-4o-mini \
+  --overwrite \
+  --max-records 500
+```
+
+To target a single year:
+
+```bash
+python3 -m scripts.urbanscope_harvester.cli curate-ai \
+  --year 2024 \
+  --max-records 500
+```
+
+## GitHub Actions AI Curation
+
+The repository also includes a dedicated full-dataset AI curation workflow:
+
+- Workflow file: `.github/workflows/urbanscope_full_ai_curation.yml`
+- Workflow name in GitHub Actions: `UrbanScope Full AI Curation`
+- Required secret: `OPENAI_API_KEY`
+- Optional but recommended secrets for NCBI-linked context: `NCBI_API_KEY`, `NCBI_EMAIL`
+
+To run it in GitHub:
+
+1. Open the repository Actions tab.
+2. Select `UrbanScope Full AI Curation`.
+3. Click `Run workflow`.
+4. Leave `max_records` as `0` to process the entire dataset.
+5. Leave `year` blank to process all years, or set a single year for a targeted pass.
+6. Turn on `overwrite` only when you want to replace cached AI reviews.
+
+This workflow runs `python3 -m scripts.urbanscope_harvester.cli curate-ai`, rebuilds the exported database artifacts, and commits updated `data/` and `docs/` outputs back to the repository.
 
 ## Output Formats
 
