@@ -55,14 +55,22 @@
     }
     .heatmap{
       display:grid;
-      gap:8px;
+      gap:10px;
       margin-top:10px;
+      overflow-x:auto;
     }
     .heatmap-row{
       display:grid;
-      grid-template-columns:160px repeat(6, 1fr);
+      grid-template-columns:160px minmax(0, 1fr);
       gap:8px;
       align-items:center;
+    }
+    .heatmap-matrix{
+      display:grid;
+      width:100%;
+      gap:8px;
+      align-items:center;
+      justify-content:stretch;
     }
     .heatmap-label{
       color:#dce6f7;
@@ -72,13 +80,23 @@
       text-overflow:ellipsis;
     }
     .heat-cell{
-      height:28px;
-      border-radius:10px;
+      width:56px;
+      height:36px;
+      border-radius:12px;
       display:grid;
       place-items:center;
       font-size:11px;
       color:#edf3ff;
       border:1px solid rgba(148,174,214,.12);
+    }
+    .heat-bubble{
+      width:28px;
+      height:28px;
+      border-radius:999px;
+      display:grid;
+      place-items:center;
+      font-variant-numeric:tabular-nums;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
     }
     .mini-note{
       margin-top:10px;
@@ -98,7 +116,10 @@
         grid-template-columns:1fr;
       }
       .heatmap-row{
-        grid-template-columns:120px repeat(6, 1fr);
+        grid-template-columns:120px minmax(0, 1fr);
+      }
+      .heat-cell{
+        width:100%;
       }
     }
   </style>
@@ -201,21 +222,12 @@
     </section>
 
     <section class="section">
-      <div class="interactive-grid">
-        <div class="panel">
-          <div class="section-header">
-            <h2>Year by Location Heatmap</h2>
-            <p>Rows show top locations and columns show the most recent observed years in the filtered subset.</p>
-          </div>
-          <div class="heatmap" id="heatmap"></div>
+      <div class="panel">
+        <div class="section-header">
+          <h2>Year by Location Heatmap</h2>
+          <p>Rows show top locations and columns show the most recent observed years in the filtered subset.</p>
         </div>
-        <div class="panel">
-          <div class="section-header">
-            <h2>Summary Table</h2>
-            <p>Compact location table for the currently selected grouping.</p>
-          </div>
-          <div class="table-shell" id="locationTable"></div>
-        </div>
+        <div class="heatmap" id="heatmap"></div>
       </div>
     </section>
 
@@ -293,49 +305,37 @@
     }
 
     function renderHeatmap(target, rows, years) {
+      if (!rows.length || !years.length) {
+        target.innerHTML = `<div class="muted">No data for the current filters.</div>`;
+        return;
+      }
+
       const max = Math.max(...rows.flatMap((row) => years.map((year) => row.yearCounts.get(year) || 0)), 1);
       const head = `
         <div class="heatmap-row">
           <div class="heatmap-label muted">Location</div>
-          ${years.map((year) => `<div class="heatmap-label muted" style="text-align:center">${year}</div>`).join("")}
+          <div class="heatmap-matrix" style="grid-template-columns:repeat(${years.length}, minmax(48px, 1fr))">
+            ${years.map((year) => `<div class="heatmap-label muted" style="text-align:center">${year}</div>`).join("")}
+          </div>
         </div>
       `;
       const body = rows.map((row) => `
         <div class="heatmap-row">
           <div class="heatmap-label">${row.name}</div>
-          ${years.map((year) => {
-            const count = row.yearCounts.get(year) || 0;
-            const alpha = count ? 0.15 + (count / max) * 0.75 : 0.05;
-            return `<div class="heat-cell" style="background:rgba(115,167,255,${alpha})">${count ? fmt(count) : "0"}</div>`;
-          }).join("")}
+          <div class="heatmap-matrix" style="grid-template-columns:repeat(${years.length}, minmax(48px, 1fr))">
+            ${years.map((year) => {
+              const count = row.yearCounts.get(year) || 0;
+              const alpha = count ? 0.14 + (count / max) * 0.72 : 0.05;
+              return `
+                <div class="heat-cell">
+                  <div class="heat-bubble" style="background:rgba(115,167,255,${alpha})">${count ? fmt(count) : "0"}</div>
+                </div>
+              `;
+            }).join("")}
+          </div>
         </div>
       `).join("");
-      target.innerHTML = head + body || `<div class="muted">No data for the current filters.</div>`;
-    }
-
-    function renderTable(target, rows) {
-      target.innerHTML = `
-        <table class="summary-table">
-          <thead>
-            <tr>
-              <th>Location</th>
-              <th>Runs</th>
-              <th>BioProjects</th>
-              <th>Years</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows.slice(0, 20).map((row) => `
-              <tr>
-                <td>${row.name}</td>
-                <td class="mono">${fmt(row.count)}</td>
-                <td class="mono">${fmt(row.projects.size)}</td>
-                <td class="mono">${Array.from(row.years).sort((a, b) => a - b).join(", ") || "NA"}</td>
-              </tr>
-            `).join("") || `<tr><td colspan="4" class="muted">No rows for the current filters.</td></tr>`}
-          </tbody>
-        </table>
-      `;
+      target.innerHTML = head + body;
     }
 
     (async () => {
@@ -350,7 +350,6 @@
       const lineSvg = document.getElementById("lineChart");
       const topLocations = document.getElementById("topLocations");
       const heatmap = document.getElementById("heatmap");
-      const locationTable = document.getElementById("locationTable");
 
       try {
         const { allRuns } = await window.UMDBDB.fetchAllRuns();
@@ -425,7 +424,6 @@
 
           renderBars(topLocations, locationCounts);
           renderHeatmap(heatmap, locationRows, visibleYears);
-          renderTable(locationTable, locationRows);
         }
 
         [startYear, endYear, countrySelect, citySelect, assaySelect, groupingSelect].forEach((el) => el.addEventListener("change", rerender));

@@ -56,8 +56,8 @@ img{max-width:100%;display:block}
 }
 
 .site-brand-mark{
-  width:clamp(200px, 28vw, 320px);
-  height:clamp(52px, 8vw, 84px);
+  width:clamp(156px, 20vw, 240px);
+  height:clamp(40px, 5.5vw, 62px);
   border-radius:0;
   background:none;
   border:none;
