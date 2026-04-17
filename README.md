@@ -70,11 +70,11 @@ The default discovery pass combines several query profiles:
 
 This improves coverage for studies that do not all use the same vocabulary in titles, abstracts, or repository metadata.
 
-Even with broader discovery, UrbanScope should still be treated as a high-recall public index rather than a guaranteed complete census of every urban microbiome study ever performed. Repository metadata are inconsistent, and some studies are only discoverable through follow-up curation.
+Even with broader discovery, UMDB should still be treated as a high-recall public index rather than a guaranteed complete census of every urban microbiome study ever performed. Repository metadata are inconsistent, and some studies are only discoverable through follow-up curation.
 
 ## AI-Assisted Curation
 
-UrbanScope can now add an AI-assisted curation layer on top of the original public metadata.
+UMDB can now add an AI-assisted curation layer on top of the original public metadata.
 
 This curation layer is designed to:
 
@@ -112,7 +112,7 @@ The website can then distinguish between original-only records and AI-fixed reco
 The repository is organized around three main areas: harvesting code, intermediate data, and published web artifacts.
 
 ```text
-urbanscope/
+UMDB/
 ├── data/
 │   ├── cache/
 │   │   ├── bioproject.json
@@ -154,9 +154,9 @@ urbanscope/
 └── README.md
 ```
 
-## What Lives In `scripts/urbanscope_harvester/`
+## What Lives In The Harvester Package
 
-The Python package under `scripts/urbanscope_harvester/` is the operational core of the project.
+The Python package under `scripts/urbanscope_harvester/` is the operational core of UMDB. The package path still uses the older internal module name, but it powers the current UMDB pipeline and published site.
 
 - `cli.py` defines command-line entry behavior.
 - `ingest.py` coordinates harvesting and record assembly.
@@ -177,7 +177,7 @@ The `data/` directory is the working data store for harvesting and enrichment.
 - `srr_catalog_*.jsonl` files store accumulated run-level records.
 - `cache/` stores locally reused metadata lookups such as BioProject and BioSample responses.
 
-This directory is important because it represents the stateful layer of the pipeline. It is where UrbanScope remembers what it has seen and where it stages enriched metadata before export.
+This directory is important because it represents the stateful layer of the pipeline. It is where UMDB remembers what it has seen and where it stages enriched metadata before export.
 
 ## What Lives In `docs/`
 
@@ -192,7 +192,7 @@ Anything under `docs/` should be treated as published output, not just internal 
 
 ## Database Model
 
-UrbanScope currently publishes a manifest-plus-parts layout for SRR-level records.
+UMDB currently publishes a manifest-plus-parts layout for SRR-level records.
 
 ### Manifest
 
@@ -218,7 +218,7 @@ The website loads these files directly in the browser and aggregates them into B
 
 ## Why The Site Aggregates By BioProject
 
-Many users want to discover studies, not just individual runs. UrbanScope therefore groups records by BioProject in the main explorer while preserving the underlying SRR records for inspection.
+Many users want to discover studies, not just individual runs. UMDB therefore groups records by BioProject in the main explorer while preserving the underlying SRR records for inspection.
 
 This gives the site two layers:
 
@@ -241,7 +241,7 @@ These pages are meant to reduce ambiguity for collaborators, manuscript reviewer
 
 ## Design Principles
 
-UrbanScope follows a few simple design principles:
+UMDB follows a few simple design principles:
 
 - static publication over server complexity
 - auditable files over opaque backend state
@@ -270,7 +270,7 @@ export OPENAI_API_KEY="your_openai_api_key"
 export OPENAI_MODEL="gpt-4o-mini"
 export NCBI_API_KEY="your_ncbi_api_key"
 export NCBI_EMAIL="you@example.org"
-export NCBI_TOOL="urbanscope-srr-harvester"
+export NCBI_TOOL="umdb-srr-harvester"
 ```
 
 You can curate newly harvested records during a deep crawl:
@@ -316,24 +316,24 @@ python3 -m scripts.urbanscope_harvester.cli curate-ai \
 The repository also includes a dedicated full-dataset AI curation workflow:
 
 - Workflow file: `.github/workflows/urbanscope_full_ai_curation.yml`
-- Workflow name in GitHub Actions: `UrbanScope Full AI Curation`
+- Workflow name in GitHub Actions: `UMDB Full AI Curation`
 - Required secret: `OPENAI_API_KEY`
 - Optional but recommended secrets for NCBI-linked context: `NCBI_API_KEY`, `NCBI_EMAIL`
 
 To run it in GitHub:
 
 1. Open the repository Actions tab.
-2. Select `UrbanScope Full AI Curation`.
+2. Select `UMDB Full AI Curation`.
 3. Click `Run workflow`.
 4. Leave `max_records` as `0` to process the entire dataset.
 5. Leave `year` blank to process all years, or set a single year for a targeted pass.
 6. Turn on `overwrite` only when you want to replace cached AI reviews.
 
-This workflow runs `python3 -m scripts.urbanscope_harvester.cli curate-ai`, rebuilds the exported database artifacts, and commits updated `data/` and `docs/` outputs back to the repository.
+This workflow runs the harvester CLI, rebuilds the exported database artifacts, and commits updated `data/` and `docs/` outputs back to the repository.
 
 ## Output Formats
 
-UrbanScope publishes several output styles because different users need different levels of structure:
+UMDB publishes several output styles because different users need different levels of structure:
 
 - **JSONL** for accumulation-oriented internal catalogs in `data/`
 - **JSON** for the public website and machine-readable exports in `docs/`
@@ -344,7 +344,7 @@ At the moment, the public website is centered on JSON-driven delivery rather tha
 
 ## Downloading Raw Datasets
 
-UrbanScope is primarily a metadata and discovery resource, but the web explorer now supports bundling matched search results into download-ready dataset cohorts.
+UMDB is primarily a metadata and discovery resource, but the web explorer now supports bundling matched search results into download-ready dataset cohorts.
 
 From the main explorer, a user can:
 
@@ -352,16 +352,16 @@ From the main explorer, a user can:
 - export a plain-text list of SRR accessions
 - export a shell script that uses `prefetch` and `fasterq-dump` from SRA Toolkit
 
-This makes it possible to go from a filtered UrbanScope search to raw FASTQ retrieval without manually collecting accessions one by one.
+This makes it possible to go from a filtered UMDB search to raw FASTQ retrieval without manually collecting accessions one by one.
 
 ## Limitations
 
-UrbanScope is useful, but it should be interpreted carefully.
+UMDB is useful, but it should be interpreted carefully.
 
 - Geographic metadata may be incomplete, ambiguous, or inconsistently formatted.
 - Assay labels are practical summary categories, not formal reannotation of every study.
 - Inclusion reflects what is publicly available and discoverable through the current harvesting logic.
-- Presence in UrbanScope does not imply endorsement, quality ranking, or uniform study design.
+- Presence in UMDB does not imply endorsement, quality ranking, or uniform study design.
 
 These limitations are expected for public metadata integration projects and should be stated clearly in any manuscript built around the resource.
 
@@ -378,7 +378,7 @@ The project is intentionally lightweight.
 
 ## Disclaimer
 
-UrbanScope is provided for research and informational purposes only. It does not constitute medical advice, clinical guidance, or public health policy.
+UMDB is provided for research and informational purposes only. It does not constitute medical advice, clinical guidance, or public health policy.
 
 ## Author
 

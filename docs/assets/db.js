@@ -169,7 +169,7 @@
     return new Intl.NumberFormat("en-US").format(value || 0);
   }
 
-  window.UMDB = {
+  const api = {
     fetchManifest,
     fetchAllRuns,
     summarize,
@@ -185,4 +185,9 @@
     getAiCuration,
     groupProjects
   };
+
+  // Keep both globals available so older pages and newer pages can share
+  // the same data helpers without runtime errors.
+  window.UMDB = api;
+  window.UMDBDB = api;
 })();

@@ -1,4 +1,4 @@
-name: UrbanScope Daily Crawl
+name: UMDB Daily Crawl
 
 on:
   schedule:
@@ -85,7 +85,7 @@ jobs:
             pip install -r requirements.txt
           fi
 
-      - name: Run UrbanScope crawler
+      - name: Run UMDB crawler
         env:
           NCBI_API_KEY: ${{ secrets.NCBI_API_KEY }}
           NCBI_EMAIL: ${{ secrets.NCBI_EMAIL }}
@@ -170,5 +170,5 @@ jobs:
 
           git add data docs || true
 
-          git commit -m "UrbanScope daily crawl $(date -u +'%Y-%m-%d')" || echo "No changes"
+          git commit -m "UMDB daily crawl $(date -u +'%Y-%m-%d')" || echo "No changes"
           git push

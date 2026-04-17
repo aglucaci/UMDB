@@ -1,4 +1,4 @@
-name: UrbanScope Full AI Curation
+name: UMDB Full AI Curation
 
 on:
   workflow_dispatch:
@@ -96,5 +96,5 @@ jobs:
           git restore scripts/urbanscope_harvester/__pycache__ || true
           git add .gitignore data docs || true
 
-          git commit -m "UrbanScope AI curation $(date -u +'%Y-%m-%d')" || echo "No changes"
+          git commit -m "UMDB AI curation $(date -u +'%Y-%m-%d')" || echo "No changes"
           git push
