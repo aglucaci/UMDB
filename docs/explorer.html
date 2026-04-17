@@ -226,9 +226,25 @@
     .title{font-weight:750}
     .sub{color:var(--muted);font-size:11px;margin-top:3px;line-height:1.25}
     .pager{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
-    .status{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .bar{height:8px;width:240px;border-radius:999px;background:rgba(53,92,125,.08);border:1px solid var(--line);overflow:hidden}
-    .bar > div{height:100%;background:rgba(53,92,125,.55);width:0%}
+    .status{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .progressWrap{display:flex;flex-direction:column;gap:6px;min-width:min(100%, 360px);flex:1 1 320px}
+    .bar{
+      position:relative;
+      height:12px;
+      width:100%;
+      border-radius:999px;
+      background:rgba(53,92,125,.08);
+      border:1px solid var(--line);
+      overflow:hidden
+    }
+    .bar > div{
+      height:100%;
+      width:0%;
+      background:linear-gradient(90deg, rgba(53,92,125,.85), rgba(122,162,208,.95));
+      transition:width .18s ease;
+    }
+    .progressMeta{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+    .progressPct{font-size:12px;font-weight:700;color:var(--fg)}
     .err{color:var(--bad)}
     .ok{color:var(--good)}
     .footer{margin:12px 0 4px;color:var(--muted);font-size:11px}
@@ -606,7 +622,8 @@
 
                 <div style="margin-top:10px">
                   <div class="status">
-                    <div class="bar"><div id="prog"></div></div>
+                    <div class="bar" aria-hidden="true" style="flex:1 1 320px"><div id="prog"></div></div>
+                    <div class="progressPct" id="pPct">0%</div>
                     <div class="small muted" id="pLoad">—</div>
                   </div>
                   <div class="small muted" id="pMsg" style="margin-top:6px">—</div>
@@ -685,7 +702,6 @@
             <button id="next">Next</button>
           </div>
           <div class="small muted">
-            Sorting is by BioProject-level aggregates (runs, unique BioSamples, etc.).
           </div>
         </div>
 
@@ -723,7 +739,19 @@
   const pGenerated = el("pGenerated");
   const pTotals = el("pTotals");
   const pLoad = el("pLoad");
+  const pPct = el("pPct");
   const pMsg = el("pMsg");
+  let pEta = el("pEta");
+
+  if (!pEta && pMsg?.parentNode) {
+    pEta = document.createElement("div");
+    pEta.id = "pEta";
+    pEta.className = "small muted";
+    pEta.style.marginTop = "6px";
+    pEta.textContent = "Waiting to start...";
+    pMsg.parentNode.insertBefore(pEta, pMsg);
+    pMsg.style.marginTop = "4px";
+  }
 
   const pShown = el("pShown");
   const pMatched = el("pMatched");
@@ -851,6 +879,13 @@
   function setProgress(done, total) {
     const pct = total ? Math.round((done / total) * 100) : 0;
     prog.style.width = `${pct}%`;
+    if (pPct) pPct.textContent = `${pct}%`;
+    if (pEta) {
+      const remaining = Math.max((total || 0) - (done || 0), 0);
+      pEta.textContent = remaining > 0
+        ? `${remaining} part${remaining === 1 ? "" : "s"} remaining`
+        : "All parts loaded";
+    }
   }
 
   function setMsg(html, cls="muted") {
