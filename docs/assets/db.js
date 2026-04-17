@@ -169,7 +169,7 @@
     return new Intl.NumberFormat("en-US").format(value || 0);
   }
 
-  window.UrbanScopeDB = {
+  window.UMDB = {
     fetchManifest,
     fetchAllRuns,
     summarize,

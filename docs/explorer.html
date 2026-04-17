@@ -748,9 +748,18 @@
   const mode = el("mode");
   const perPageSel = el("perPage");
   const requireGeo = el("requireGeo");
-  const excludeUnknown = el("excludeUnknown");
-
-  const btnApply = el("btnApply");
+  // --------- URL Params ---------- 
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('q')) {
+    q.value = urlParams.get('q');
+  }
+  if (urlParams.has('srr')) {
+    const srrs = urlParams.get('srr').split(',').map(s => s.trim()).filter(Boolean);
+    if (srrs.length) {
+      const query = srrs.map(s => `srr:${s}`).join(' OR ');
+      q.value = query;
+    }
+  }
   const btnReset = el("btnReset");
   const btnStop = el("btnStop");
   const btnExport = el("btnExport");
@@ -1738,7 +1747,7 @@
 
     return {
       exported_utc: new Date().toISOString(),
-      source: "UrbanScope search bundle",
+      source: "UMDB search bundle",
       filters: {
         q: q.value,
         assay: assay.value,
@@ -1915,7 +1924,7 @@ echo "[UrbanScope] completed FASTQ export into $OUTDIR/fastq"
     modeToggle.addEventListener("click", () => {
       const current = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
       const next = current === "dark" ? "light" : "dark";
-      localStorage.setItem("urbanscope-explorer-theme", next);
+      localStorage.setItem("umdb-explorer-theme", next);
       applyTheme(next);
     });
   }
@@ -1954,7 +1963,7 @@ echo "[UrbanScope] completed FASTQ export into $OUTDIR/fastq"
   // --------- Init ----------
   (async () => {
     try {
-      const savedTheme = localStorage.getItem("urbanscope-explorer-theme");
+      const savedTheme = localStorage.getItem("umdb-explorer-theme");
       applyTheme(savedTheme === "light" ? "light" : "dark");
       setCollapsed(refineCard, refineToggle, refineToggleIcon, false);
       setCollapsed(actionsCard, actionsToggle, actionsToggleIcon, true);
@@ -1965,6 +1974,9 @@ echo "[UrbanScope] completed FASTQ export into $OUTDIR/fastq"
       // Load data
       const loadAll = mode.value === "all";
       await loadParts({loadAll});
+
+      // Apply URL params if present
+      if (q.value) applyFilters();
 
       // If user flips mode later, re-load on demand
       mode.addEventListener("change", async () => {

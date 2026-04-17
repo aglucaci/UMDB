@@ -1,6 +1,6 @@
-# UrbanScope
+# UMDB (Urban Microbiome Database)
 
-**UrbanScope** is a GitHub-hosted bioinformatics resource for discovering, organizing, and publishing urban environmental sequencing metadata from public repositories.
+**UMDB (Urban Microbiome Database)** is a GitHub-hosted bioinformatics resource for discovering, organizing, and publishing urban environmental sequencing metadata from public repositories.
 
 The repository has two jobs:
 
@@ -13,7 +13,7 @@ https://aglucaci.github.io/urbanscope/
 
 ## What This Repository Is
 
-UrbanScope is designed as scientific infrastructure for urban metagenomics and related environmental sequencing studies. It focuses on public sequencing records associated with urban, built-environment, wastewater, air, surface, and similar city-linked contexts.
+UMDB (Urban Microbiome Database) is designed as scientific infrastructure for urban metagenomics and related environmental sequencing studies. It focuses on public sequencing records associated with urban, built-environment, wastewater, air, surface, and similar city-linked contexts.
 
 Rather than operating as a traditional server-backed application, the repository stores harvested records directly in versioned files and publishes a static web interface through GitHub Pages. This keeps the project easy to inspect, easy to archive, and inexpensive to maintain.
 
@@ -33,7 +33,7 @@ The published site includes:
 
 ## How The Repository Works
 
-At a high level, UrbanScope follows this flow:
+At a high level, UMDB (Urban Microbiome Database) follows this flow:
 
 1. Discover candidate public records from NCBI-linked resources.
 2. Retrieve run-level metadata for SRR entries.
@@ -47,7 +47,7 @@ This means the repository itself is both the processing workspace and the publis
 
 ## Data Sources
 
-UrbanScope uses public repository metadata. The main sources currently represented in the code and outputs are:
+UMDB (Urban Microbiome Database) uses public repository metadata. The main sources currently represented in the code and outputs are:
 
 - **NCBI SRA** for run-level sequencing metadata
 - **NCBI BioProject** for project-level metadata
@@ -58,7 +58,7 @@ All records remain subject to the quality and completeness of the original publi
 
 ## Discovery Strategy
 
-UrbanScope no longer relies on a single search string for study discovery. The harvester now supports a multi-profile query strategy intended to improve recall across different ways urban microbiome studies are described in public repositories.
+UMDB (Urban Microbiome Database) no longer relies on a single search string for study discovery. The harvester now supports a multi-profile query strategy intended to improve recall across different ways urban microbiome studies are described in public repositories.
 
 The default discovery pass combines several query profiles:
 

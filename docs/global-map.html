@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>UrbanScope — Global Map</title>
-  <meta name="description" content="Large interactive global distribution map for UrbanScope with year filters, regional views, and fullscreen exploration." />
+  <title>UMDB — Global Map</title>
+  <meta name="description" content="Large interactive global distribution map for UMDB with year filters, regional views, and fullscreen exploration." />
   <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon_16.png" />
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon_32.png" />
   <link rel="icon" href="./assets/favicon.ico" />
   <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
-  <meta property="og:image" content="./assets/urbanscope_logo.png" />
+  <meta property="og:image" content="./assets/umdb_logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -20,6 +20,8 @@
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
     crossorigin=""
   />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-contextmenu@1.4.0/dist/leaflet.contextmenu.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
   <style>
     .map-page{
       max-width:1560px;
@@ -197,10 +199,10 @@
   <div class="site-shell map-page">
     <nav class="site-nav">
       <a class="site-brand" href="./index.html">
-        <div class="site-brand-mark"><img src="./assets/urbanscope_logo.png" alt="UrbanScope logo" /></div>
+        <div class="site-brand-mark"><img src="./assets/umdb_logo.png" alt="UMDB logo" /></div>
         <div class="site-brand-copy">
-          <strong>UrbanScope</strong>
-          <span>Urban environmental omics resource</span>
+          <strong>UMDB</strong>
+          <span>Urban Microbiome Database</span>
         </div>
       </a>
       <div class="site-links">
@@ -268,6 +270,7 @@
                 <div class="mini-hint" id="mapSubtitle">Loading interactive map…</div>
               </div>
               <div class="map-toolbar-actions">
+                <button class="toolbar-btn" id="selectArea">Select Area</button>
                 <button class="toolbar-btn" id="resetMap">Reset Filters</button>
                 <button class="toolbar-btn" id="fullscreenMap">Fullscreen</button>
               </div>
@@ -315,8 +318,12 @@
                   Change the map region to zoom the display toward a single continent-style view.
                 </div>
                 <div class="info-item">
-                  <strong>Use sample coordinates when available</strong>
-                  Switch the map layer to sample coordinates to place marker points from BioSample latitude and longitude attributes.
+                  <strong>Right-click markers to load in explorer</strong>
+                  Right-click on any sample marker to open it directly in the BioProject Explorer for detailed inspection.
+                </div>
+                <div class="info-item">
+                  <strong>Use rectangle tool to select multiple samples</strong>
+                  Click the rectangle icon in the top-left toolbar to draw a selection area. All samples within the drawn rectangle will be loaded into the explorer.
                 </div>
               </div>
             </div>
@@ -336,8 +343,10 @@
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
     crossorigin=""
   ></script>
+  <script src="https://unpkg.com/leaflet-contextmenu@1.4.0/dist/leaflet.contextmenu.min.js"></script>
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
   <script>
-    const fmt = (value) => window.UrbanScopeDB.formatNumber(value);
+    const fmt = (value) => window.UMDB.formatNumber(value);
     const norm = (value) => (value ?? "").toString().trim();
     const known = (value) => {
       const s = norm(value).toLowerCase();
@@ -402,7 +411,7 @@
         return { lat: directLat, lon: directLon };
       }
 
-      const biosample = window.UrbanScopeDB.getBioSample(rec);
+      const biosample = window.UMDB.getBioSample(rec);
       const attrs = biosample && bioLookup && bioLookup[biosample] ? (bioLookup[biosample].attributes || {}) : null;
       const raw = attrs ? (attrs.lat_lon || attrs["latitude and longitude"] || attrs.latitude_longitude || "") : "";
       return parseLatLonText(raw);
@@ -454,6 +463,35 @@
       basemap.addTo(map);
       const pointLayer = L.layerGroup().addTo(map);
 
+      const drawControl = new L.Control.Draw({
+        draw: {
+          polyline: false,
+          polygon: false,
+          circle: false,
+          marker: false,
+          circlemarker: false,
+          rectangle: true
+        },
+        edit: false
+      });
+      map.addControl(drawControl);
+
+      map.on('draw:created', function (e) {
+        const layer = e.layer;
+        const bounds = layer.getBounds();
+        const selectedSRRs = [];
+        pointLayer.eachLayer(function(marker) {
+          if (bounds.contains(marker.getLatLng())) {
+            selectedSRRs.push(marker.options.srr);
+          }
+        });
+        if (selectedSRRs.length) {
+          const srrParam = selectedSRRs.join(',');
+          window.open(`explorer.html?srr=${srrParam}`, '_blank');
+        }
+        map.removeLayer(layer);
+      });
+
       function applyRegionView() {
         const bounds = REGION_BOUNDS[regionSelect.value] || REGION_BOUNDS.world;
         map.fitBounds(bounds, { padding: [24, 24] });
@@ -503,7 +541,15 @@
             weight: 1,
             color: "#cfe4ff",
             fillColor: "#4ec5a8",
-            fillOpacity: 0.68
+            fillOpacity: 0.68,
+            srr: row.run,
+            contextmenu: true,
+            contextmenuItems: [{
+              text: 'Load in Explorer',
+              callback: function(e) {
+                window.open(`explorer.html?srr=${this.options.srr}`, '_blank');
+              }
+            }]
           });
           marker.bindPopup(`
             <div style="min-width:220px">
@@ -543,8 +589,8 @@
       }
 
       try {
-        const { allRuns } = await window.UrbanScopeDB.fetchAllRuns();
-        const allYears = Array.from(new Set(allRuns.map(window.UrbanScopeDB.yearFromRecord).filter(Boolean))).sort((a, b) => a - b);
+        const { allRuns } = await window.UMDB.fetchAllRuns();
+        const allYears = Array.from(new Set(allRuns.map(window.UMDB.yearFromRecord).filter(Boolean))).sort((a, b) => a - b);
         fillYearSelect(startYear, allYears);
         fillYearSelect(endYear, allYears);
         applyRegionView();
@@ -554,8 +600,8 @@
           const maxYear = endYear.value ? parseInt(endYear.value, 10) : null;
           const needle = countrySearch.value.trim().toLowerCase();
           return allRuns.filter((rec) => {
-            const country = window.UrbanScopeDB.getCountry(rec);
-            const year = window.UrbanScopeDB.yearFromRecord(rec);
+            const country = window.UMDB.getCountry(rec);
+            const year = window.UMDB.yearFromRecord(rec);
             if (minYear != null && (year == null || year < minYear)) return false;
             if (maxYear != null && (year == null || year > maxYear)) return false;
             if (needle && !country.toLowerCase().includes(needle)) return false;
@@ -569,7 +615,7 @@
           clearLayer();
           const counts = new Map();
           runs.forEach((rec) => {
-            const country = window.UrbanScopeDB.getCountry(rec);
+            const country = window.UMDB.getCountry(rec);
             if (known(country)) counts.set(country, (counts.get(country) || 0) + 1);
           });
           const countries = Array.from(counts.entries())
@@ -577,8 +623,8 @@
             .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 
           const topCountry = countries[0];
-          const projectCount = new Set(runs.map(window.UrbanScopeDB.getBioProject).filter(Boolean)).size;
-          const visibleYears = Array.from(new Set(runs.map(window.UrbanScopeDB.yearFromRecord).filter(Boolean))).sort((a, b) => a - b);
+          const projectCount = new Set(runs.map(window.UMDB.getBioProject).filter(Boolean)).size;
+          const visibleYears = Array.from(new Set(runs.map(window.UMDB.yearFromRecord).filter(Boolean))).sort((a, b) => a - b);
           let coordinateRows = [];
 
           if (mapMode.value === "samples") {
@@ -591,9 +637,9 @@
             coordinateRows = runs.map((rec) => {
               const coords = extractCoordinates(rec, bioLookup);
               if (!coords) return null;
-              const country = window.UrbanScopeDB.getCountry(rec);
-              const city = window.UrbanScopeDB.getCity(rec);
-              const biosample = window.UrbanScopeDB.getBioSample(rec);
+              const country = window.UMDB.getCountry(rec);
+              const city = window.UMDB.getCity(rec);
+              const biosample = window.UMDB.getBioSample(rec);
               const run = rec?.srr || rec?.runinfo_row?.Run || "";
               return {
                 lat: coords.lat,
@@ -602,7 +648,7 @@
                 city,
                 biosample,
                 run,
-                project: window.UrbanScopeDB.getBioProject(rec),
+                project: window.UMDB.getBioProject(rec),
                 runCount: 1,
                 label: [country, city, biosample || run].filter(Boolean).join(" • ")
               };
