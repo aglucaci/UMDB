@@ -585,6 +585,7 @@
 
                 <div style="margin-top:10px">
                   <label>AI metadata filters</label>
+                  <div class="small muted" id="aiFilterStatus" style="margin-top:6px">Checking AI metadata availability...</div>
                   <div class="checkrow" style="margin-top:8px">
                     <label for="aiReviewedOnly">
                       <input type="checkbox" id="aiReviewedOnly" />
@@ -824,6 +825,7 @@
   const matchedProjectsLarge = el("matchedProjectsLarge");
   const shownProjectsLarge = el("shownProjectsLarge");
   const matchedRunsLarge = el("matchedRunsLarge");
+  const aiFilterStatus = el("aiFilterStatus");
 
   const q = el("q");
   const assay = el("assay");
@@ -966,6 +968,26 @@
     pMsg.innerHTML = html;
     if (loadBannerStatus) {
       loadBannerStatus.textContent = (html || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    }
+  }
+
+  function updateAiFilterAvailability() {
+    const aiRuns = allRuns.filter((rec) => {
+      const ai = getAiCuration(rec);
+      return ai && Object.keys(ai).length > 0;
+    });
+    const hasAiMetadata = aiRuns.length > 0;
+    const controls = [aiReviewedOnly, aiFixedOnly, aiInsufficientOnly, aiUrbanOnly].filter(Boolean);
+
+    controls.forEach((box) => {
+      box.disabled = !hasAiMetadata;
+      if (!hasAiMetadata) box.checked = false;
+    });
+
+    if (aiFilterStatus) {
+      aiFilterStatus.textContent = hasAiMetadata
+        ? `AI metadata available for ${aiRuns.length.toLocaleString()} run${aiRuns.length === 1 ? "" : "s"}.`
+        : "AI metadata filters are unavailable because the current published release has no AI-curated records yet.";
     }
   }
 
@@ -1458,6 +1480,7 @@
   function applyFilters() {
     // Rebuild projects from runs (stream mode grows over time)
     allProjects = buildProjectsFromRuns(allRuns);
+    updateAiFilterAvailability();
 
     // Refresh filter dropdowns (based on runs, not projects)
     populateFacets();

@@ -122,6 +122,76 @@ jobs:
           print("\n".join(lines))
           PY
 
+      - name: Rebuild published AI-enriched exports
+        run: |
+          python3 - <<'PY'
+          from scripts.urbanscope_harvester.exports import rebuild_srr_exports_chunked
+
+          rebuild_srr_exports_chunked()
+          print("Rebuilt docs/db exports from current catalogs and AI cache.")
+          PY
+
+      - name: Summarize published AI field coverage
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          manifest_path = Path("docs/db/srr_records_manifest.json")
+          if not manifest_path.exists():
+              print("Published manifest not found at docs/db/srr_records_manifest.json")
+              raise SystemExit(0)
+
+          manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+          parts = manifest.get("parts", []) if isinstance(manifest, dict) else []
+
+          total_rows = 0
+          with_ai = 0
+          reviewed = 0
+          fixed = 0
+          insufficient = 0
+          urban = 0
+
+          for part in parts:
+              part_path = Path(part.get("path", ""))
+              if not part_path.exists():
+                  continue
+              rows = json.loads(part_path.read_text(encoding="utf-8"))
+              if not isinstance(rows, list):
+                  continue
+              for row in rows:
+                  total_rows += 1
+                  ai = row.get("ai_curation", {}) if isinstance(row.get("ai_curation", {}), dict) else {}
+                  if ai:
+                      with_ai += 1
+                  if ai.get("reviewed"):
+                      reviewed += 1
+                  if ai.get("ai_fixed"):
+                      fixed += 1
+                  if str(ai.get("metadata_sufficiency", "")).lower() == "insufficient":
+                      insufficient += 1
+                  if str(ai.get("urban_origin", "")).lower() == "urban":
+                      urban += 1
+
+          lines = [
+              "## Published AI Field Coverage",
+              "",
+              f"- Published rows scanned: {total_rows}",
+              f"- Rows with ai_curation: {with_ai}",
+              f"- Reviewed: {reviewed}",
+              f"- AI-fixed: {fixed}",
+              f"- Insufficient metadata: {insufficient}",
+              f"- Urban-origin: {urban}",
+          ]
+
+          summary_file = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          with summary_file.open("a", encoding="utf-8") as fh:
+              fh.write("\n".join(lines) + "\n")
+
+          print("\n".join(lines))
+          PY
+
       - name: Summarize file changes
         run: |
           set -euo pipefail
