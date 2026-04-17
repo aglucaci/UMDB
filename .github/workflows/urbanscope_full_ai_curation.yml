@@ -88,6 +88,59 @@ jobs:
           printf '\n'
           "${CMD[@]}"
 
+      - name: Summarize curation results
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          report_path = Path("docs/debug/latest_report.json")
+          if not report_path.exists():
+              print("No debug report found at docs/debug/latest_report.json")
+              raise SystemExit(0)
+
+          data = json.loads(report_path.read_text(encoding="utf-8"))
+          reports = data.get("reports", [])
+          report = reports[-1] if reports else {}
+          ai = report.get("ai_curation", {}) if isinstance(report.get("ai_curation", {}), dict) else {}
+          records_considered = report.get("records_considered", 0)
+
+          lines = [
+              "## UMDB AI Curation Summary",
+              "",
+              f"- Records considered: {records_considered}",
+              f"- AI reviewed: {ai.get('reviewed', 0)}",
+              f"- Skipped from cache: {ai.get('skipped_cached', 0)}",
+              f"- Errors: {ai.get('errors', 0)}",
+          ]
+
+          summary_file = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          with summary_file.open("a", encoding="utf-8") as fh:
+              fh.write("\n".join(lines) + "\n")
+
+          print("\n".join(lines))
+          PY
+
+      - name: Summarize file changes
+        run: |
+          set -euo pipefail
+          CHANGED="$(git status --short data docs .gitignore || true)"
+          {
+            echo ""
+            echo "## Repository Changes"
+            echo ""
+            if [ -n "$CHANGED" ]; then
+              echo "Tracked file changes detected after curation."
+              echo ""
+              echo '```text'
+              printf '%s\n' "$CHANGED"
+              echo '```'
+            else
+              echo "No tracked file changes were produced by this run."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Commit curated metadata release
         run: |
           git config user.name "github-actions"

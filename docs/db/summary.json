@@ -1,0 +1,9198 @@
+{
+  "generated_utc": "2026-04-17T13:59:46+00:00",
+  "totalRuns": 106558,
+  "totalProjects": 1610,
+  "totalBioSamples": 54318,
+  "totalCountries": 95,
+  "totalCities": 1407,
+  "geoResolvedRuns": 48045,
+  "downloadableRuns": 104787,
+  "years": [
+    {
+      "name": "2024",
+      "count": 39336
+    },
+    {
+      "name": "2025",
+      "count": 15676
+    },
+    {
+      "name": "2023",
+      "count": 8208
+    },
+    {
+      "name": "2026",
+      "count": 7247
+    },
+    {
+      "name": "2019",
+      "count": 7120
+    },
+    {
+      "name": "2022",
+      "count": 6309
+    },
+    {
+      "name": "2021",
+      "count": 5236
+    },
+    {
+      "name": "2020",
+      "count": 5076
+    },
+    {
+      "name": "2017",
+      "count": 4452
+    },
+    {
+      "name": "2015",
+      "count": 4288
+    },
+    {
+      "name": "2018",
+      "count": 2628
+    },
+    {
+      "name": "2016",
+      "count": 678
+    },
+    {
+      "name": "2014",
+      "count": 162
+    },
+    {
+      "name": "2013",
+      "count": 116
+    },
+    {
+      "name": "2010",
+      "count": 10
+    },
+    {
+      "name": "2012",
+      "count": 8
+    },
+    {
+      "name": "2009",
+      "count": 4
+    },
+    {
+      "name": "2011",
+      "count": 4
+    }
+  ],
+  "assays": [
+    {
+      "name": "WGS",
+      "count": 88992
+    },
+    {
+      "name": "Amplicon",
+      "count": 14202
+    },
+    {
+      "name": "RNA-seq",
+      "count": 2893
+    },
+    {
+      "name": "Unknown",
+      "count": 467
+    },
+    {
+      "name": "16S",
+      "count": 4
+    }
+  ],
+  "countries": [
+    {
+      "name": "(unknown)",
+      "count": 47401
+    },
+    {
+      "name": "United States",
+      "count": 24294
+    },
+    {
+      "name": "China",
+      "count": 12857
+    },
+    {
+      "name": "Singapore",
+      "count": 2896
+    },
+    {
+      "name": "Missing",
+      "count": 2338
+    },
+    {
+      "name": "Hong Kong",
+      "count": 1841
+    },
+    {
+      "name": "Canada",
+      "count": 1472
+    },
+    {
+      "name": "India",
+      "count": 1281
+    },
+    {
+      "name": "Denmark",
+      "count": 1123
+    },
+    {
+      "name": "Kenya",
+      "count": 1023
+    },
+    {
+      "name": "Sweden",
+      "count": 1019
+    },
+    {
+      "name": "United Kingdom",
+      "count": 825
+    },
+    {
+      "name": "Not Applicable",
+      "count": 755
+    },
+    {
+      "name": "Belgium",
+      "count": 742
+    },
+    {
+      "name": "Germany",
+      "count": 652
+    },
+    {
+      "name": "Tanzania",
+      "count": 640
+    },
+    {
+      "name": "Spain",
+      "count": 632
+    },
+    {
+      "name": "Norway",
+      "count": 563
+    },
+    {
+      "name": "Mexico",
+      "count": 364
+    },
+    {
+      "name": "South Africa",
+      "count": 352
+    },
+    {
+      "name": "Italy",
+      "count": 290
+    },
+    {
+      "name": "Brazil",
+      "count": 244
+    },
+    {
+      "name": "South Korea",
+      "count": 216
+    },
+    {
+      "name": "Australia",
+      "count": 191
+    },
+    {
+      "name": "Poland",
+      "count": 190
+    },
+    {
+      "name": "New Zealand",
+      "count": 180
+    },
+    {
+      "name": "Malaysia",
+      "count": 158
+    },
+    {
+      "name": "Russia",
+      "count": 152
+    },
+    {
+      "name": "Israel",
+      "count": 132
+    },
+    {
+      "name": "Thailand",
+      "count": 116
+    },
+    {
+      "name": "Zimbabwe",
+      "count": 110
+    },
+    {
+      "name": "Austria",
+      "count": 92
+    },
+    {
+      "name": "Bangladesh",
+      "count": 90
+    },
+    {
+      "name": "Not Collected",
+      "count": 89
+    },
+    {
+      "name": "Uganda",
+      "count": 70
+    },
+    {
+      "name": "Uruguay",
+      "count": 70
+    },
+    {
+      "name": "Ireland",
+      "count": 66
+    },
+    {
+      "name": "France",
+      "count": 60
+    },
+    {
+      "name": "Netherlands",
+      "count": 57
+    },
+    {
+      "name": "Na",
+      "count": 56
+    },
+    {
+      "name": "Colombia",
+      "count": 50
+    },
+    {
+      "name": "Saint Lucia",
+      "count": 48
+    },
+    {
+      "name": "Hungary",
+      "count": 46
+    },
+    {
+      "name": "Chile",
+      "count": 44
+    },
+    {
+      "name": "Ghana",
+      "count": 42
+    },
+    {
+      "name": "Japan",
+      "count": 40
+    },
+    {
+      "name": "Portugal",
+      "count": 40
+    },
+    {
+      "name": "Nigeria",
+      "count": 38
+    },
+    {
+      "name": "Luxembourg",
+      "count": 34
+    },
+    {
+      "name": "Malawi",
+      "count": 32
+    },
+    {
+      "name": "Mozambique",
+      "count": 28
+    },
+    {
+      "name": "Iran",
+      "count": 26
+    },
+    {
+      "name": "Taiwan",
+      "count": 26
+    },
+    {
+      "name": "Cameroon",
+      "count": 24
+    },
+    {
+      "name": "Argentina",
+      "count": 22
+    },
+    {
+      "name": "Qatar",
+      "count": 21
+    },
+    {
+      "name": "Egypt",
+      "count": 20
+    },
+    {
+      "name": "South Georgia And The South Sandwich Islands",
+      "count": 20
+    },
+    {
+      "name": "Switzerland",
+      "count": 20
+    },
+    {
+      "name": "Czech Republic",
+      "count": 18
+    },
+    {
+      "name": "Panama",
+      "count": 18
+    },
+    {
+      "name": "Sri Lanka",
+      "count": 17
+    },
+    {
+      "name": "Viet Nam",
+      "count": 14
+    },
+    {
+      "name": "Burkina Faso",
+      "count": 12
+    },
+    {
+      "name": "Greece",
+      "count": 12
+    },
+    {
+      "name": "Finland",
+      "count": 11
+    },
+    {
+      "name": "North Korea",
+      "count": 10
+    },
+    {
+      "name": "Antarctica",
+      "count": 8
+    },
+    {
+      "name": "Cote D'ivoire",
+      "count": 8
+    },
+    {
+      "name": "Iceland",
+      "count": 8
+    },
+    {
+      "name": "Iraq",
+      "count": 8
+    },
+    {
+      "name": "Philippines",
+      "count": 8
+    },
+    {
+      "name": "Ethiopia",
+      "count": 6
+    },
+    {
+      "name": "Kazakhstan",
+      "count": 6
+    },
+    {
+      "name": "Serbia",
+      "count": 6
+    },
+    {
+      "name": "Slovakia",
+      "count": 6
+    },
+    {
+      "name": "Slovenia",
+      "count": 6
+    },
+    {
+      "name": "Tunisia",
+      "count": 6
+    },
+    {
+      "name": "Unknown",
+      "count": 6
+    },
+    {
+      "name": "Armenia",
+      "count": 4
+    },
+    {
+      "name": "Bahamas",
+      "count": 4
+    },
+    {
+      "name": "Ecuador",
+      "count": 4
+    },
+    {
+      "name": "Romania",
+      "count": 4
+    },
+    {
+      "name": "Svalbard",
+      "count": 4
+    },
+    {
+      "name": "Bosnia And Herzegovina",
+      "count": 2
+    },
+    {
+      "name": "Botswana",
+      "count": 2
+    },
+    {
+      "name": "Guatemala",
+      "count": 2
+    },
+    {
+      "name": "Indonesia",
+      "count": 2
+    },
+    {
+      "name": "Korea",
+      "count": 2
+    },
+    {
+      "name": "Maldives",
+      "count": 2
+    },
+    {
+      "name": "Namibia",
+      "count": 2
+    },
+    {
+      "name": "Nanjing",
+      "count": 2
+    },
+    {
+      "name": "Not Provided",
+      "count": 2
+    },
+    {
+      "name": "Pakistan",
+      "count": 2
+    },
+    {
+      "name": "Turkey",
+      "count": 2
+    },
+    {
+      "name": "Ussr",
+      "count": 2
+    }
+  ],
+  "cities": [
+    {
+      "name": "(unknown)",
+      "count": 58513
+    },
+    {
+      "name": "New York City",
+      "count": 6046
+    },
+    {
+      "name": "Shanghai",
+      "count": 3024
+    },
+    {
+      "name": "Miami Dade County",
+      "count": 1642
+    },
+    {
+      "name": "Nanyang Technology University campus",
+      "count": 1614
+    },
+    {
+      "name": "IA",
+      "count": 1428
+    },
+    {
+      "name": "Arizona",
+      "count": 1321
+    },
+    {
+      "name": "California",
+      "count": 1196
+    },
+    {
+      "name": "AZ",
+      "count": 1168
+    },
+    {
+      "name": "Oregon",
+      "count": 1084
+    },
+    {
+      "name": "NC",
+      "count": 1066
+    },
+    {
+      "name": "Kiruna",
+      "count": 760
+    },
+    {
+      "name": "Guangdong",
+      "count": 703
+    },
+    {
+      "name": "Wisconsin",
+      "count": 702
+    },
+    {
+      "name": "Beijing",
+      "count": 680
+    },
+    {
+      "name": "Xiamen",
+      "count": 646
+    },
+    {
+      "name": "Africa",
+      "count": 640
+    },
+    {
+      "name": "Boston",
+      "count": 632
+    },
+    {
+      "name": "New York metropolitan area",
+      "count": 594
+    },
+    {
+      "name": "HI",
+      "count": 590
+    },
+    {
+      "name": "Montreal",
+      "count": 506
+    },
+    {
+      "name": "multiple cities",
+      "count": 417
+    },
+    {
+      "name": "Pasadena (Jet Propulsion Laboratory)",
+      "count": 344
+    },
+    {
+      "name": "Leuven",
+      "count": 340
+    },
+    {
+      "name": "Guangzhou",
+      "count": 332
+    },
+    {
+      "name": "TN",
+      "count": 322
+    },
+    {
+      "name": "NY",
+      "count": 277
+    },
+    {
+      "name": "Guangdong Province",
+      "count": 272
+    },
+    {
+      "name": "city",
+      "count": 244
+    },
+    {
+      "name": "Jinan",
+      "count": 232
+    },
+    {
+      "name": "London",
+      "count": 226
+    },
+    {
+      "name": "Gansu Province",
+      "count": 214
+    },
+    {
+      "name": "Nanjing",
+      "count": 209
+    },
+    {
+      "name": "Maharashtra",
+      "count": 190
+    },
+    {
+      "name": "Manitoba",
+      "count": 190
+    },
+    {
+      "name": "Mumbai",
+      "count": 189
+    },
+    {
+      "name": "Christchurch",
+      "count": 166
+    },
+    {
+      "name": "Sichuan",
+      "count": 162
+    },
+    {
+      "name": "Ontario",
+      "count": 158
+    },
+    {
+      "name": "Idaho",
+      "count": 156
+    },
+    {
+      "name": "Mexico city",
+      "count": 150
+    },
+    {
+      "name": "Dane County",
+      "count": 149
+    },
+    {
+      "name": "Braunschweig Flight Flight",
+      "count": 148
+    },
+    {
+      "name": "Staten Island",
+      "count": 146
+    },
+    {
+      "name": "Calgary",
+      "count": 144
+    },
+    {
+      "name": "zibo",
+      "count": 136
+    },
+    {
+      "name": "Shaanxi Province",
+      "count": 135
+    },
+    {
+      "name": "370 J Street",
+      "count": 134
+    },
+    {
+      "name": "Shenzhen",
+      "count": 129
+    },
+    {
+      "name": "Singapore",
+      "count": 128
+    },
+    {
+      "name": "Hangzhou",
+      "count": 124
+    },
+    {
+      "name": "San Diego",
+      "count": 122
+    },
+    {
+      "name": "Yurga",
+      "count": 122
+    },
+    {
+      "name": "Illinois",
+      "count": 120
+    },
+    {
+      "name": "Karlsruhe Ground Ground",
+      "count": 120
+    },
+    {
+      "name": "Karlsruhe Tower Top Tower Top",
+      "count": 120
+    },
+    {
+      "name": "Tibet",
+      "count": 118
+    },
+    {
+      "name": "Virginia",
+      "count": 114
+    },
+    {
+      "name": "Chennai",
+      "count": 109
+    },
+    {
+      "name": "Bangkok",
+      "count": 108
+    },
+    {
+      "name": "Colorado",
+      "count": 108
+    },
+    {
+      "name": "Anhui",
+      "count": 106
+    },
+    {
+      "name": "Las Vegas",
+      "count": 104
+    },
+    {
+      "name": "Rehovot",
+      "count": 104
+    },
+    {
+      "name": "Eugene",
+      "count": 102
+    },
+    {
+      "name": "ZheJiang Province",
+      "count": 102
+    },
+    {
+      "name": "Ohio",
+      "count": 101
+    },
+    {
+      "name": "Delhi",
+      "count": 100
+    },
+    {
+      "name": "Mexico City",
+      "count": 100
+    },
+    {
+      "name": "Pretoria (University of Pretoria)",
+      "count": 100
+    },
+    {
+      "name": "Michigan",
+      "count": 98
+    },
+    {
+      "name": "Twin Cities",
+      "count": 96
+    },
+    {
+      "name": "North Dakota",
+      "count": 95
+    },
+    {
+      "name": "Shandong",
+      "count": 95
+    },
+    {
+      "name": "Chongqing",
+      "count": 93
+    },
+    {
+      "name": "Liangshan",
+      "count": 92
+    },
+    {
+      "name": "Zhejiang",
+      "count": 92
+    },
+    {
+      "name": "Hainan",
+      "count": 88
+    },
+    {
+      "name": "Erie County",
+      "count": 86
+    },
+    {
+      "name": "Wuhan",
+      "count": 84
+    },
+    {
+      "name": "zhejiang province",
+      "count": 84
+    },
+    {
+      "name": "Alberta",
+      "count": 83
+    },
+    {
+      "name": "British Columbia",
+      "count": 82
+    },
+    {
+      "name": "Hong Kong",
+      "count": 82
+    },
+    {
+      "name": "Minas Gerais",
+      "count": 82
+    },
+    {
+      "name": "Xi'an",
+      "count": 81
+    },
+    {
+      "name": "Braunschweig Ground Ground",
+      "count": 80
+    },
+    {
+      "name": "Florida",
+      "count": 80
+    },
+    {
+      "name": "Xinxing",
+      "count": 80
+    },
+    {
+      "name": "Vancouver",
+      "count": 78
+    },
+    {
+      "name": "Chicago",
+      "count": 77
+    },
+    {
+      "name": "ND",
+      "count": 76
+    },
+    {
+      "name": "xiamen",
+      "count": 74
+    },
+    {
+      "name": "Charlottesville",
+      "count": 72
+    },
+    {
+      "name": "Incheon",
+      "count": 72
+    },
+    {
+      "name": "OH",
+      "count": 70
+    },
+    {
+      "name": "PA",
+      "count": 70
+    },
+    {
+      "name": "Olsztyn",
+      "count": 68
+    },
+    {
+      "name": "Tuscaloosa",
+      "count": 68
+    },
+    {
+      "name": "Villaviciosa",
+      "count": 68
+    },
+    {
+      "name": "Xinjiang",
+      "count": 68
+    },
+    {
+      "name": "Daqing",
+      "count": 66
+    },
+    {
+      "name": "FL",
+      "count": 66
+    },
+    {
+      "name": "Hanzhou",
+      "count": 64
+    },
+    {
+      "name": "Midwest",
+      "count": 64
+    },
+    {
+      "name": "Nationaltheatret",
+      "count": 64
+    },
+    {
+      "name": "USA",
+      "count": 64
+    },
+    {
+      "name": "Barcelona",
+      "count": 62
+    },
+    {
+      "name": "Connecticut",
+      "count": 60
+    },
+    {
+      "name": "Huizhou",
+      "count": 60
+    },
+    {
+      "name": "San Francisco",
+      "count": 60
+    },
+    {
+      "name": "Tianjin",
+      "count": 60
+    },
+    {
+      "name": "WI",
+      "count": 60
+    },
+    {
+      "name": "Kampala",
+      "count": 58
+    },
+    {
+      "name": "Tychy",
+      "count": 58
+    },
+    {
+      "name": "Klosterneuburg",
+      "count": 56
+    },
+    {
+      "name": "North Carolina",
+      "count": 56
+    },
+    {
+      "name": "boston",
+      "count": 56
+    },
+    {
+      "name": "Changsha",
+      "count": 54
+    },
+    {
+      "name": "Granada",
+      "count": 54
+    },
+    {
+      "name": "Su Zhou",
+      "count": 54
+    },
+    {
+      "name": "Xinxiang",
+      "count": 54
+    },
+    {
+      "name": "Zhanyi karst tiankeng",
+      "count": 54
+    },
+    {
+      "name": "Dulles",
+      "count": 53
+    },
+    {
+      "name": "Wyoming",
+      "count": 53
+    },
+    {
+      "name": "Fujian Province",
+      "count": 52
+    },
+    {
+      "name": "Harbin",
+      "count": 52
+    },
+    {
+      "name": "Newark",
+      "count": 52
+    },
+    {
+      "name": "Stockholm",
+      "count": 52
+    },
+    {
+      "name": "Heilongjiang",
+      "count": 50
+    },
+    {
+      "name": "Jiangsu",
+      "count": 50
+    },
+    {
+      "name": "Kolkata",
+      "count": 49
+    },
+    {
+      "name": "Amazonas",
+      "count": 48
+    },
+    {
+      "name": "Hongta",
+      "count": 48
+    },
+    {
+      "name": "Iowa City",
+      "count": 48
+    },
+    {
+      "name": "Jilin Province",
+      "count": 48
+    },
+    {
+      "name": "Kjeller",
+      "count": 48
+    },
+    {
+      "name": "Medellin",
+      "count": 48
+    },
+    {
+      "name": "Odense",
+      "count": 48
+    },
+    {
+      "name": "Portland",
+      "count": 48
+    },
+    {
+      "name": "Queensland Australia",
+      "count": 48
+    },
+    {
+      "name": "SK",
+      "count": 48
+    },
+    {
+      "name": "Sassari",
+      "count": 48
+    },
+    {
+      "name": "Sha Tin",
+      "count": 48
+    },
+    {
+      "name": "Tingxi Reservoir",
+      "count": 48
+    },
+    {
+      "name": "Chicago (RUSH University Medical Center)",
+      "count": 46
+    },
+    {
+      "name": "Hamilton",
+      "count": 46
+    },
+    {
+      "name": "Ningbo",
+      "count": 46
+    },
+    {
+      "name": "Cape Town",
+      "count": 44
+    },
+    {
+      "name": "Fermoy",
+      "count": 44
+    },
+    {
+      "name": "Glenelg",
+      "count": 44
+    },
+    {
+      "name": "Haidian",
+      "count": 44
+    },
+    {
+      "name": "MI",
+      "count": 44
+    },
+    {
+      "name": "Maryland",
+      "count": 44
+    },
+    {
+      "name": "Minnesota",
+      "count": 44
+    },
+    {
+      "name": "Queretaro",
+      "count": 44
+    },
+    {
+      "name": "Yangling",
+      "count": 44
+    },
+    {
+      "name": "CA",
+      "count": 42
+    },
+    {
+      "name": "Girona",
+      "count": 42
+    },
+    {
+      "name": "Philadelphia",
+      "count": 42
+    },
+    {
+      "name": "Pretoria",
+      "count": 42
+    },
+    {
+      "name": "Upper Midwest",
+      "count": 42
+    },
+    {
+      "name": "Chengdu",
+      "count": 41
+    },
+    {
+      "name": "Shangqiu City",
+      "count": 41
+    },
+    {
+      "name": "Auburn",
+      "count": 40
+    },
+    {
+      "name": "Nanchang City",
+      "count": 40
+    },
+    {
+      "name": "Ulu Pandan",
+      "count": 40
+    },
+    {
+      "name": "Wafangdian city",
+      "count": 40
+    },
+    {
+      "name": "hangzhou",
+      "count": 40
+    },
+    {
+      "name": "Qingdao",
+      "count": 37
+    },
+    {
+      "name": "Anhui Province",
+      "count": 36
+    },
+    {
+      "name": "Birdz Of Play",
+      "count": 36
+    },
+    {
+      "name": "Bridge",
+      "count": 36
+    },
+    {
+      "name": "Entrance",
+      "count": 36
+    },
+    {
+      "name": "Foshan City",
+      "count": 36
+    },
+    {
+      "name": "Hefei",
+      "count": 36
+    },
+    {
+      "name": "Henan",
+      "count": 36
+    },
+    {
+      "name": "Lory Loft",
+      "count": 36
+    },
+    {
+      "name": "Mpumalanga Province",
+      "count": 36
+    },
+    {
+      "name": "Sao Paulo State bioethanol refinery near Piracicaiba",
+      "count": 36
+    },
+    {
+      "name": "Suzhou",
+      "count": 36
+    },
+    {
+      "name": "WWTP",
+      "count": 36
+    },
+    {
+      "name": "Water Fall",
+      "count": 36
+    },
+    {
+      "name": "Wetlands",
+      "count": 36
+    },
+    {
+      "name": "XIAN",
+      "count": 36
+    },
+    {
+      "name": "southwest Ohio",
+      "count": 36
+    },
+    {
+      "name": "Cannobio",
+      "count": 34
+    },
+    {
+      "name": "Changchun",
+      "count": 34
+    },
+    {
+      "name": "Dhaka",
+      "count": 34
+    },
+    {
+      "name": "University of Cape Town",
+      "count": 34
+    },
+    {
+      "name": "Verbania",
+      "count": 34
+    },
+    {
+      "name": "Anyang",
+      "count": 32
+    },
+    {
+      "name": "Faridabad",
+      "count": 32
+    },
+    {
+      "name": "Lisbon",
+      "count": 32
+    },
+    {
+      "name": "Montevideo",
+      "count": 32
+    },
+    {
+      "name": "Shijiazhuang",
+      "count": 32
+    },
+    {
+      "name": "Sydney",
+      "count": 32
+    },
+    {
+      "name": "Szeged",
+      "count": 32
+    },
+    {
+      "name": "Alicante",
+      "count": 30
+    },
+    {
+      "name": "Guangdong Shantou",
+      "count": 30
+    },
+    {
+      "name": "Jilin",
+      "count": 30
+    },
+    {
+      "name": "Shenzhen City",
+      "count": 30
+    },
+    {
+      "name": "South Carolina",
+      "count": 30
+    },
+    {
+      "name": "Gujarat",
+      "count": 28
+    },
+    {
+      "name": "Loeren",
+      "count": 28
+    },
+    {
+      "name": "Maputo",
+      "count": 28
+    },
+    {
+      "name": "New Delhi",
+      "count": 28
+    },
+    {
+      "name": "Seoul",
+      "count": 28
+    },
+    {
+      "name": "Shaoguan",
+      "count": 28
+    },
+    {
+      "name": "Zhuhai City",
+      "count": 28
+    },
+    {
+      "name": "beijing",
+      "count": 27
+    },
+    {
+      "name": "Admiralty",
+      "count": 26
+    },
+    {
+      "name": "Che Kung Temple",
+      "count": 26
+    },
+    {
+      "name": "Cheung Sha Wan",
+      "count": 26
+    },
+    {
+      "name": "Forskningsparken",
+      "count": 26
+    },
+    {
+      "name": "Fortress Hill",
+      "count": 26
+    },
+    {
+      "name": "Helsfyr",
+      "count": 26
+    },
+    {
+      "name": "Hung Hom",
+      "count": 26
+    },
+    {
+      "name": "Kerala",
+      "count": 26
+    },
+    {
+      "name": "Kowloon Tong",
+      "count": 26
+    },
+    {
+      "name": "Lai King",
+      "count": 26
+    },
+    {
+      "name": "Lindeberg",
+      "count": 26
+    },
+    {
+      "name": "New Jersey",
+      "count": 26
+    },
+    {
+      "name": "North Point",
+      "count": 26
+    },
+    {
+      "name": "Nydalen",
+      "count": 26
+    },
+    {
+      "name": "Prince Edward",
+      "count": 26
+    },
+    {
+      "name": "Quarry Bay",
+      "count": 26
+    },
+    {
+      "name": "Sham Shui Po",
+      "count": 26
+    },
+    {
+      "name": "Shek Kip Mei",
+      "count": 26
+    },
+    {
+      "name": "Tai Wai",
+      "count": 26
+    },
+    {
+      "name": "Tehran",
+      "count": 26
+    },
+    {
+      "name": "Toeyen",
+      "count": 26
+    },
+    {
+      "name": "Tsim Sha Tsui",
+      "count": 26
+    },
+    {
+      "name": "Tsing Yi",
+      "count": 26
+    },
+    {
+      "name": "Union Station",
+      "count": 26
+    },
+    {
+      "name": "VA",
+      "count": 26
+    },
+    {
+      "name": "Vienna",
+      "count": 26
+    },
+    {
+      "name": "Yau Tong",
+      "count": 26
+    },
+    {
+      "name": "Florida (Kennedy Space Center)",
+      "count": 25
+    },
+    {
+      "name": "Bantou reservoir",
+      "count": 24
+    },
+    {
+      "name": "Brixton",
+      "count": 24
+    },
+    {
+      "name": "East Tsim Sha Tsui",
+      "count": 24
+    },
+    {
+      "name": "Greenhouse at Helmholtz",
+      "count": 24
+    },
+    {
+      "name": "Groenland",
+      "count": 24
+    },
+    {
+      "name": "Jernbanetorget",
+      "count": 24
+    },
+    {
+      "name": "KY",
+      "count": 24
+    },
+    {
+      "name": "Lombardy",
+      "count": 24
+    },
+    {
+      "name": "Madison Metropolitan Sewerage District Nine Springs Facility",
+      "count": 24
+    },
+    {
+      "name": "Montebello",
+      "count": 24
+    },
+    {
+      "name": "Mudanjiang City",
+      "count": 24
+    },
+    {
+      "name": "Olburgen",
+      "count": 24
+    },
+    {
+      "name": "Para",
+      "count": 24
+    },
+    {
+      "name": "Penguin Enclosure",
+      "count": 24
+    },
+    {
+      "name": "Pimlico",
+      "count": 24
+    },
+    {
+      "name": "Radboud Universiteit",
+      "count": 24
+    },
+    {
+      "name": "Regina",
+      "count": 24
+    },
+    {
+      "name": "Romsaas",
+      "count": 24
+    },
+    {
+      "name": "Sha Tin Wai",
+      "count": 24
+    },
+    {
+      "name": "Shanxi",
+      "count": 24
+    },
+    {
+      "name": "Shidou reservoir Bottom",
+      "count": 24
+    },
+    {
+      "name": "Shidou reservoir Surface",
+      "count": 24
+    },
+    {
+      "name": "Stortinget",
+      "count": 24
+    },
+    {
+      "name": "Vauxhall",
+      "count": 24
+    },
+    {
+      "name": "Vestli",
+      "count": 24
+    },
+    {
+      "name": "harbin",
+      "count": 24
+    },
+    {
+      "name": "Carl Berners plass",
+      "count": 22
+    },
+    {
+      "name": "Ellingsrudaasen",
+      "count": 22
+    },
+    {
+      "name": "Hubei",
+      "count": 22
+    },
+    {
+      "name": "Jiangxi Poyanghu",
+      "count": 22
+    },
+    {
+      "name": "Korle-Bu Teaching Hospital",
+      "count": 22
+    },
+    {
+      "name": "Lambir Hills National Park",
+      "count": 22
+    },
+    {
+      "name": "MD",
+      "count": 22
+    },
+    {
+      "name": "Miami",
+      "count": 22
+    },
+    {
+      "name": "Mong Kok East",
+      "count": 22
+    },
+    {
+      "name": "Zhuhai",
+      "count": 22
+    },
+    {
+      "name": "coastal region near Tjarno",
+      "count": 22
+    },
+    {
+      "name": "Cincinnati",
+      "count": 21
+    },
+    {
+      "name": "tianjin",
+      "count": 21
+    },
+    {
+      "name": "Aalborg",
+      "count": 20
+    },
+    {
+      "name": "Changsha City",
+      "count": 20
+    },
+    {
+      "name": "Dibrugarh",
+      "count": 20
+    },
+    {
+      "name": "Goettingen",
+      "count": 20
+    },
+    {
+      "name": "Gttingen",
+      "count": 20
+    },
+    {
+      "name": "Hirtshals",
+      "count": 20
+    },
+    {
+      "name": "Hubei Province",
+      "count": 20
+    },
+    {
+      "name": "Kano city",
+      "count": 20
+    },
+    {
+      "name": "Liaoning",
+      "count": 20
+    },
+    {
+      "name": "National Capital Region",
+      "count": 20
+    },
+    {
+      "name": "Nationaltheateret",
+      "count": 20
+    },
+    {
+      "name": "Northern Alberta",
+      "count": 20
+    },
+    {
+      "name": "South Africa",
+      "count": 20
+    },
+    {
+      "name": "Trento",
+      "count": 20
+    },
+    {
+      "name": "fence near building",
+      "count": 20
+    },
+    {
+      "name": "Guizhou",
+      "count": 18
+    },
+    {
+      "name": "Haizhu National Wetland Park",
+      "count": 18
+    },
+    {
+      "name": "HangZhou",
+      "count": 18
+    },
+    {
+      "name": "Harare",
+      "count": 18
+    },
+    {
+      "name": "Heidelberg",
+      "count": 18
+    },
+    {
+      "name": "Jiujiang",
+      "count": 18
+    },
+    {
+      "name": "Laboratorium",
+      "count": 18
+    },
+    {
+      "name": "Ljungbyhed",
+      "count": 18
+    },
+    {
+      "name": "Mexico State",
+      "count": 18
+    },
+    {
+      "name": "Nursing home",
+      "count": 18
+    },
+    {
+      "name": "Panama City",
+      "count": 18
+    },
+    {
+      "name": "Pennsylvania",
+      "count": 18
+    },
+    {
+      "name": "Schifflange",
+      "count": 18
+    },
+    {
+      "name": "School",
+      "count": 18
+    },
+    {
+      "name": "Shandong Province",
+      "count": 18
+    },
+    {
+      "name": "University residence",
+      "count": 18
+    },
+    {
+      "name": "Warren Street",
+      "count": 18
+    },
+    {
+      "name": "chong qing",
+      "count": 18
+    },
+    {
+      "name": "shandong",
+      "count": 18
+    },
+    {
+      "name": "Galicia",
+      "count": 17
+    },
+    {
+      "name": "Denver Airport",
+      "count": 16
+    },
+    {
+      "name": "Dezhou",
+      "count": 16
+    },
+    {
+      "name": "Donggang",
+      "count": 16
+    },
+    {
+      "name": "Fridhemsplan",
+      "count": 16
+    },
+    {
+      "name": "Gdansk",
+      "count": 16
+    },
+    {
+      "name": "Gravellona Toce",
+      "count": 16
+    },
+    {
+      "name": "Green Park",
+      "count": 16
+    },
+    {
+      "name": "Greifswald",
+      "count": 16
+    },
+    {
+      "name": "Guangzhou City",
+      "count": 16
+    },
+    {
+      "name": "Gyeonggi Province",
+      "count": 16
+    },
+    {
+      "name": "Hunan",
+      "count": 16
+    },
+    {
+      "name": "Jaipur",
+      "count": 16
+    },
+    {
+      "name": "Juriquilla",
+      "count": 16
+    },
+    {
+      "name": "Majorstuen",
+      "count": 16
+    },
+    {
+      "name": "Medborgarplatsen",
+      "count": 16
+    },
+    {
+      "name": "Near Fort McMurray in northeastern Alberta",
+      "count": 16
+    },
+    {
+      "name": "Newcastle upon Tyne",
+      "count": 16
+    },
+    {
+      "name": "Orange County",
+      "count": 16
+    },
+    {
+      "name": "Park Orchards",
+      "count": 16
+    },
+    {
+      "name": "Perugia",
+      "count": 16
+    },
+    {
+      "name": "Ramnagar",
+      "count": 16
+    },
+    {
+      "name": "Shidou reservoir",
+      "count": 16
+    },
+    {
+      "name": "Skanstull",
+      "count": 16
+    },
+    {
+      "name": "Slussen",
+      "count": 16
+    },
+    {
+      "name": "Tangshan",
+      "count": 16
+    },
+    {
+      "name": "Texas",
+      "count": 16
+    },
+    {
+      "name": "Universitetet",
+      "count": 16
+    },
+    {
+      "name": "Xinxiang hospital I",
+      "count": 16
+    },
+    {
+      "name": "Yantai",
+      "count": 16
+    },
+    {
+      "name": "Yongshou",
+      "count": 16
+    },
+    {
+      "name": "Kansas",
+      "count": 15
+    },
+    {
+      "name": "Guelph",
+      "count": 14
+    },
+    {
+      "name": "Jinzhong",
+      "count": 14
+    },
+    {
+      "name": "MA",
+      "count": 14
+    },
+    {
+      "name": "Nagpur",
+      "count": 14
+    },
+    {
+      "name": "North Alberta",
+      "count": 14
+    },
+    {
+      "name": "Shek Wu Hui",
+      "count": 14
+    },
+    {
+      "name": "South-West Germany",
+      "count": 14
+    },
+    {
+      "name": "TX",
+      "count": 14
+    },
+    {
+      "name": "nanjing",
+      "count": 14
+    },
+    {
+      "name": "Yunnan",
+      "count": 13
+    },
+    {
+      "name": "Zhongshan",
+      "count": 13
+    },
+    {
+      "name": "Aguascalientes city",
+      "count": 12
+    },
+    {
+      "name": "Anoxic tank no.1",
+      "count": 12
+    },
+    {
+      "name": "Assin Fosu region",
+      "count": 12
+    },
+    {
+      "name": "Baotou",
+      "count": 12
+    },
+    {
+      "name": "Binzhou",
+      "count": 12
+    },
+    {
+      "name": "Boulder Junction",
+      "count": 12
+    },
+    {
+      "name": "Bowling Green",
+      "count": 12
+    },
+    {
+      "name": "Dublin",
+      "count": 12
+    },
+    {
+      "name": "Frasassi caves",
+      "count": 12
+    },
+    {
+      "name": "Guangxi",
+      "count": 12
+    },
+    {
+      "name": "Ischia",
+      "count": 12
+    },
+    {
+      "name": "Jiangsu Province",
+      "count": 12
+    },
+    {
+      "name": "Jiangxi",
+      "count": 12
+    },
+    {
+      "name": "Kamapala",
+      "count": 12
+    },
+    {
+      "name": "Longyan",
+      "count": 12
+    },
+    {
+      "name": "Midwestern USA",
+      "count": 12
+    },
+    {
+      "name": "Nanjing City",
+      "count": 12
+    },
+    {
+      "name": "Natural Grassland",
+      "count": 12
+    },
+    {
+      "name": "Oxford Circus",
+      "count": 12
+    },
+    {
+      "name": "Petaling Jaya",
+      "count": 12
+    },
+    {
+      "name": "ShanXi",
+      "count": 12
+    },
+    {
+      "name": "ShenZhen",
+      "count": 12
+    },
+    {
+      "name": "Stanley",
+      "count": 12
+    },
+    {
+      "name": "The First Affiliated Hospital of Shantou University Medical College",
+      "count": 12
+    },
+    {
+      "name": "United Kingdom",
+      "count": 12
+    },
+    {
+      "name": "Vellore",
+      "count": 12
+    },
+    {
+      "name": "Zhanjiang city",
+      "count": 12
+    },
+    {
+      "name": "Edmonton",
+      "count": 11
+    },
+    {
+      "name": "Shaanxi",
+      "count": 11
+    },
+    {
+      "name": "synthetic construct",
+      "count": 11
+    },
+    {
+      "name": "AMD",
+      "count": 10
+    },
+    {
+      "name": "Brno",
+      "count": 10
+    },
+    {
+      "name": "Bucheon domestic wastewater treatment facility",
+      "count": 10
+    },
+    {
+      "name": "Concepcin",
+      "count": 10
+    },
+    {
+      "name": "District of Columbia",
+      "count": 10
+    },
+    {
+      "name": "Dongguan",
+      "count": 10
+    },
+    {
+      "name": "Dongying",
+      "count": 10
+    },
+    {
+      "name": "Gapyeong",
+      "count": 10
+    },
+    {
+      "name": "Jinnan",
+      "count": 10
+    },
+    {
+      "name": "Jinzhou city",
+      "count": 10
+    },
+    {
+      "name": "Leon",
+      "count": 10
+    },
+    {
+      "name": "Majorstua",
+      "count": 10
+    },
+    {
+      "name": "Monterrey",
+      "count": 10
+    },
+    {
+      "name": "Moscow",
+      "count": 10
+    },
+    {
+      "name": "Novara",
+      "count": 10
+    },
+    {
+      "name": "Qinghai Academy of Animal Science and Veterinary Science",
+      "count": 10
+    },
+    {
+      "name": "Santiago de Compostela",
+      "count": 10
+    },
+    {
+      "name": "Shihezi",
+      "count": 10
+    },
+    {
+      "name": "Sinuiji city",
+      "count": 10
+    },
+    {
+      "name": "Taichung City",
+      "count": 10
+    },
+    {
+      "name": "Umea",
+      "count": 10
+    },
+    {
+      "name": "Wuxi",
+      "count": 10
+    },
+    {
+      "name": "Xi 'an",
+      "count": 10
+    },
+    {
+      "name": "Yichang city",
+      "count": 10
+    },
+    {
+      "name": "Yumen City",
+      "count": 10
+    },
+    {
+      "name": "Central",
+      "count": 9
+    },
+    {
+      "name": "Uppsala",
+      "count": 9
+    },
+    {
+      "name": "14TH STREET - UNION SQUARE",
+      "count": 8
+    },
+    {
+      "name": "161ST - YANKEE STADIUM",
+      "count": 8
+    },
+    {
+      "name": "170TH STREET",
+      "count": 8
+    },
+    {
+      "name": "207TH STREET (1)",
+      "count": 8
+    },
+    {
+      "name": "25TH STREET - BROOKLYN",
+      "count": 8
+    },
+    {
+      "name": "75TH AVE.",
+      "count": 8
+    },
+    {
+      "name": "ALLERTON AVE.",
+      "count": 8
+    },
+    {
+      "name": "Aalborg E",
+      "count": 8
+    },
+    {
+      "name": "Aalborg W",
+      "count": 8
+    },
+    {
+      "name": "Acheron GmbH",
+      "count": 8
+    },
+    {
+      "name": "Avedore",
+      "count": 8
+    },
+    {
+      "name": "BAY RIDGE - 95TH STREET",
+      "count": 8
+    },
+    {
+      "name": "BROADWAY JUNCTION",
+      "count": 8
+    },
+    {
+      "name": "BROOK AVE.",
+      "count": 8
+    },
+    {
+      "name": "Bachok",
+      "count": 8
+    },
+    {
+      "name": "Bjergmarken",
+      "count": 8
+    },
+    {
+      "name": "Boigneville",
+      "count": 8
+    },
+    {
+      "name": "Brasilia",
+      "count": 8
+    },
+    {
+      "name": "Buenos Aires",
+      "count": 8
+    },
+    {
+      "name": "DYCKMAN STREET (A)",
+      "count": 8
+    },
+    {
+      "name": "Damhusaen",
+      "count": 8
+    },
+    {
+      "name": "Danderyd",
+      "count": 8
+    },
+    {
+      "name": "Danderyds Sjukhus",
+      "count": 8
+    },
+    {
+      "name": "Ejby Molle",
+      "count": 8
+    },
+    {
+      "name": "Esbjerg E",
+      "count": 8
+    },
+    {
+      "name": "Esbjerg W",
+      "count": 8
+    },
+    {
+      "name": "Euston",
+      "count": 8
+    },
+    {
+      "name": "FLUSHING - MAIN STREET (7)",
+      "count": 8
+    },
+    {
+      "name": "Finnsbury",
+      "count": 8
+    },
+    {
+      "name": "Finsbury Park",
+      "count": 8
+    },
+    {
+      "name": "GRAND CENTRAL - 42ND STREET",
+      "count": 8
+    },
+    {
+      "name": "Ga-rankuwa",
+      "count": 8
+    },
+    {
+      "name": "Geneva",
+      "count": 8
+    },
+    {
+      "name": "Green park",
+      "count": 8
+    },
+    {
+      "name": "Haderslev",
+      "count": 8
+    },
+    {
+      "name": "Hampton Roads Sanitation District",
+      "count": 8
+    },
+    {
+      "name": "Heilongjiang Province",
+      "count": 8
+    },
+    {
+      "name": "High Islington",
+      "count": 8
+    },
+    {
+      "name": "Highbury & Islington",
+      "count": 8
+    },
+    {
+      "name": "Hjorring",
+      "count": 8
+    },
+    {
+      "name": "JACKSON AVE.",
+      "count": 8
+    },
+    {
+      "name": "Jinaye district",
+      "count": 8
+    },
+    {
+      "name": "Kalmar",
+      "count": 8
+    },
+    {
+      "name": "Kalundborg",
+      "count": 8
+    },
+    {
+      "name": "Kings Cross St Pancras",
+      "count": 8
+    },
+    {
+      "name": "Kings Cross St. Pancras",
+      "count": 8
+    },
+    {
+      "name": "Marseille",
+      "count": 8
+    },
+    {
+      "name": "Mergozzo",
+      "count": 8
+    },
+    {
+      "name": "Mount Everest",
+      "count": 8
+    },
+    {
+      "name": "Mt. Ailao",
+      "count": 8
+    },
+    {
+      "name": "Mt. Changbai",
+      "count": 8
+    },
+    {
+      "name": "NOSTRAND AVE. (3)",
+      "count": 8
+    },
+    {
+      "name": "Nevada",
+      "count": 8
+    },
+    {
+      "name": "Odense NE",
+      "count": 8
+    },
+    {
+      "name": "Odense NW",
+      "count": 8
+    },
+    {
+      "name": "Phitsanulok",
+      "count": 8
+    },
+    {
+      "name": "San Juan basin",
+      "count": 8
+    },
+    {
+      "name": "Seattle",
+      "count": 8
+    },
+    {
+      "name": "T-Centralen",
+      "count": 8
+    },
+    {
+      "name": "T-centralen",
+      "count": 8
+    },
+    {
+      "name": "TIME SQUARE - 42ND STREET",
+      "count": 8
+    },
+    {
+      "name": "Tekniska Hoegskolan",
+      "count": 8
+    },
+    {
+      "name": "Tekniska hoegskolan",
+      "count": 8
+    },
+    {
+      "name": "Tel-Aviv",
+      "count": 8
+    },
+    {
+      "name": "VCS Egeby Molle",
+      "count": 8
+    },
+    {
+      "name": "Viby",
+      "count": 8
+    },
+    {
+      "name": "WA",
+      "count": 8
+    },
+    {
+      "name": "Waliguan",
+      "count": 8
+    },
+    {
+      "name": "Warsaw",
+      "count": 8
+    },
+    {
+      "name": "Washington",
+      "count": 8
+    },
+    {
+      "name": "Xinxiang hospital II",
+      "count": 8
+    },
+    {
+      "name": "Xinxiang hospital III",
+      "count": 8
+    },
+    {
+      "name": "shaoguan",
+      "count": 8
+    },
+    {
+      "name": "xian",
+      "count": 8
+    },
+    {
+      "name": "Dalian",
+      "count": 7
+    },
+    {
+      "name": "Gwangju",
+      "count": 7
+    },
+    {
+      "name": "Livermore",
+      "count": 7
+    },
+    {
+      "name": "Wisconsi",
+      "count": 7
+    },
+    {
+      "name": "(Nagpur)",
+      "count": 6
+    },
+    {
+      "name": "68th St.",
+      "count": 6
+    },
+    {
+      "name": "77th St.",
+      "count": 6
+    },
+    {
+      "name": "Ahmednagar",
+      "count": 6
+    },
+    {
+      "name": "Al Najaf",
+      "count": 6
+    },
+    {
+      "name": "Ambarnath",
+      "count": 6
+    },
+    {
+      "name": "Appalachian Region",
+      "count": 6
+    },
+    {
+      "name": "Aurangabad",
+      "count": 6
+    },
+    {
+      "name": "Badlapur",
+      "count": 6
+    },
+    {
+      "name": "Barshi",
+      "count": 6
+    },
+    {
+      "name": "Beed",
+      "count": 6
+    },
+    {
+      "name": "Bhiwandi Nizampur",
+      "count": 6
+    },
+    {
+      "name": "Boulder Central",
+      "count": 6
+    },
+    {
+      "name": "Boulder Junction 2",
+      "count": 6
+    },
+    {
+      "name": "Bratislava",
+      "count": 6
+    },
+    {
+      "name": "Budapest",
+      "count": 6
+    },
+    {
+      "name": "CMBT",
+      "count": 6
+    },
+    {
+      "name": "Cabras Lagoon",
+      "count": 6
+    },
+    {
+      "name": "Daegu",
+      "count": 6
+    },
+    {
+      "name": "Daejeon",
+      "count": 6
+    },
+    {
+      "name": "Darwin wastewater pond",
+      "count": 6
+    },
+    {
+      "name": "Egmore",
+      "count": 6
+    },
+    {
+      "name": "Euston station",
+      "count": 6
+    },
+    {
+      "name": "Gauteng Leeuwkuil",
+      "count": 6
+    },
+    {
+      "name": "Gold Coast",
+      "count": 6
+    },
+    {
+      "name": "Gumi",
+      "count": 6
+    },
+    {
+      "name": "Hwasun-gun",
+      "count": 6
+    },
+    {
+      "name": "Ichalkaranji",
+      "count": 6
+    },
+    {
+      "name": "Jalna",
+      "count": 6
+    },
+    {
+      "name": "Jangseong",
+      "count": 6
+    },
+    {
+      "name": "Johannesburg",
+      "count": 6
+    },
+    {
+      "name": "Kalyan-Dombivli",
+      "count": 6
+    },
+    {
+      "name": "King's cross",
+      "count": 6
+    },
+    {
+      "name": "Kolhapur",
+      "count": 6
+    },
+    {
+      "name": "Lausanne",
+      "count": 6
+    },
+    {
+      "name": "Lhasa City",
+      "count": 6
+    },
+    {
+      "name": "Los Angeles County",
+      "count": 6
+    },
+    {
+      "name": "MS",
+      "count": 6
+    },
+    {
+      "name": "Mariehamn",
+      "count": 6
+    },
+    {
+      "name": "Mekjarvik",
+      "count": 6
+    },
+    {
+      "name": "Mira Bhayandar",
+      "count": 6
+    },
+    {
+      "name": "Mokpo",
+      "count": 6
+    },
+    {
+      "name": "Nacharam",
+      "count": 6
+    },
+    {
+      "name": "Navi Mumbai",
+      "count": 6
+    },
+    {
+      "name": "Osmanabad",
+      "count": 6
+    },
+    {
+      "name": "Oxford Circus 1",
+      "count": 6
+    },
+    {
+      "name": "Oxford Circus 2",
+      "count": 6
+    },
+    {
+      "name": "Panvel",
+      "count": 6
+    },
+    {
+      "name": "Pimpri Chinchwad",
+      "count": 6
+    },
+    {
+      "name": "Pune",
+      "count": 6
+    },
+    {
+      "name": "Quebec",
+      "count": 6
+    },
+    {
+      "name": "Reykjavik",
+      "count": 6
+    },
+    {
+      "name": "SHA TIN",
+      "count": 6
+    },
+    {
+      "name": "SZ",
+      "count": 6
+    },
+    {
+      "name": "Sangli",
+      "count": 6
+    },
+    {
+      "name": "Sanxia District",
+      "count": 6
+    },
+    {
+      "name": "Satara",
+      "count": 6
+    },
+    {
+      "name": "Shuozhou City",
+      "count": 6
+    },
+    {
+      "name": "Solapur",
+      "count": 6
+    },
+    {
+      "name": "Taipei",
+      "count": 6
+    },
+    {
+      "name": "Tel Aviv",
+      "count": 6
+    },
+    {
+      "name": "Thane",
+      "count": 6
+    },
+    {
+      "name": "Tukipo",
+      "count": 6
+    },
+    {
+      "name": "Ulhasnagar",
+      "count": 6
+    },
+    {
+      "name": "WWTP B (city undisclosed)",
+      "count": 6
+    },
+    {
+      "name": "Warren street",
+      "count": 6
+    },
+    {
+      "name": "Washermenpet",
+      "count": 6
+    },
+    {
+      "name": "Xiamen City",
+      "count": 6
+    },
+    {
+      "name": "Xian",
+      "count": 6
+    },
+    {
+      "name": "YoungCheon",
+      "count": 6
+    },
+    {
+      "name": "Zunyi City",
+      "count": 6
+    },
+    {
+      "name": "lanzhou",
+      "count": 6
+    },
+    {
+      "name": "xi'an",
+      "count": 6
+    },
+    {
+      "name": "Alandur",
+      "count": 5
+    },
+    {
+      "name": "Mesa",
+      "count": 5
+    },
+    {
+      "name": "Tampere",
+      "count": 5
+    },
+    {
+      "name": "Vasai-Virar City",
+      "count": 5
+    },
+    {
+      "name": "14TH STREET - 8TH AVE.",
+      "count": 4
+    },
+    {
+      "name": "14th St - 8 Avemue",
+      "count": 4
+    },
+    {
+      "name": "28th St.",
+      "count": 4
+    },
+    {
+      "name": "33rd St.",
+      "count": 4
+    },
+    {
+      "name": "51st St.",
+      "count": 4
+    },
+    {
+      "name": "59th St.",
+      "count": 4
+    },
+    {
+      "name": "63rd St.",
+      "count": 4
+    },
+    {
+      "name": "72nd St.",
+      "count": 4
+    },
+    {
+      "name": "74TH - BROADWAY (EXTERIOR)",
+      "count": 4
+    },
+    {
+      "name": "74TH - BROADWAY (INTERIOR)",
+      "count": 4
+    },
+    {
+      "name": "86th St.",
+      "count": 4
+    },
+    {
+      "name": "AR",
+      "count": 4
+    },
+    {
+      "name": "Aburi region",
+      "count": 4
+    },
+    {
+      "name": "Addis Ababa",
+      "count": 4
+    },
+    {
+      "name": "Airport",
+      "count": 4
+    },
+    {
+      "name": "Athabasca Oil Sands",
+      "count": 4
+    },
+    {
+      "name": "BITS Pilani Goa",
+      "count": 4
+    },
+    {
+      "name": "Bangalore",
+      "count": 4
+    },
+    {
+      "name": "Boulder Junction 1",
+      "count": 4
+    },
+    {
+      "name": "Brussels",
+      "count": 4
+    },
+    {
+      "name": "COURT SQUARE (QUEENS)",
+      "count": 4
+    },
+    {
+      "name": "Cabo de Santo Agostinho",
+      "count": 4
+    },
+    {
+      "name": "Cannobio (WWTP)",
+      "count": 4
+    },
+    {
+      "name": "Court square",
+      "count": 4
+    },
+    {
+      "name": "Denver International Airport Train Station",
+      "count": 4
+    },
+    {
+      "name": "Ellingsrud",
+      "count": 4
+    },
+    {
+      "name": "Enshi City",
+      "count": 4
+    },
+    {
+      "name": "Evosges",
+      "count": 4
+    },
+    {
+      "name": "FLUSHING AVE. (G)",
+      "count": 4
+    },
+    {
+      "name": "FLUSHING AVE. (J)(M)",
+      "count": 4
+    },
+    {
+      "name": "FULTON STREET",
+      "count": 4
+    },
+    {
+      "name": "Finsbury park",
+      "count": 4
+    },
+    {
+      "name": "Fort McMurray",
+      "count": 4
+    },
+    {
+      "name": "Fredrikstad",
+      "count": 4
+    },
+    {
+      "name": "Fujian province",
+      "count": 4
+    },
+    {
+      "name": "Fulton street",
+      "count": 4
+    },
+    {
+      "name": "GA 30602",
+      "count": 4
+    },
+    {
+      "name": "Gauteng Rietspruit",
+      "count": 4
+    },
+    {
+      "name": "Gazipur",
+      "count": 4
+    },
+    {
+      "name": "Grand Central 42nd St.",
+      "count": 4
+    },
+    {
+      "name": "Gravellona Toce (WWTP)",
+      "count": 4
+    },
+    {
+      "name": "GuangDong",
+      "count": 4
+    },
+    {
+      "name": "Guiyang",
+      "count": 4
+    },
+    {
+      "name": "Haikou",
+      "count": 4
+    },
+    {
+      "name": "Hirtzbach",
+      "count": 4
+    },
+    {
+      "name": "Ho Chi Minh City",
+      "count": 4
+    },
+    {
+      "name": "Jackson Heights - Roosevelt Ave (interior)",
+      "count": 4
+    },
+    {
+      "name": "Jiang su",
+      "count": 4
+    },
+    {
+      "name": "Kayl",
+      "count": 4
+    },
+    {
+      "name": "Koforidua region",
+      "count": 4
+    },
+    {
+      "name": "Leiden",
+      "count": 4
+    },
+    {
+      "name": "Levier",
+      "count": 4
+    },
+    {
+      "name": "Makhado Municipality",
+      "count": 4
+    },
+    {
+      "name": "Mesnil-Soleil",
+      "count": 4
+    },
+    {
+      "name": "Morelos",
+      "count": 4
+    },
+    {
+      "name": "Naples",
+      "count": 4
+    },
+    {
+      "name": "New York",
+      "count": 4
+    },
+    {
+      "name": "OR",
+      "count": 4
+    },
+    {
+      "name": "Oklahoma",
+      "count": 4
+    },
+    {
+      "name": "Oliver British Columbia",
+      "count": 4
+    },
+    {
+      "name": "Olovi",
+      "count": 4
+    },
+    {
+      "name": "Oxford circus",
+      "count": 4
+    },
+    {
+      "name": "Oxford circus 1",
+      "count": 4
+    },
+    {
+      "name": "Oxford circus 2",
+      "count": 4
+    },
+    {
+      "name": "Pasadena",
+      "count": 4
+    },
+    {
+      "name": "Poncin",
+      "count": 4
+    },
+    {
+      "name": "RALPH AVE.",
+      "count": 4
+    },
+    {
+      "name": "Ralph Ave",
+      "count": 4
+    },
+    {
+      "name": "Rye",
+      "count": 4
+    },
+    {
+      "name": "Sainte-Catherine",
+      "count": 4
+    },
+    {
+      "name": "Serebryannyi Bor city park",
+      "count": 4
+    },
+    {
+      "name": "Shenyang",
+      "count": 4
+    },
+    {
+      "name": "Sichuan province",
+      "count": 4
+    },
+    {
+      "name": "Spitsbergen",
+      "count": 4
+    },
+    {
+      "name": "Stanly",
+      "count": 4
+    },
+    {
+      "name": "Taguig City",
+      "count": 4
+    },
+    {
+      "name": "Tainan",
+      "count": 4
+    },
+    {
+      "name": "Tamil Nadu",
+      "count": 4
+    },
+    {
+      "name": "Te Iringawhare",
+      "count": 4
+    },
+    {
+      "name": "Thessaloniki",
+      "count": 4
+    },
+    {
+      "name": "Thessaloniki city",
+      "count": 4
+    },
+    {
+      "name": "Thirumangalam",
+      "count": 4
+    },
+    {
+      "name": "Train wagon",
+      "count": 4
+    },
+    {
+      "name": "Tudhoe",
+      "count": 4
+    },
+    {
+      "name": "Tukituki SH50",
+      "count": 4
+    },
+    {
+      "name": "UTS",
+      "count": 4
+    },
+    {
+      "name": "Ulm",
+      "count": 4
+    },
+    {
+      "name": "University of Malaya",
+      "count": 4
+    },
+    {
+      "name": "Valencia",
+      "count": 4
+    },
+    {
+      "name": "Verbania (WWTP)",
+      "count": 4
+    },
+    {
+      "name": "Villeneuve",
+      "count": 4
+    },
+    {
+      "name": "WWTP A (city undisclosed)",
+      "count": 4
+    },
+    {
+      "name": "WWTP C (city undisclosed)",
+      "count": 4
+    },
+    {
+      "name": "WWTP G (city undisclosed)",
+      "count": 4
+    },
+    {
+      "name": "Waterloo",
+      "count": 4
+    },
+    {
+      "name": "bioreactor at Lawrence Berkeley National Laboratory",
+      "count": 4
+    },
+    {
+      "name": "inlet 1 (city undisclosed)",
+      "count": 4
+    },
+    {
+      "name": "inlet 2 (city undisclosed)",
+      "count": 4
+    },
+    {
+      "name": "near Gorno-Altaisk city",
+      "count": 4
+    },
+    {
+      "name": "near Khabarovsk City",
+      "count": 4
+    },
+    {
+      "name": "residence 2 door knob day 2 day",
+      "count": 4
+    },
+    {
+      "name": "residence 3 left palm day 7 day",
+      "count": 4
+    },
+    {
+      "name": "residence 4 bed headboard day 4 night",
+      "count": 4
+    },
+    {
+      "name": "shanghai",
+      "count": 4
+    },
+    {
+      "name": "Brisbane",
+      "count": 3
+    },
+    {
+      "name": "Fuzhou",
+      "count": 3
+    },
+    {
+      "name": "Henan Province",
+      "count": 3
+    },
+    {
+      "name": "Jiaxing",
+      "count": 3
+    },
+    {
+      "name": "KS",
+      "count": 3
+    },
+    {
+      "name": "Laboratory of Hangzhou Normal University",
+      "count": 3
+    },
+    {
+      "name": "NM",
+      "count": 3
+    },
+    {
+      "name": "Nanjin",
+      "count": 3
+    },
+    {
+      "name": "Teynampet",
+      "count": 3
+    },
+    {
+      "name": "Tsingtao",
+      "count": 3
+    },
+    {
+      "name": "2355 meters altitude city center",
+      "count": 2
+    },
+    {
+      "name": "39th St. Herald Sq.",
+      "count": 2
+    },
+    {
+      "name": "57th St",
+      "count": 2
+    },
+    {
+      "name": "57th St.",
+      "count": 2
+    },
+    {
+      "name": "69469 Weinheim",
+      "count": 2
+    },
+    {
+      "name": "96th St.",
+      "count": 2
+    },
+    {
+      "name": "AL",
+      "count": 2
+    },
+    {
+      "name": "Adelaide",
+      "count": 2
+    },
+    {
+      "name": "Admiralty Exit A Day 4 Night",
+      "count": 2
+    },
+    {
+      "name": "Admiralty Exit A Day 5 Day",
+      "count": 2
+    },
+    {
+      "name": "Admiralty Exit A Day 5 Night",
+      "count": 2
+    },
+    {
+      "name": "Admiralty Exit A Day 6 Day",
+      "count": 2
+    },
+    {
+      "name": "Admiralty Exit A Day 7 Day",
+      "count": 2
+    },
+    {
+      "name": "Admiralty Exit A Day 7 Night",
+      "count": 2
+    },
+    {
+      "name": "Admiralty Exit A Day 8 Day",
+      "count": 2
+    },
+    {
+      "name": "Admiralty Exit A Day 8 Night",
+      "count": 2
+    },
+    {
+      "name": "Admiralty Station Exit A Day 2 Night",
+      "count": 2
+    },
+    {
+      "name": "Admiralty Station Exit A Handrail Day 1 Day",
+      "count": 2
+    },
+    {
+      "name": "Admiralty Station Exit A Handrail Day 2 day",
+      "count": 2
+    },
+    {
+      "name": "Admiralty Station Exit A Handrail day 9 night",
+      "count": 2
+    },
+    {
+      "name": "Admiralty exit A day 3 day",
+      "count": 2
+    },
+    {
+      "name": "Admiralty exit A day 9 day",
+      "count": 2
+    },
+    {
+      "name": "American Museum of Natural History",
+      "count": 2
+    },
+    {
+      "name": "Arizona Canyon de Chelly National Monument",
+      "count": 2
+    },
+    {
+      "name": "AsiaWorld-Expo",
+      "count": 2
+    },
+    {
+      "name": "Austin",
+      "count": 2
+    },
+    {
+      "name": "Babil",
+      "count": 2
+    },
+    {
+      "name": "Beijing lab-scale",
+      "count": 2
+    },
+    {
+      "name": "Bielefeld",
+      "count": 2
+    },
+    {
+      "name": "Blake & 38th",
+      "count": 2
+    },
+    {
+      "name": "Bornu",
+      "count": 2
+    },
+    {
+      "name": "CT",
+      "count": 2
+    },
+    {
+      "name": "Canal St.",
+      "count": 2
+    },
+    {
+      "name": "Cartagena",
+      "count": 2
+    },
+    {
+      "name": "Causeway Bay",
+      "count": 2
+    },
+    {
+      "name": "CeBiTec",
+      "count": 2
+    },
+    {
+      "name": "Chai Wan",
+      "count": 2
+    },
+    {
+      "name": "Choi Hung",
+      "count": 2
+    },
+    {
+      "name": "City One",
+      "count": 2
+    },
+    {
+      "name": "CityU Campus Handrail Day 1 night",
+      "count": 2
+    },
+    {
+      "name": "CityU Campus Handrail day 2 night",
+      "count": 2
+    },
+    {
+      "name": "CityU Campus Handrail day 3 day",
+      "count": 2
+    },
+    {
+      "name": "CityU Campus Handrail day 3 night",
+      "count": 2
+    },
+    {
+      "name": "CityU Campus Handrail day 4 day",
+      "count": 2
+    },
+    {
+      "name": "CityU Campus Handrail day 4 night",
+      "count": 2
+    },
+    {
+      "name": "CityU Campus Handrail day 5 day",
+      "count": 2
+    },
+    {
+      "name": "CityU Campus Handrail day 5 night",
+      "count": 2
+    },
+    {
+      "name": "CityU Campus Handrail day 6 day",
+      "count": 2
+    },
+    {
+      "name": "CityU Campus Handrail day 6 night",
+      "count": 2
+    },
+    {
+      "name": "CityU Campus Handrail day 7 day",
+      "count": 2
+    },
+    {
+      "name": "CityU Campus Handrail day 7 night",
+      "count": 2
+    },
+    {
+      "name": "CityU Campus Handrail day 8 day",
+      "count": 2
+    },
+    {
+      "name": "CityU Campus Handrail day 8 night",
+      "count": 2
+    },
+    {
+      "name": "CityU Campus Handrail day 9 day",
+      "count": 2
+    },
+    {
+      "name": "Cochin",
+      "count": 2
+    },
+    {
+      "name": "Coimbatore",
+      "count": 2
+    },
+    {
+      "name": "Diamond Hill",
+      "count": 2
+    },
+    {
+      "name": "Dingsheng",
+      "count": 2
+    },
+    {
+      "name": "Disneyland Resort",
+      "count": 2
+    },
+    {
+      "name": "Dongxing",
+      "count": 2
+    },
+    {
+      "name": "Downtown Boulder Station",
+      "count": 2
+    },
+    {
+      "name": "Dune slack habitats in coastal region",
+      "count": 2
+    },
+    {
+      "name": "Eskisehir",
+      "count": 2
+    },
+    {
+      "name": "Finsbury park 1",
+      "count": 2
+    },
+    {
+      "name": "Finsbury park 2",
+      "count": 2
+    },
+    {
+      "name": "Flushing ave (G)",
+      "count": 2
+    },
+    {
+      "name": "Flushing ave (J/M)",
+      "count": 2
+    },
+    {
+      "name": "Flushing ave 1",
+      "count": 2
+    },
+    {
+      "name": "Flushing ave 2",
+      "count": 2
+    },
+    {
+      "name": "Fo Tan",
+      "count": 2
+    },
+    {
+      "name": "Fo Tan Exit A handrail day 1 day",
+      "count": 2
+    },
+    {
+      "name": "Fo Tan Park Railing Day 1 day",
+      "count": 2
+    },
+    {
+      "name": "Fo Tan park railing day 1 night",
+      "count": 2
+    },
+    {
+      "name": "Fredericia",
+      "count": 2
+    },
+    {
+      "name": "Fujian",
+      "count": 2
+    },
+    {
+      "name": "GA",
+      "count": 2
+    },
+    {
+      "name": "Gent",
+      "count": 2
+    },
+    {
+      "name": "Georgia",
+      "count": 2
+    },
+    {
+      "name": "Goa",
+      "count": 2
+    },
+    {
+      "name": "Guarapiranga Reservoir",
+      "count": 2
+    },
+    {
+      "name": "Guindy",
+      "count": 2
+    },
+    {
+      "name": "HKU",
+      "count": 2
+    },
+    {
+      "name": "Haiding",
+      "count": 2
+    },
+    {
+      "name": "Hailin",
+      "count": 2
+    },
+    {
+      "name": "Hang Hau",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 1",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 10",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 11",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 12",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 13",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 14",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 15",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 16",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 17",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 18",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 19",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 2",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 20",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 21",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 22",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 23",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 24",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 3",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 4",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 5",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 6",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 7",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 8",
+      "count": 2
+    },
+    {
+      "name": "Hangzhou 9",
+      "count": 2
+    },
+    {
+      "name": "Hauz Khas",
+      "count": 2
+    },
+    {
+      "name": "Hawaii",
+      "count": 2
+    },
+    {
+      "name": "Heng Fa Chuen",
+      "count": 2
+    },
+    {
+      "name": "Heng On",
+      "count": 2
+    },
+    {
+      "name": "Hiriyur",
+      "count": 2
+    },
+    {
+      "name": "Ho Man Tin",
+      "count": 2
+    },
+    {
+      "name": "Hongcheon",
+      "count": 2
+    },
+    {
+      "name": "Huhhot",
+      "count": 2
+    },
+    {
+      "name": "Hunan Province",
+      "count": 2
+    },
+    {
+      "name": "Huzhou City",
+      "count": 2
+    },
+    {
+      "name": "IL",
+      "count": 2
+    },
+    {
+      "name": "Iksan",
+      "count": 2
+    },
+    {
+      "name": "Jackson Heights - Roosevelt Ave",
+      "count": 2
+    },
+    {
+      "name": "Jackson Heights - Roosevelt Ave (exterior)",
+      "count": 2
+    },
+    {
+      "name": "Jiangyin",
+      "count": 2
+    },
+    {
+      "name": "Jiaozuo_Ruifeng4",
+      "count": 2
+    },
+    {
+      "name": "Jiaozuo_Ruifeng5",
+      "count": 2
+    },
+    {
+      "name": "Jiaozuo_Ruifeng6",
+      "count": 2
+    },
+    {
+      "name": "Jingmen",
+      "count": 2
+    },
+    {
+      "name": "Jordan",
+      "count": 2
+    },
+    {
+      "name": "Jurong Island",
+      "count": 2
+    },
+    {
+      "name": "Kam Sheung Road",
+      "count": 2
+    },
+    {
+      "name": "Kennedy Town",
+      "count": 2
+    },
+    {
+      "name": "Kowloon",
+      "count": 2
+    },
+    {
+      "name": "Kowloon Bay",
+      "count": 2
+    },
+    {
+      "name": "Kowloon Tong Exit C Handrail day 1 night",
+      "count": 2
+    },
+    {
+      "name": "Kowloon Tong Exit C Handrail day 2 day",
+      "count": 2
+    },
+    {
+      "name": "Kowloon Tong Exit C Handrail day 2 night",
+      "count": 2
+    },
+    {
+      "name": "Kowloon Tong Exit C Handrail day 3 day",
+      "count": 2
+    },
+    {
+      "name": "Kowloon Tong Exit C Handrail day 3 night",
+      "count": 2
+    },
+    {
+      "name": "Kowloon Tong Exit C Handrail day 4 day",
+      "count": 2
+    },
+    {
+      "name": "Kowloon Tong Exit C Handrail day 4 night",
+      "count": 2
+    },
+    {
+      "name": "Kowloon Tong Exit C Handrail day 5 day",
+      "count": 2
+    },
+    {
+      "name": "Kowloon Tong Exit C Handrail day 5 night",
+      "count": 2
+    },
+    {
+      "name": "Kowloon Tong Exit C Handrail day 6 night",
+      "count": 2
+    },
+    {
+      "name": "Kowloon Tong Exit C Handrail day 7 day",
+      "count": 2
+    },
+    {
+      "name": "Kowloon Tong Exit C Handrail day 7 night",
+      "count": 2
+    },
+    {
+      "name": "Kowloon Tong Exit C Handrail day 9 day",
+      "count": 2
+    },
+    {
+      "name": "Kwai Fong",
+      "count": 2
+    },
+    {
+      "name": "Kwai Hing",
+      "count": 2
+    },
+    {
+      "name": "Kwong Ming Street Student Playground Handrail Day 1 Day",
+      "count": 2
+    },
+    {
+      "name": "Kwong Ming Street Student Playground Handrail Day 1 Night",
+      "count": 2
+    },
+    {
+      "name": "Kwong Ming Street Student Playground Handrail Day 4 Day",
+      "count": 2
+    },
+    {
+      "name": "Kwong Ming Street Student Playground Handrail Day 4 Night",
+      "count": 2
+    },
+    {
+      "name": "Kwong Ming Street Student Playground Handrail Day 5 Day",
+      "count": 2
+    },
+    {
+      "name": "Kwong Ming Street Student Playground Handrail Day 5 Night",
+      "count": 2
+    },
+    {
+      "name": "Kwong Ming Street Student Playground Handrail Day 6 Day",
+      "count": 2
+    },
+    {
+      "name": "Kwong Ming Street Student Playground Handrail Day 6 Night",
+      "count": 2
+    },
+    {
+      "name": "Kwong Ming Street Student Playground Handrail Day 7 Day",
+      "count": 2
+    },
+    {
+      "name": "Kwong Ming Street Student Playground Handrail Day 7 Night",
+      "count": 2
+    },
+    {
+      "name": "Kwong Ming Street Student Playground Handrail Day 8 Day",
+      "count": 2
+    },
+    {
+      "name": "Kwong Ming Street Student Playground Handrail Day 8 Night",
+      "count": 2
+    },
+    {
+      "name": "Kwong Ming Street Student Playground Handrail Day 9 Day",
+      "count": 2
+    },
+    {
+      "name": "Kwong Ming Street Student Playground Handrail day 10 day",
+      "count": 2
+    },
+    {
+      "name": "Kwong Ming Street Student Playground Handrail day 2 day",
+      "count": 2
+    },
+    {
+      "name": "Kwong Ming Street Student Playground Handrail day 2 night",
+      "count": 2
+    },
+    {
+      "name": "Kwong Ming Street Student Playground Handrail day 3 day",
+      "count": 2
+    },
+    {
+      "name": "Kwong Ming Street Student Playground Handrail day 9 night",
+      "count": 2
+    },
+    {
+      "name": "Kwun Tong",
+      "count": 2
+    },
+    {
+      "name": "LOHAS Park",
+      "count": 2
+    },
+    {
+      "name": "Laboratorium 1",
+      "count": 2
+    },
+    {
+      "name": "Laboratorium 2",
+      "count": 2
+    },
+    {
+      "name": "Lake Liambezi",
+      "count": 2
+    },
+    {
+      "name": "Lake Superior",
+      "count": 2
+    },
+    {
+      "name": "Lam Tin",
+      "count": 2
+    },
+    {
+      "name": "Langfang",
+      "count": 2
+    },
+    {
+      "name": "Lanzhou",
+      "count": 2
+    },
+    {
+      "name": "Left Palm Day 1 Day",
+      "count": 2
+    },
+    {
+      "name": "Lei Tung",
+      "count": 2
+    },
+    {
+      "name": "Lhasa",
+      "count": 2
+    },
+    {
+      "name": "Light street 9",
+      "count": 2
+    },
+    {
+      "name": "Lok Fu",
+      "count": 2
+    },
+    {
+      "name": "Louisiana-East Texas",
+      "count": 2
+    },
+    {
+      "name": "MIT Building 48",
+      "count": 2
+    },
+    {
+      "name": "MN",
+      "count": 2
+    },
+    {
+      "name": "MO",
+      "count": 2
+    },
+    {
+      "name": "Ma On Shan",
+      "count": 2
+    },
+    {
+      "name": "Maizuru Bay",
+      "count": 2
+    },
+    {
+      "name": "Manikganj",
+      "count": 2
+    },
+    {
+      "name": "Meenambakkam",
+      "count": 2
+    },
+    {
+      "name": "Mei Foo",
+      "count": 2
+    },
+    {
+      "name": "Mengde",
+      "count": 2
+    },
+    {
+      "name": "Minas Gerais states",
+      "count": 2
+    },
+    {
+      "name": "Mississippi",
+      "count": 2
+    },
+    {
+      "name": "Moffett Field",
+      "count": 2
+    },
+    {
+      "name": "Mongkok",
+      "count": 2
+    },
+    {
+      "name": "Mongkok East",
+      "count": 2
+    },
+    {
+      "name": "Moscow region",
+      "count": 2
+    },
+    {
+      "name": "Mpumalanga Coal Area",
+      "count": 2
+    },
+    {
+      "name": "NE",
+      "count": 2
+    },
+    {
+      "name": "NJ",
+      "count": 2
+    },
+    {
+      "name": "Nam Cheong",
+      "count": 2
+    },
+    {
+      "name": "NanJing",
+      "count": 2
+    },
+    {
+      "name": "Nanchong city of Sichuan Province",
+      "count": 2
+    },
+    {
+      "name": "Nankou",
+      "count": 2
+    },
+    {
+      "name": "Naryanganj",
+      "count": 2
+    },
+    {
+      "name": "Ngau Tau Kok",
+      "count": 2
+    },
+    {
+      "name": "Olympic",
+      "count": 2
+    },
+    {
+      "name": "Ordos",
+      "count": 2
+    },
+    {
+      "name": "Orenburg",
+      "count": 2
+    },
+    {
+      "name": "Oslo",
+      "count": 2
+    },
+    {
+      "name": "Oxford circus 3",
+      "count": 2
+    },
+    {
+      "name": "Palapye",
+      "count": 2
+    },
+    {
+      "name": "Para State",
+      "count": 2
+    },
+    {
+      "name": "Playa Del Ray",
+      "count": 2
+    },
+    {
+      "name": "Po Lam",
+      "count": 2
+    },
+    {
+      "name": "Polk County",
+      "count": 2
+    },
+    {
+      "name": "Punta del Este",
+      "count": 2
+    },
+    {
+      "name": "Puyang City",
+      "count": 2
+    },
+    {
+      "name": "Residence 1 Door Knob Day 1 Night",
+      "count": 2
+    },
+    {
+      "name": "Residence 1 Door Knob Day 2 Night",
+      "count": 2
+    },
+    {
+      "name": "Residence 1 Left Palm Day 1 Night",
+      "count": 2
+    },
+    {
+      "name": "Residence 1 Right Palm Day 1 Day",
+      "count": 2
+    },
+    {
+      "name": "Residence 1 Right Palm Day 1 Night",
+      "count": 2
+    },
+    {
+      "name": "Residence 1 bed headboard day 2 night",
+      "count": 2
+    },
+    {
+      "name": "Residence 1 bed headboard day 9 day",
+      "count": 2
+    },
+    {
+      "name": "Residence 1 door knob day 1 day",
+      "count": 2
+    },
+    {
+      "name": "Residence 1 door knob day 3 day",
+      "count": 2
+    },
+    {
+      "name": "Residence 1 door knob day 4 day",
+      "count": 2
+    },
+    {
+      "name": "Residence 1 door knob day 9 day",
+      "count": 2
+    },
+    {
+      "name": "Residence 1 left palm day 2 night",
+      "count": 2
+    },
+    {
+      "name": "Residence 1 left palm day 3 night",
+      "count": 2
+    },
+    {
+      "name": "Residence 3 left palm day 1 day",
+      "count": 2
+    },
+    {
+      "name": "Rhode Island",
+      "count": 2
+    },
+    {
+      "name": "Sai Wan Ho",
+      "count": 2
+    },
+    {
+      "name": "Sai Ying Pun",
+      "count": 2
+    },
+    {
+      "name": "San Cristobal Island",
+      "count": 2
+    },
+    {
+      "name": "Sanshi",
+      "count": 2
+    },
+    {
+      "name": "Santa Elena",
+      "count": 2
+    },
+    {
+      "name": "Shandong province",
+      "count": 2
+    },
+    {
+      "name": "Shangrao 28.54N 118.03E",
+      "count": 2
+    },
+    {
+      "name": "Shau Kei Wan",
+      "count": 2
+    },
+    {
+      "name": "Sheung Wan",
+      "count": 2
+    },
+    {
+      "name": "Sichuang",
+      "count": 2
+    },
+    {
+      "name": "Skive",
+      "count": 2
+    },
+    {
+      "name": "Songpa",
+      "count": 2
+    },
+    {
+      "name": "South Horizons",
+      "count": 2
+    },
+    {
+      "name": "Sovetskaya street 30",
+      "count": 2
+    },
+    {
+      "name": "Stanford",
+      "count": 2
+    },
+    {
+      "name": "Station SU-17",
+      "count": 2
+    },
+    {
+      "name": "Sun Tin Village Park Handrail day 1 day",
+      "count": 2
+    },
+    {
+      "name": "Sun Tin Village Park Handrail day 1 night",
+      "count": 2
+    },
+    {
+      "name": "Sun Tin Village Park Handrail day 2 day",
+      "count": 2
+    },
+    {
+      "name": "Sun Tin Village Park Handrail day 2 night",
+      "count": 2
+    },
+    {
+      "name": "Sun Tin Village Park Handrail day 3 day",
+      "count": 2
+    },
+    {
+      "name": "Sun Tin Village Park Handrail day 3 night",
+      "count": 2
+    },
+    {
+      "name": "Sun Tin Village Park Handrail day 4 day",
+      "count": 2
+    },
+    {
+      "name": "Sun Tin Village Park Handrail day 4 night",
+      "count": 2
+    },
+    {
+      "name": "Sun Tin Village Park Handrail day 5 day",
+      "count": 2
+    },
+    {
+      "name": "Sun Tin Village Park Handrail day 5 night",
+      "count": 2
+    },
+    {
+      "name": "Sun Tin Village Park Handrail day 6 day",
+      "count": 2
+    },
+    {
+      "name": "Sun Tin Village Park Handrail day 6 night",
+      "count": 2
+    },
+    {
+      "name": "Sun Tin Village Park Handrail day 7 day",
+      "count": 2
+    },
+    {
+      "name": "Sun Tin Village Park Handrail day 7 night",
+      "count": 2
+    },
+    {
+      "name": "Sun Tin Village Park Handrail day 8 day",
+      "count": 2
+    },
+    {
+      "name": "Sun Tin Village Park Handrail day 8 night",
+      "count": 2
+    },
+    {
+      "name": "Suncore Energy Pond 5",
+      "count": 2
+    },
+    {
+      "name": "Sunny Bay",
+      "count": 2
+    },
+    {
+      "name": "Taboao da Serra",
+      "count": 2
+    },
+    {
+      "name": "Tai Koo",
+      "count": 2
+    },
+    {
+      "name": "Tai Po Market",
+      "count": 2
+    },
+    {
+      "name": "Tai Shui Hang",
+      "count": 2
+    },
+    {
+      "name": "Tai Wo",
+      "count": 2
+    },
+    {
+      "name": "Tai Wo Hau",
+      "count": 2
+    },
+    {
+      "name": "Taizhou",
+      "count": 2
+    },
+    {
+      "name": "Tallahassee Florida",
+      "count": 2
+    },
+    {
+      "name": "Time Square 42nd St.",
+      "count": 2
+    },
+    {
+      "name": "Tin Hau",
+      "count": 2
+    },
+    {
+      "name": "Tiu Keng Leng",
+      "count": 2
+    },
+    {
+      "name": "Train Cabin - Back wagon",
+      "count": 2
+    },
+    {
+      "name": "Train Cabin - front wagon",
+      "count": 2
+    },
+    {
+      "name": "Train in transit",
+      "count": 2
+    },
+    {
+      "name": "Treinta y Tres",
+      "count": 2
+    },
+    {
+      "name": "Tseung Kwan O",
+      "count": 2
+    },
+    {
+      "name": "Tsuen Wan",
+      "count": 2
+    },
+    {
+      "name": "Tsuen Wan West",
+      "count": 2
+    },
+    {
+      "name": "Tsukuba",
+      "count": 2
+    },
+    {
+      "name": "Tuen Mun",
+      "count": 2
+    },
+    {
+      "name": "Tung Chung",
+      "count": 2
+    },
+    {
+      "name": "UT",
+      "count": 2
+    },
+    {
+      "name": "Ulsan",
+      "count": 2
+    },
+    {
+      "name": "Union Square 14th St.",
+      "count": 2
+    },
+    {
+      "name": "Union Station Indoor",
+      "count": 2
+    },
+    {
+      "name": "University",
+      "count": 2
+    },
+    {
+      "name": "V.C. Farm",
+      "count": 2
+    },
+    {
+      "name": "VT",
+      "count": 2
+    },
+    {
+      "name": "Vadapalani",
+      "count": 2
+    },
+    {
+      "name": "WWTP E (city undisclosed)",
+      "count": 2
+    },
+    {
+      "name": "Wall Street",
+      "count": 2
+    },
+    {
+      "name": "Wan Chai",
+      "count": 2
+    },
+    {
+      "name": "Wenshan City",
+      "count": 2
+    },
+    {
+      "name": "Whampoa",
+      "count": 2
+    },
+    {
+      "name": "Wong Chuk Hang",
+      "count": 2
+    },
+    {
+      "name": "Wong Tai Sin",
+      "count": 2
+    },
+    {
+      "name": "Wu Kai Sha",
+      "count": 2
+    },
+    {
+      "name": "Xincheng municipal wastewater treatment",
+      "count": 2
+    },
+    {
+      "name": "YANANS HOSPITAL OF KUNMING CITY",
+      "count": 2
+    },
+    {
+      "name": "Yangsan city",
+      "count": 2
+    },
+    {
+      "name": "Yau Ma Tei",
+      "count": 2
+    },
+    {
+      "name": "Yili",
+      "count": 2
+    },
+    {
+      "name": "Yuen Long",
+      "count": 2
+    },
+    {
+      "name": "Zhenjiang",
+      "count": 2
+    },
+    {
+      "name": "admiralty Exit A Day 6 Night",
+      "count": 2
+    },
+    {
+      "name": "admiralty exit a day 3 night",
+      "count": 2
+    },
+    {
+      "name": "fo tan exit a handrail day 1 night",
+      "count": 2
+    },
+    {
+      "name": "fo tan exit a handrail day 10 day",
+      "count": 2
+    },
+    {
+      "name": "fo tan exit a handrail day 10 night",
+      "count": 2
+    },
+    {
+      "name": "fo tan exit a handrail day 2 day",
+      "count": 2
+    },
+    {
+      "name": "fo tan exit a handrail day 2 night",
+      "count": 2
+    },
+    {
+      "name": "fo tan exit a handrail day 3 day",
+      "count": 2
+    },
+    {
+      "name": "fo tan exit a handrail day 3 night",
+      "count": 2
+    },
+    {
+      "name": "fo tan exit a handrail day 4 day",
+      "count": 2
+    },
+    {
+      "name": "fo tan exit a handrail day 4 night",
+      "count": 2
+    },
+    {
+      "name": "fo tan exit a handrail day 5 day",
+      "count": 2
+    },
+    {
+      "name": "fo tan exit a handrail day 5 night",
+      "count": 2
+    },
+    {
+      "name": "fo tan exit a handrail day 6 day",
+      "count": 2
+    },
+    {
+      "name": "fo tan exit a handrail day 7 day",
+      "count": 2
+    },
+    {
+      "name": "fo tan exit a handrail day 7 night",
+      "count": 2
+    },
+    {
+      "name": "fo tan exit a handrail day 8 day",
+      "count": 2
+    },
+    {
+      "name": "fo tan exit a handrail day 8 night",
+      "count": 2
+    },
+    {
+      "name": "fo tan exit a handrail day 9 day",
+      "count": 2
+    },
+    {
+      "name": "fo tan exit a handrail day 9 night",
+      "count": 2
+    },
+    {
+      "name": "fo tan exit a railing day 6 night",
+      "count": 2
+    },
+    {
+      "name": "fo tan park handrail day 3 day",
+      "count": 2
+    },
+    {
+      "name": "fo tan park handrail day 3 night",
+      "count": 2
+    },
+    {
+      "name": "fo tan park handrail day 8 day",
+      "count": 2
+    },
+    {
+      "name": "fo tan park handrail day 9 day",
+      "count": 2
+    },
+    {
+      "name": "fo tan park railing day 10 day",
+      "count": 2
+    },
+    {
+      "name": "fo tan park railing day 10 night",
+      "count": 2
+    },
+    {
+      "name": "fo tan park railing day 2 day",
+      "count": 2
+    },
+    {
+      "name": "fo tan park railing day 2 night",
+      "count": 2
+    },
+    {
+      "name": "fo tan park railing day 4 day",
+      "count": 2
+    },
+    {
+      "name": "fo tan park railing day 5 day",
+      "count": 2
+    },
+    {
+      "name": "fo tan park railing day 5 night",
+      "count": 2
+    },
+    {
+      "name": "fo tan park railing day 6 day",
+      "count": 2
+    },
+    {
+      "name": "fo tan park railing day 6 night",
+      "count": 2
+    },
+    {
+      "name": "fo tan park railing day 7 day",
+      "count": 2
+    },
+    {
+      "name": "fo tan park railing day 7 night",
+      "count": 2
+    },
+    {
+      "name": "fo tan park railing day 8 night",
+      "count": 2
+    },
+    {
+      "name": "fo tan park railing day 9 night",
+      "count": 2
+    },
+    {
+      "name": "fo tan park railng day 4 night",
+      "count": 2
+    },
+    {
+      "name": "jiangsu",
+      "count": 2
+    },
+    {
+      "name": "jinan",
+      "count": 2
+    },
+    {
+      "name": "laboratory",
+      "count": 2
+    },
+    {
+      "name": "qingdao",
+      "count": 2
+    },
+    {
+      "name": "replicate = biological replicate 1",
+      "count": 2
+    },
+    {
+      "name": "replicate = biological replicate 10",
+      "count": 2
+    },
+    {
+      "name": "replicate = biological replicate 11",
+      "count": 2
+    },
+    {
+      "name": "replicate = biological replicate 12",
+      "count": 2
+    },
+    {
+      "name": "replicate = biological replicate 2",
+      "count": 2
+    },
+    {
+      "name": "replicate = biological replicate 3",
+      "count": 2
+    },
+    {
+      "name": "replicate = biological replicate 4",
+      "count": 2
+    },
+    {
+      "name": "replicate = biological replicate 5",
+      "count": 2
+    },
+    {
+      "name": "replicate = biological replicate 6",
+      "count": 2
+    },
+    {
+      "name": "replicate = biological replicate 7",
+      "count": 2
+    },
+    {
+      "name": "replicate = biological replicate 8",
+      "count": 2
+    },
+    {
+      "name": "replicate = biological replicate 9",
+      "count": 2
+    },
+    {
+      "name": "res .2 bed headboard day 7 night",
+      "count": 2
+    },
+    {
+      "name": "res .2 bed headboard day 8 night",
+      "count": 2
+    },
+    {
+      "name": "res 2 bed headboard day 4 day",
+      "count": 2
+    },
+    {
+      "name": "res 2 bed headboard day 4 night",
+      "count": 2
+    },
+    {
+      "name": "res 2 bed headboard day 5 day",
+      "count": 2
+    },
+    {
+      "name": "res 2 bed headboard day 5 night",
+      "count": 2
+    },
+    {
+      "name": "res 2 bed headboard day 6 day",
+      "count": 2
+    },
+    {
+      "name": "res 2 bed headboard day 6 night",
+      "count": 2
+    },
+    {
+      "name": "res 2 bed headboard day 7 day",
+      "count": 2
+    },
+    {
+      "name": "res 2 bed headboard day 8 day",
+      "count": 2
+    },
+    {
+      "name": "res 2 bed headboard day 9 day",
+      "count": 2
+    },
+    {
+      "name": "res 2 door knob day 10 night",
+      "count": 2
+    },
+    {
+      "name": "res 2 door knob day 3 night",
+      "count": 2
+    },
+    {
+      "name": "res 2 door knob day 4 day",
+      "count": 2
+    },
+    {
+      "name": "res 2 door knob day 4 night",
+      "count": 2
+    },
+    {
+      "name": "res 2 door knob day 5 day",
+      "count": 2
+    },
+    {
+      "name": "res 2 door knob day 5 night",
+      "count": 2
+    },
+    {
+      "name": "res 2 door knob day 6 day",
+      "count": 2
+    },
+    {
+      "name": "res 2 door knob day 6 night",
+      "count": 2
+    },
+    {
+      "name": "res 2 door knob day 7 day",
+      "count": 2
+    },
+    {
+      "name": "res 2 door knob day 7 night",
+      "count": 2
+    },
+    {
+      "name": "res 2 door knob day 8 day",
+      "count": 2
+    },
+    {
+      "name": "res 2 door knob day 8 night",
+      "count": 2
+    },
+    {
+      "name": "res 2 door knob day 9 day",
+      "count": 2
+    },
+    {
+      "name": "res 2 left palm day 3 night",
+      "count": 2
+    },
+    {
+      "name": "res 2 left palm day 4 day",
+      "count": 2
+    },
+    {
+      "name": "res 2 left palm day 4 night",
+      "count": 2
+    },
+    {
+      "name": "res 2 left palm day 5 day",
+      "count": 2
+    },
+    {
+      "name": "res 2 left palm day 5 night",
+      "count": 2
+    },
+    {
+      "name": "res 2 left palm day 6 day",
+      "count": 2
+    },
+    {
+      "name": "res 2 left palm day 6 night",
+      "count": 2
+    },
+    {
+      "name": "res 2 left palm day 7 day",
+      "count": 2
+    },
+    {
+      "name": "res 2 left palm day 7 night",
+      "count": 2
+    },
+    {
+      "name": "res 2 left palm day 8 day",
+      "count": 2
+    },
+    {
+      "name": "res 2 left palm day 8 night",
+      "count": 2
+    },
+    {
+      "name": "res 2 left palm day 9 day",
+      "count": 2
+    },
+    {
+      "name": "res 2 left palm day 9 night",
+      "count": 2
+    },
+    {
+      "name": "res 2 right palm day 3 night",
+      "count": 2
+    },
+    {
+      "name": "res 2 right palm day 4 day",
+      "count": 2
+    },
+    {
+      "name": "res 2 right palm day 4 night",
+      "count": 2
+    },
+    {
+      "name": "res 2 right palm day 5 day",
+      "count": 2
+    },
+    {
+      "name": "res 2 right palm day 5 night",
+      "count": 2
+    },
+    {
+      "name": "res 2 right palm day 6 day",
+      "count": 2
+    },
+    {
+      "name": "res 2 right palm day 7 day",
+      "count": 2
+    },
+    {
+      "name": "res 2 right palm day 7 night",
+      "count": 2
+    },
+    {
+      "name": "res 2 right palm day 8 day",
+      "count": 2
+    },
+    {
+      "name": "res 2 right palm day 8 night",
+      "count": 2
+    },
+    {
+      "name": "res 6 right palm day 6 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 bed headboard day 1 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 bed headboard day 1 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 bed headboard day 10 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 bed headboard day 3 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 bed headboard day 3 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 bed headboard day 4 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 bed headboard day 4 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 bed headboard day 5 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 bed headboard day 5 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 bed headboard day 6 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 bed headboard day 6 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 bed headboard day 7 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 bed headboard day 7 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 bed headboard day 8 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 bed headboard day 8 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 bed headboard day 9 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 door knob day 10 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 door knob day 3 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 door knob day 5 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 door knob day 5 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 door knob day 6 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 door knob day 6 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 door knob day 7 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 door knob day 7 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 door knob day 8 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 door knob day 9 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 left palm day 10 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 left palm day 3 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 left palm day 4 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 left palm day 5 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 left palm day 6 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 left palm day 6 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 left palm day 7 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 left palm day 7 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 left palm day 8 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 left palm day 8 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 left palm day 9 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 left palm day 9 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 right palm day 10 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 right palm day 2 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 right palm day 3 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 right palm day 4 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 right palm day 5 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 right palm day 6 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 right palm day 6 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 right palm day 7 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 right palm day 7 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 right palm day 8 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 right palm day 8 night",
+      "count": 2
+    },
+    {
+      "name": "residence 1 right palm day 9 day",
+      "count": 2
+    },
+    {
+      "name": "residence 1 right palm day 9 night",
+      "count": 2
+    },
+    {
+      "name": "residence 2 bed headboard day 1 day",
+      "count": 2
+    },
+    {
+      "name": "residence 2 bed headboard day 1 night",
+      "count": 2
+    },
+    {
+      "name": "residence 2 bed headboard day 2 day",
+      "count": 2
+    },
+    {
+      "name": "residence 2 bed headboard day 2 night",
+      "count": 2
+    },
+    {
+      "name": "residence 2 bed headboard day 3 day",
+      "count": 2
+    },
+    {
+      "name": "residence 2 bed headboard day 3 night",
+      "count": 2
+    },
+    {
+      "name": "residence 2 door knob day 1 day",
+      "count": 2
+    },
+    {
+      "name": "residence 2 door knob day 3 day",
+      "count": 2
+    },
+    {
+      "name": "residence 2 door knob day1 night",
+      "count": 2
+    },
+    {
+      "name": "residence 2 left palm day 1 day",
+      "count": 2
+    },
+    {
+      "name": "residence 2 left palm day 1 night",
+      "count": 2
+    },
+    {
+      "name": "residence 2 left palm day 2 day",
+      "count": 2
+    },
+    {
+      "name": "residence 2 left palm day 2 night",
+      "count": 2
+    },
+    {
+      "name": "residence 2 left palm day 3 day",
+      "count": 2
+    },
+    {
+      "name": "residence 2 right palm day 1 day",
+      "count": 2
+    },
+    {
+      "name": "residence 2 right palm day 1 night",
+      "count": 2
+    },
+    {
+      "name": "residence 2 right palm day 2 day",
+      "count": 2
+    },
+    {
+      "name": "residence 2 right palm day 2 night",
+      "count": 2
+    },
+    {
+      "name": "residence 2 right palm day 3 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 bed headboard day 1 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 bed headboard day 1 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 bed headboard day 10 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 bed headboard day 10 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 bed headboard day 2 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 bed headboard day 2 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 bed headboard day 3 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 bed headboard day 3 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 bed headboard day 4 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 bed headboard day 4 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 bed headboard day 5 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 bed headboard day 5 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 bed headboard day 6 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 bed headboard day 6 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 bed headboard day 7 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 bed headboard day 7 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 bed headboard day 8 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 bed headboard day 8 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 bed headboard day 9 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 bed headboard day 9 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 door knob day 1 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 door knob day 1 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 door knob day 10 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 door knob day 10 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 door knob day 2 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 door knob day 2 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 door knob day 3 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 door knob day 3 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 door knob day 4 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 door knob day 4 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 door knob day 5 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 door knob day 5 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 door knob day 6 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 door knob day 6 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 door knob day 7 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 door knob day 7 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 door knob day 8 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 door knob day 8 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 door knob day 9 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 door knob day 9 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 left palm day 1 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 left palm day 10 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 left palm day 10 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 left palm day 2 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 left palm day 2 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 left palm day 3 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 left palm day 3 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 left palm day 4 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 left palm day 4 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 left palm day 5 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 left palm day 6 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 left palm day 6 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 left palm day 7 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 left palm day 8 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 left palm day 8 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 left palm day 9 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 left palm day 9 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 right palm day 1 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 right palm day 1 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 right palm day 10 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 right palm day 2 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 right palm day 2 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 right palm day 3 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 right palm day 3 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 right palm day 4 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 right palm day 4 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 right palm day 5 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 right palm day 5 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 right palm day 6 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 right palm day 6 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 right palm day 7 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 right palm day 8 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 right palm day 8 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3 right palm day 9 day",
+      "count": 2
+    },
+    {
+      "name": "residence 3 right palm day 9 night",
+      "count": 2
+    },
+    {
+      "name": "residence 3right palm day 10 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 bed headboard day 1 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 bed headboard day 2 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 bed headboard day 2 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 bed headboard day 3 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 bed headboard day 5 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 bed headboard day 5 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 bed headboard day 6 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 bed headboard day 7 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 bed headboard day 7 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 bed headboard day 8 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 bed headboard day 8 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 bed headboard day 9 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 door knob day 3 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 door knob day 3 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 door knob day 4 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 door knob day 4 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 door knob day 5 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 door knob day 6 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 door knob day 6 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 door knob day 7 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 door knob day 8 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 door knob day 8 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 door knob day 9 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 left palm day 1 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 left palm day 1 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 left palm day 2 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 left palm day 3 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 left palm day 4 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 left palm day 4 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 left palm day 5 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 left palm day 5 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 left palm day 6 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 left palm day 6 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 left palm day 7 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 left palm day 7 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 left palm day 8 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 left palm day 8 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 left palm day 9 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 right palm . day 3 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 right palm day 2 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 right palm day 2 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 right palm day 3 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 right palm day 4 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 right palm day 4 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 right palm day 5 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 right palm day 6 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 right palm day 6 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 right palm day 7 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 right palm day 8 day",
+      "count": 2
+    },
+    {
+      "name": "residence 4 right palm day 8 night",
+      "count": 2
+    },
+    {
+      "name": "residence 4 right palm day 9 day",
+      "count": 2
+    },
+    {
+      "name": "residence left palm day 5 day",
+      "count": 2
+    },
+    {
+      "name": "residence right palm day 5 day",
+      "count": 2
+    },
+    {
+      "name": "residential 1 door knob day 8 day",
+      "count": 2
+    },
+    {
+      "name": "saidapet",
+      "count": 2
+    },
+    {
+      "name": "tai wai exit a exit day 5 night",
+      "count": 2
+    },
+    {
+      "name": "tai wai exit a exit day 6 night",
+      "count": 2
+    },
+    {
+      "name": "tai wai exit a handrail day 1 day",
+      "count": 2
+    },
+    {
+      "name": "tai wai exit a handrail day 1 night",
+      "count": 2
+    },
+    {
+      "name": "tai wai exit a handrail day 2 day",
+      "count": 2
+    },
+    {
+      "name": "tai wai exit a handrail day 2 night",
+      "count": 2
+    },
+    {
+      "name": "tai wai exit a handrail day 3 day",
+      "count": 2
+    },
+    {
+      "name": "tai wai exit a handrail day 4 day",
+      "count": 2
+    },
+    {
+      "name": "tai wai exit a handrail day 4 night",
+      "count": 2
+    },
+    {
+      "name": "tai wai exit a handrail day 5 day",
+      "count": 2
+    },
+    {
+      "name": "tai wai exit a handrail day 6 day",
+      "count": 2
+    },
+    {
+      "name": "tai wai exit a handrail day 7 day",
+      "count": 2
+    },
+    {
+      "name": "tai wai exit a handrail day 7 night",
+      "count": 2
+    },
+    {
+      "name": "tai wai exit a handrail day 8 day",
+      "count": 2
+    },
+    {
+      "name": "tai wai exit a handrail day 8 night",
+      "count": 2
+    },
+    {
+      "name": "tai wai exit a handrail day3 night",
+      "count": 2
+    },
+    {
+      "name": "wastewater treatment plants",
+      "count": 2
+    },
+    {
+      "name": "Chongqin",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province1",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province10",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province11",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province12",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province13",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province14",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province15",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province16",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province17",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province18",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province19",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province2",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province20",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province21",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province22",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province23",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province24",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province25",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province26",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province27",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province28",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province29",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province3",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province30",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province31",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province32",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province33",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province34",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province35",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province36",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province37",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province38",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province39",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province4",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province40",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province41",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province42",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province43",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province44",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province45",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province46",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province47",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province48",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province49",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province5",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province50",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province51",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province52",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province53",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province54",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province55",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province56",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province57",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province58",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province59",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province6",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province60",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province61",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province62",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province63",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province64",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province65",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province66",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province67",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province68",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province69",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province7",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province70",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province71",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province72",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province73",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province74",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province75",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province76",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province77",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province78",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province79",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province8",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province80",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province81",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province82",
+      "count": 1
+    },
+    {
+      "name": "Guizhou Province9",
+      "count": 1
+    },
+    {
+      "name": "Hang Zhou",
+      "count": 1
+    },
+    {
+      "name": "Inner Mongolia",
+      "count": 1
+    },
+    {
+      "name": "Kisumu",
+      "count": 1
+    },
+    {
+      "name": "Kunming",
+      "count": 1
+    },
+    {
+      "name": "Paris",
+      "count": 1
+    },
+    {
+      "name": "RST",
+      "count": 1
+    },
+    {
+      "name": "Shihezi City",
+      "count": 1
+    },
+    {
+      "name": "Valladolid",
+      "count": 1
+    },
+    {
+      "name": "Vasai-Virar",
+      "count": 1
+    },
+    {
+      "name": "Yucheng",
+      "count": 1
+    },
+    {
+      "name": "Zhengzhou",
+      "count": 1
+    },
+    {
+      "name": "control",
+      "count": 1
+    }
+  ],
+  "centers": [
+    {
+      "name": "UNIVERSITY OF CALIFORNIA SAN DIEGO MICROBIOME INIT",
+      "count": 13589
+    },
+    {
+      "name": "SWISS PATHOGEN SURVEILLANCE PLATFORM (SPSP)",
+      "count": 13474
+    },
+    {
+      "name": "UNIVERSITY OF HELSINKI",
+      "count": 6606
+    },
+    {
+      "name": "WEILL CORNELL MEDICAL COLLEGE",
+      "count": 3198
+    },
+    {
+      "name": "NANYANG TECHNOLOGICAL UNIVERSITY",
+      "count": 2994
+    },
+    {
+      "name": "UNIVERSITY OF QUEENSLAND",
+      "count": 2780
+    },
+    {
+      "name": "FUDAN UNIVERSITY",
+      "count": 2590
+    },
+    {
+      "name": "CENTRE FOR GENOMIC EPIDEMIOLOGY, NATIONAL FOOD INS",
+      "count": 2227
+    },
+    {
+      "name": "CFSAN",
+      "count": 1934
+    },
+    {
+      "name": "INSTITUTE OF URBAN ENVIRONMENT, CHINESE ACADEMY OF SCIENCES",
+      "count": 1740
+    },
+    {
+      "name": "UNIVERSITY OF MIAMI",
+      "count": 1642
+    },
+    {
+      "name": "UNIVERSITY OF IOWA STEAD FAMILY CHILDREN'S HOSPITAL",
+      "count": 1426
+    },
+    {
+      "name": "ARIZONA STATE UNIVERSITY",
+      "count": 1292
+    },
+    {
+      "name": "FDA_AZ",
+      "count": 1160
+    },
+    {
+      "name": "UNIVERSITY OF CALIFORNIA, BERKELEY",
+      "count": 1138
+    },
+    {
+      "name": "INDIAN BIOLOGICAL DATA CENTRE",
+      "count": 1124
+    },
+    {
+      "name": "NORWEGIAN DEFENCE RESEARCH ESTABLISHMENT",
+      "count": 1024
+    },
+    {
+      "name": "CITY UNIVERSITY OF HONG KONG",
+      "count": 990
+    },
+    {
+      "name": "AALBORG UNIVERSITY",
+      "count": 946
+    },
+    {
+      "name": "TECHNICAL UNIVERSITY OF DENMARK",
+      "count": 910
+    },
+    {
+      "name": "OREGON STATE UNIVERSITY",
+      "count": 850
+    },
+    {
+      "name": "NEW YORK UNIVERSITY SCHOOL OF MEDICINE",
+      "count": 816
+    },
+    {
+      "name": "UMEA UNIVERSITY",
+      "count": 778
+    },
+    {
+      "name": "WARWICK MEDICAL SCHOOL",
+      "count": 766
+    },
+    {
+      "name": "KU LEUVEN",
+      "count": 744
+    },
+    {
+      "name": "NORTHUMBRIA UNIVERSITY, NEWCASTLE",
+      "count": 744
+    },
+    {
+      "name": "JGI",
+      "count": 739
+    },
+    {
+      "name": "NC_THAKUR_LAB_GT",
+      "count": 712
+    },
+    {
+      "name": "NORWEGIAN DEFENCE RESEARCH ESTABLISHMENT (FFI)",
+      "count": 688
+    },
+    {
+      "name": "CHINESE ACADEMY OF SCIENCES",
+      "count": 641
+    },
+    {
+      "name": "XAVIER",
+      "count": 640
+    },
+    {
+      "name": "THE UNIVERSITY OF HONG KONG",
+      "count": 632
+    },
+    {
+      "name": "RUSH UNIVERSITY MEDICAL CENTER",
+      "count": 558
+    },
+    {
+      "name": "TSINGHUA UNIVERSITY",
+      "count": 529
+    },
+    {
+      "name": "ADM LIFESEQUENCING",
+      "count": 524
+    },
+    {
+      "name": "UNIVERSITY OF AUCKLAND",
+      "count": 524
+    },
+    {
+      "name": "WDRC KAUST",
+      "count": 513
+    },
+    {
+      "name": "MCGILL UNIVERSITY",
+      "count": 506
+    },
+    {
+      "name": "COLUMBIA UNIVERSITY",
+      "count": 488
+    },
+    {
+      "name": "BASF BEAUTY CARE SOLUTIONS FRANCE",
+      "count": 484
+    },
+    {
+      "name": "UNIVERSITY OF CALIFORNIA IRVINE",
+      "count": 472
+    },
+    {
+      "name": "UNIVERSITY OF LIVERPOOL",
+      "count": 453
+    },
+    {
+      "name": "CSIR-CENTER FOR CELLULAR AND MOLECULAR BIOLOGY",
+      "count": 447
+    },
+    {
+      "name": "INRA-META",
+      "count": 438
+    },
+    {
+      "name": "QUADRAM INSTITUTE BIOSCIENCE",
+      "count": 429
+    },
+    {
+      "name": "UNIVERSITY OF COPENHAGEN",
+      "count": 419
+    },
+    {
+      "name": "INSTITUTE OF URBAN ENVIRONMENT, CAS",
+      "count": 378
+    },
+    {
+      "name": "WISCONSIN STATE LABORATORY OF HYGIENE",
+      "count": 374
+    },
+    {
+      "name": "GHENT UNIVERSITY",
+      "count": 373
+    },
+    {
+      "name": "NANFANG HOSPITAL, SOUTHERN MEDICAL UNIVERSITY",
+      "count": 366
+    },
+    {
+      "name": "UNIVERSITY OF CALIFORNIA: IRVINE",
+      "count": 364
+    },
+    {
+      "name": "SICHUAN UNIVERSITY",
+      "count": 362
+    },
+    {
+      "name": "ISGLOBAL",
+      "count": 358
+    },
+    {
+      "name": "UNC CHARLOTTE",
+      "count": 350
+    },
+    {
+      "name": "PEKING UNIVERSITY",
+      "count": 344
+    },
+    {
+      "name": "UNIVERSITY OF OREGON",
+      "count": 334
+    },
+    {
+      "name": "CSIR-NCL",
+      "count": 328
+    },
+    {
+      "name": "UNIVERSITY OF OXFORD",
+      "count": 293
+    },
+    {
+      "name": "SOUTH CHINA AGRICULTURAL UNIVERSITY",
+      "count": 288
+    },
+    {
+      "name": "ZHEJIANG UNIVERSITY",
+      "count": 282
+    },
+    {
+      "name": "TONGJI UNIVERSITY",
+      "count": 277
+    },
+    {
+      "name": "HUAZHONG AGRICULTURAL UNIVERSITY",
+      "count": 276
+    },
+    {
+      "name": "HELMHOLTZ PIONEER CAMPUS",
+      "count": 270
+    },
+    {
+      "name": "SUN YAT-SEN UNIVERSITY",
+      "count": 267
+    },
+    {
+      "name": "SINGAPORE CENTRE FOR ENVIRONMENTAL LIFE SCIENCES ENGINEERING (SCELSE)",
+      "count": 260
+    },
+    {
+      "name": "UNIVERSITY OF CALIFORNIA SAN DIEGO",
+      "count": 251
+    },
+    {
+      "name": "TIANJIN MEDICAL UNIVERSITY GENERAL HOSPITAL",
+      "count": 244
+    },
+    {
+      "name": "TENTH PEOPLE HOSPITAL OF TONGJI UNIVERSITY",
+      "count": 236
+    },
+    {
+      "name": "CHURCHES HEALTH ASSOCIATION OF ZAMBIA",
+      "count": 228
+    },
+    {
+      "name": "JIANGSU UNIVERSITY",
+      "count": 228
+    },
+    {
+      "name": "MARQUETTE UNIVERSITY",
+      "count": 222
+    },
+    {
+      "name": "EUROPEAN CENTRE FOR ENVIRONMENT AND HUMAN HEALTH -",
+      "count": 216
+    },
+    {
+      "name": "THE SECOND HOSPITAL & CLINICAL MEDICAL SCHOOL, LANZHOU UNIVERSITY",
+      "count": 212
+    },
+    {
+      "name": "IATA-CSIC",
+      "count": 208
+    },
+    {
+      "name": "TEAGASC FOOD RESEARCH CENTRE",
+      "count": 205
+    },
+    {
+      "name": "FISABIO",
+      "count": 200
+    },
+    {
+      "name": "VIRGINIA TECH",
+      "count": 196
+    },
+    {
+      "name": "RESEARCH CENTER FOR ECO-ENVIRONMENTAL SCIENCES, CH",
+      "count": 192
+    },
+    {
+      "name": "UNIVERSITY OF MANITOBA",
+      "count": 190
+    },
+    {
+      "name": "THE HONG KONG POLYTECHNIC UNIVERSITY",
+      "count": 187
+    },
+    {
+      "name": "SHANDONG FIRST MEDICAL UNIVERSITY & SHANDONG ACADEMY OF MEDICAL SCIENCES",
+      "count": 180
+    },
+    {
+      "name": "SOUTH CHINA NORMAL UNIVERSITY",
+      "count": 178
+    },
+    {
+      "name": "UNIVERSITY OF CALIFORNIA RIVERSIDE",
+      "count": 172
+    },
+    {
+      "name": "NIID",
+      "count": 170
+    },
+    {
+      "name": "REGIONH",
+      "count": 170
+    },
+    {
+      "name": "INSTITUTO RAMON Y CAJAL DE INVESTIGACION SANITARIA",
+      "count": 168
+    },
+    {
+      "name": "UNIVERSITY OF BOLOGNA",
+      "count": 167
+    },
+    {
+      "name": "CNR",
+      "count": 162
+    },
+    {
+      "name": "UNIVERSITY OF COPENHAGEN, SECTION OF MICROBIOLOGY",
+      "count": 162
+    },
+    {
+      "name": "LATVIAN BIOMEDICAL RESEARCH AND STUDY CENTRE",
+      "count": 160
+    },
+    {
+      "name": "GBW",
+      "count": 159
+    },
+    {
+      "name": "XI'AN UNIVERSITY OF ARCHITECTURE AND TECHNOLOGY",
+      "count": 157
+    },
+    {
+      "name": "MASSACHUSETTS GENERAL HOSPITAL",
+      "count": 152
+    },
+    {
+      "name": "NANJING UNIVERSITY",
+      "count": 151
+    },
+    {
+      "name": "UNIVERSITY OF WISCONSIN",
+      "count": 149
+    },
+    {
+      "name": "UNIVERSIDAD DE LEON",
+      "count": 146
+    },
+    {
+      "name": "UNIVERSITY OF CALGARY",
+      "count": 146
+    },
+    {
+      "name": "NORTHWEST A&F UNIVERSITY",
+      "count": 144
+    },
+    {
+      "name": "DUKE-NUS",
+      "count": 143
+    },
+    {
+      "name": "LANZHOU UNIVERSITY",
+      "count": 140
+    },
+    {
+      "name": "UNIVERSITY OF NOTTINGHAM",
+      "count": 138
+    },
+    {
+      "name": "NATIONAL UNIVERSITY OF SINGAPORE",
+      "count": 136
+    },
+    {
+      "name": "UNIVERSITY OF MINNESOTA",
+      "count": 136
+    },
+    {
+      "name": "ZIBO MUNICIPAL HOSPITAL",
+      "count": 136
+    },
+    {
+      "name": "YALE CEA",
+      "count": 134
+    },
+    {
+      "name": "FURTWANGEN UNIVERSITY",
+      "count": 132
+    },
+    {
+      "name": "BEIJING UNIVERSITY OF TECHNOLOGY",
+      "count": 130
+    },
+    {
+      "name": "FIRST AFFILIATED HOSPITAL OF GUANGZHOU MEDICAL UNIVERSITY",
+      "count": 130
+    },
+    {
+      "name": "SAN DIEGO STATE UNIVERSITY",
+      "count": 122
+    },
+    {
+      "name": "SHANTOU UNIVERSITY MEDICAL COLLEGE",
+      "count": 122
+    },
+    {
+      "name": "SHENZHEN UNIVERSITY",
+      "count": 122
+    },
+    {
+      "name": "CHINESE CENTER FOR DISEASE CONTROL AND PREVENTION",
+      "count": 120
+    },
+    {
+      "name": "UNIVERSITY OF WARMIA AND MAZURY IN OLSZTYN",
+      "count": 118
+    },
+    {
+      "name": "ERASMUS MC, UNIVERSITY MEDICAL CENTER",
+      "count": 113
+    },
+    {
+      "name": "GUIZHOU UNIVERSITY",
+      "count": 112
+    },
+    {
+      "name": "NATIONAL INSTITUTE OF ALLERGY AND INFECTIOUS DISEASES, NATIONAL INSTITUTES OF HEALTH",
+      "count": 112
+    },
+    {
+      "name": "UNLV",
+      "count": 112
+    },
+    {
+      "name": "WEIZMANN INSTITUTE OF SCIENCE",
+      "count": 112
+    },
+    {
+      "name": "BASF METABOLOME SOLUTIONS GMBH",
+      "count": 110
+    },
+    {
+      "name": "NASEER",
+      "count": 110
+    },
+    {
+      "name": "NATIONAL CENTER FOR GENETIC ENGINEERING AND BIOTECHNOLOGY",
+      "count": 108
+    },
+    {
+      "name": "FDA",
+      "count": 106
+    },
+    {
+      "name": "CAS",
+      "count": 104
+    },
+    {
+      "name": "NORTHEASTERN UNIVERSITY",
+      "count": 104
+    },
+    {
+      "name": "UNIVERSITY OF CALGARY IN CANADA",
+      "count": 104
+    },
+    {
+      "name": "W-CQ",
+      "count": 104
+    },
+    {
+      "name": "FAME",
+      "count": 102
+    },
+    {
+      "name": "COLUMBIA UNIVERSITY MEDICAL CENTRE (CUMC)",
+      "count": 100
+    },
+    {
+      "name": "TRANSLATIONAL GENOMICS",
+      "count": 100
+    },
+    {
+      "name": "UNIVERISTY OF PRETORIA AND NATIONAL HEALTH LABORATORY SERVICES",
+      "count": 100
+    },
+    {
+      "name": "DUKE UNIVERSITY MEDICAL CENTER",
+      "count": 98
+    },
+    {
+      "name": "INSTITUTO DE BIOTECNOLOGIA",
+      "count": 98
+    },
+    {
+      "name": "LOUGHBOROUGH UNIVERSITY",
+      "count": 98
+    },
+    {
+      "name": "NATIONAL FOOD INSTITUTE - DTU",
+      "count": 96
+    },
+    {
+      "name": "TRANSLATIONAL HEALTH SCIENCE AND TECHNOLOGY INSTIT",
+      "count": 96
+    },
+    {
+      "name": "ZHEJIANG GONGSHANG UNIVERSITY",
+      "count": 96
+    },
+    {
+      "name": "CGE",
+      "count": 92
+    },
+    {
+      "name": "INSTITUTO NACIONAL DE MEDICINA GENOMICA",
+      "count": 90
+    },
+    {
+      "name": "SWEDISH UNIVERSITY OF AGRICULTURAL SCIENCES",
+      "count": 89
+    },
+    {
+      "name": "HARBIN INSTITUTE OF TECHNOLOGY",
+      "count": 88
+    },
+    {
+      "name": "CHALMERS UNIVERSITY OF TECHNOLOGY",
+      "count": 86
+    },
+    {
+      "name": "STATE UNIVERSITY OF NEW YORK AT BUFFALO",
+      "count": 86
+    },
+    {
+      "name": "CHONGQING UNIVERSITY",
+      "count": 82
+    },
+    {
+      "name": "DTU",
+      "count": 82
+    },
+    {
+      "name": "NORTHEAST NORMAL UNIVERSITY",
+      "count": 82
+    },
+    {
+      "name": "UNIVERSIDADE DO ESTADO DA BAHIA",
+      "count": 82
+    },
+    {
+      "name": "WARWICK UNIVERSITY",
+      "count": 82
+    },
+    {
+      "name": "TRINITY COLLEGE DUBLIN",
+      "count": 80
+    },
+    {
+      "name": "EAST CHINA UNIVERSITY OF SCIENCE AND TECHNOLOGY",
+      "count": 78
+    },
+    {
+      "name": "GEORGIA INSTITUTE OF TECHNOLOGY",
+      "count": 78
+    },
+    {
+      "name": "NATIONAL RESEARCH COUNCIL CANADA, CLEAN ENERGY INN",
+      "count": 78
+    },
+    {
+      "name": "SHANDONG NORMAL UNIVERSITY",
+      "count": 78
+    },
+    {
+      "name": "THE UNIVERSITY OF ALABAMA",
+      "count": 78
+    },
+    {
+      "name": "CHINA AGRICULTURAL UNIVERSITY",
+      "count": 76
+    },
+    {
+      "name": "ESCOLA DE ENGENHARIA DE SÃO CARLOS, UNIVERSIDADE D",
+      "count": 74
+    },
+    {
+      "name": "AGRESEARCH NZ LTD",
+      "count": 72
+    },
+    {
+      "name": "COLLEGE OF LIFE SCIENCE, SHAANXI NORMAL UNIVERSITY",
+      "count": 72
+    },
+    {
+      "name": "DEPARTMENT OF CHEMISTRY, BIOSCIENCE AND ENVIRONMEN",
+      "count": 72
+    },
+    {
+      "name": "NORTHWEST A & F UNIVERSITY",
+      "count": 72
+    },
+    {
+      "name": "UNIVERSITY OF CHINESE ACADEMY OF SCIENCES",
+      "count": 72
+    },
+    {
+      "name": "UNIVERSITY OF REGINA",
+      "count": 72
+    },
+    {
+      "name": "UNIVERSITY OF VIRGINIA",
+      "count": 72
+    },
+    {
+      "name": "UNIVERSITY OF WISCONSIN-MADISON",
+      "count": 72
+    },
+    {
+      "name": "WUHAN UNIVERSITY OF SCIENCE AND TECHNOLOGY",
+      "count": 71
+    },
+    {
+      "name": "UNIVERSITY OF EDINBURGH",
+      "count": 70
+    },
+    {
+      "name": "UNIVERSITY OF GEORGIA",
+      "count": 68
+    },
+    {
+      "name": "UNIVERSITY OF ILLINOIS URBANA-CHAMPAIGN",
+      "count": 68
+    },
+    {
+      "name": "HENAN NORMAL UNIVERSITY",
+      "count": 66
+    },
+    {
+      "name": "SHANDONG UNIVERSITY",
+      "count": 66
+    },
+    {
+      "name": "THE OHIO STATE UNIVERSITY",
+      "count": 66
+    },
+    {
+      "name": "SUZHOU UNIVERSITY OF SCIENCE AND TECHNOLOGY",
+      "count": 64
+    },
+    {
+      "name": "INSTITUTO DE INGENIERIA, UNIVERSIDAD NACIONAL AUTONOMA DE MEXICO",
+      "count": 60
+    },
+    {
+      "name": "NTU",
+      "count": 60
+    },
+    {
+      "name": "PENN STATE UNIVERSITY",
+      "count": 60
+    },
+    {
+      "name": "UC BERKELEY",
+      "count": 60
+    },
+    {
+      "name": "YALE UNIVERSITY",
+      "count": 60
+    },
+    {
+      "name": "MASSACHUSETTS INSTITUTE OF TECHNOLOGY",
+      "count": 58
+    },
+    {
+      "name": "SOUTHWEST UNIVERSITY OF SCIENCE AND TECHNOLOGY",
+      "count": 58
+    },
+    {
+      "name": "UNIVERSITY OF TARTU",
+      "count": 58
+    },
+    {
+      "name": "XI AN UNIVERSITY OF ARCHITECTURE AND TECHNOLOGY",
+      "count": 57
+    },
+    {
+      "name": "LABAQUA",
+      "count": 56
+    },
+    {
+      "name": "UNIVERSITY OF EXETER",
+      "count": 56
+    },
+    {
+      "name": "CATALAN INSTITUTE OF WATER RESEARCH (ICRA)",
+      "count": 54
+    },
+    {
+      "name": "FREEDOM GENOMICS LLC",
+      "count": 54
+    },
+    {
+      "name": "INSTITUTE OF WATER RESEARCH",
+      "count": 54
+    },
+    {
+      "name": "INSTITUTE OF MICROBIOLOGY",
+      "count": 53
+    },
+    {
+      "name": "BI",
+      "count": 52
+    },
+    {
+      "name": "WYOMING PUBLIC HEALTH LABORATORY",
+      "count": 52
+    },
+    {
+      "name": "ZHONGKAI UNIVERSITY OF AGRICULTURE AND ENGINEERING",
+      "count": 52
+    },
+    {
+      "name": "TAIYUAN UNIVERSITY OF TECHNOLOGY",
+      "count": 51
+    },
+    {
+      "name": "BIOLOGICAL RESEARCH INSTITUTE \"\"CLEMENTE ESTABLE\"\"",
+      "count": 50
+    },
+    {
+      "name": "JEJU NATIONAL UNIVERSITY",
+      "count": 50
+    },
+    {
+      "name": "PSU",
+      "count": 50
+    },
+    {
+      "name": "SCELSE NTU",
+      "count": 50
+    },
+    {
+      "name": "RIPHL",
+      "count": 49
+    },
+    {
+      "name": "AUSTRALIAN CENTRE FOR ECOGENOMICS",
+      "count": 48
+    },
+    {
+      "name": "JILIN UNIVERSITY",
+      "count": 48
+    },
+    {
+      "name": "SOUTH CHINA UNIVERSITY OF TECHNOLOGY",
+      "count": 48
+    },
+    {
+      "name": "SOUTHWEST FORESTRY UNIVERSITY",
+      "count": 48
+    },
+    {
+      "name": "TECHNICAL UNIVERSITY MUNICH",
+      "count": 48
+    },
+    {
+      "name": "UNIVERSIDAD DE ANTIOQUIA",
+      "count": 48
+    },
+    {
+      "name": "UNIVERSIDADE FEDERAL DE MATO GROSSO",
+      "count": 48
+    },
+    {
+      "name": "YUNNAN PROVINCIAL CENTRE FOR DISEASE CONTROL AND PREVENTION",
+      "count": 48
+    },
+    {
+      "name": "INDIAN INSTITUTE OF TECHNOLOGY MADRAS",
+      "count": 47
+    },
+    {
+      "name": "BEIHANG UNIVERSITY",
+      "count": 46
+    },
+    {
+      "name": "EMORY UNIVERSITY",
+      "count": 46
+    },
+    {
+      "name": "MCMASTER UNIVERSITY",
+      "count": 46
+    },
+    {
+      "name": "UNIVERSITY OF HAWAII",
+      "count": 46
+    },
+    {
+      "name": "UNIVERSITY OF NOTRE DAME",
+      "count": 46
+    },
+    {
+      "name": "ZHEJIANG OCEAN UNIVERSITY",
+      "count": 46
+    },
+    {
+      "name": "HENAN AGRICULTURAL UNIVERSITY",
+      "count": 44
+    },
+    {
+      "name": "PRINCETON UNIVERSITY",
+      "count": 44
+    },
+    {
+      "name": "RESEARCH CENTER FOR ECO-ENVIRONMENTAL SCIENCES",
+      "count": 44
+    },
+    {
+      "name": "SWISS TROPICAL AND PUBLIC HEALTH INSTITUTE",
+      "count": 44
+    },
+    {
+      "name": "QUADRAM INSTITUTE",
+      "count": 43
+    },
+    {
+      "name": "CATALAN INSTITUTE FOR WATER RESEARCH (ICRA)",
+      "count": 42
+    },
+    {
+      "name": "CENTER FOR PUBLIC HEALTH RESEARCH, UNIVERSITY OF V",
+      "count": 42
+    },
+    {
+      "name": "ERASMUS MC, UNIVERISTY MEDICAL CENTER",
+      "count": 42
+    },
+    {
+      "name": "GUJARAT BIOTECHNOLOGY RESEARCH CENTRE",
+      "count": 42
+    },
+    {
+      "name": "HPSUN",
+      "count": 42
+    },
+    {
+      "name": "NORWEGIAN VETERINARY INSTITUTE",
+      "count": 42
+    },
+    {
+      "name": "SINGAPORE CENTRE FOR ENVIRONMENTAL LIFE SCIENCES ENGINEERING",
+      "count": 42
+    },
+    {
+      "name": "UNIVERSITY OF DHAKA",
+      "count": 42
+    },
+    {
+      "name": "UNIVERSITY OF PENNSYLVANIA",
+      "count": 42
+    },
+    {
+      "name": "UNIVERSITY OF ST THOMAS",
+      "count": 42
+    },
+    {
+      "name": "UNIVERSITY OF WATERLOO",
+      "count": 42
+    },
+    {
+      "name": "YANGZHOU UNIVERSITY",
+      "count": 42
+    },
+    {
+      "name": "QINGDAO UNIVERSITY OF TECHNOLOGY",
+      "count": 41
+    },
+    {
+      "name": "AUBURN UNIVERSITY",
+      "count": 40
+    },
+    {
+      "name": "CENTRAL SOUTH UNIVERSITY OF FORESTRY AND TECHNOLOGY",
+      "count": 40
+    },
+    {
+      "name": "CENTRO DE INVESTIGACION Y DE ESTUDIOS AVANZADOS DEL IPN",
+      "count": 40
+    },
+    {
+      "name": "CHANGCHUN VETERINARY RESEARCH INSTITUTE",
+      "count": 40
+    },
+    {
+      "name": "GUANGDONG PHARMACEUTICAL UNIVERSITY",
+      "count": 40
+    },
+    {
+      "name": "HKU",
+      "count": 40
+    },
+    {
+      "name": "MODERNISING MEDICAL MICROBIOLOGY",
+      "count": 40
+    },
+    {
+      "name": "NANCHANG UNIVERSITY",
+      "count": 40
+    },
+    {
+      "name": "TSHWANE UNIVERSITY OF TECHNOLOGY",
+      "count": 40
+    },
+    {
+      "name": "UNIVERSITY OF BIRMINGHAM",
+      "count": 40
+    },
+    {
+      "name": "ZHENGZHOU UNIVERSITY OF LIGHT INDUSTRY",
+      "count": 40
+    },
+    {
+      "name": "INSTITUTE FOR WATER AND WASTEWATER",
+      "count": 38
+    },
+    {
+      "name": "NANJING AGRICULTURAL UNIVERSITY",
+      "count": 38
+    },
+    {
+      "name": "SUN YET-SEN UNIVERSITY",
+      "count": 38
+    },
+    {
+      "name": "BANFIELDLAB",
+      "count": 36
+    },
+    {
+      "name": "CNR -ISE",
+      "count": 36
+    },
+    {
+      "name": "CORNELL",
+      "count": 36
+    },
+    {
+      "name": "HELMHOLTZ MUNICH",
+      "count": 36
+    },
+    {
+      "name": "IDAEA-CSIC",
+      "count": 36
+    },
+    {
+      "name": "INSITUTE OF URBAN ENVIRONMENT",
+      "count": 36
+    },
+    {
+      "name": "INSTITUTE OF BIOCHEMISTRY AND BIOPHYSICS POLISH ACADEMY OF SCIENCES",
+      "count": 36
+    },
+    {
+      "name": "NETHERLANDS INSTITUTE FOR ECOLOGY",
+      "count": 36
+    },
+    {
+      "name": "RESEARCH CENTER FOR ECO-ENVIRONMENTAL SCIENCES, CHINESE ACADEMY OF SCIENCES",
+      "count": 36
+    },
+    {
+      "name": "RNA BIOLOGY AND POSTTRANSCRIPTIONAL REGULATION, BERLIN INSTITUTE FOR MEDICAL SYSTEMS BIOLOGY, MAX DELBRÜCK CENTER FOR MOLECULAR MEDICINE",
+      "count": 36
+    },
+    {
+      "name": "SCNU ENVIRONMENTAL RESEARCH INSTITUTE & SCHOOL OF ENVIRONMENT",
+      "count": 36
+    },
+    {
+      "name": "SOUTH DAKOTA STATE UNIVERSITY",
+      "count": 36
+    },
+    {
+      "name": "U.S. EPA",
+      "count": 36
+    },
+    {
+      "name": "UNIVERSITY OF SOUTH AFRICA",
+      "count": 36
+    },
+    {
+      "name": "CENTRE FOR CELLULAR AND MOLECULAR BIOLOGY",
+      "count": 34
+    },
+    {
+      "name": "CHINESE ACADEMY OF AGRICULTURAL SCIENCES",
+      "count": 34
+    },
+    {
+      "name": "GUANGZHOU MEIDICAL UNIVERSITY",
+      "count": 34
+    },
+    {
+      "name": "MONASTERIUM LABORATORY",
+      "count": 34
+    },
+    {
+      "name": "NORTHWESTERN UNIVERSITY",
+      "count": 34
+    },
+    {
+      "name": "UNIVERSITY OF CAPE TOWN",
+      "count": 34
+    },
+    {
+      "name": "TIANJIN CHENGJIAN UNIVERSITY",
+      "count": 33
+    },
+    {
+      "name": "EAST CHINA NORMAL UNIVERSITY",
+      "count": 32
+    },
+    {
+      "name": "IFREMER",
+      "count": 32
+    },
+    {
+      "name": "INSTITUTO DE HIGIENE E MEDICINA TROPICAL (IHMT)",
+      "count": 32
+    },
+    {
+      "name": "JCVI",
+      "count": 32
+    },
+    {
+      "name": "NYU",
+      "count": 32
+    },
+    {
+      "name": "UNCC",
+      "count": 32
+    },
+    {
+      "name": "UNIVERSITY OF CALIFORNIA, IRVINE",
+      "count": 32
+    },
+    {
+      "name": "UNIVERSITY OF MICHIGAN",
+      "count": 32
+    },
+    {
+      "name": "UNIVERSITY OF SZEGED",
+      "count": 32
+    },
+    {
+      "name": "UNIVERSITY OF WASHINGTON",
+      "count": 32
+    },
+    {
+      "name": "INSTITUTE OF MOLECULAR GENETICS AND GENETIC ENGINE",
+      "count": 31
+    },
+    {
+      "name": "UNIVERSITY OF GALWAY",
+      "count": 31
+    },
+    {
+      "name": "WUHAN UNIVERSITY OF TECHNOLOGY",
+      "count": 31
+    },
+    {
+      "name": "COLORADO STATE UNIVERSITY",
+      "count": 30
+    },
+    {
+      "name": "DARTMOUTH COLLEGE",
+      "count": 30
+    },
+    {
+      "name": "DEPARTMENT OF BIOLOGY (UNIVERSITY OF YORK)",
+      "count": 30
+    },
+    {
+      "name": "NANJING AGRICULTRUE UNIVERSITY",
+      "count": 30
+    },
+    {
+      "name": "NANKAI UNIVERSITY",
+      "count": 30
+    },
+    {
+      "name": "NONE",
+      "count": 30
+    },
+    {
+      "name": "PEKING UNIVERSITY SHENZHEN GRADUATE SCHOOL",
+      "count": 30
+    },
+    {
+      "name": "SHAHJALAL UNIVERSITY OF SCIENCE AND TECHNOLOGY",
+      "count": 30
+    },
+    {
+      "name": "SHENZHEN INSTITUTES OF ADVANCED TECHNOLOGY, CHINESE ACADEMY OF SCIENCES",
+      "count": 30
+    },
+    {
+      "name": "THE FIRST AFFILIATED HOSPITAL OF SHANTOU UNIVERSITY MEDICAL COLLEGE",
+      "count": 30
+    },
+    {
+      "name": "TIANJIN UNIVERSITY, TIANJIN, CHINA",
+      "count": 30
+    },
+    {
+      "name": "TUFTS UNIVERSITY",
+      "count": 30
+    },
+    {
+      "name": "UNIVERSITA' DEGLI STUDI DI FERRARA",
+      "count": 30
+    },
+    {
+      "name": "UNIVERSITAET GOETTINGEN",
+      "count": 30
+    },
+    {
+      "name": "UNIVERSITY OF ALICANTE",
+      "count": 30
+    },
+    {
+      "name": "UNIVERSITY OF BRITISH COLUMBIA",
+      "count": 30
+    },
+    {
+      "name": "XIANGYA HOSPITAL, CENTRAL SOUTH UNIVERSITY",
+      "count": 30
+    },
+    {
+      "name": "CENTRE NATIONAL DE LA RECHERCHE SCIENTIFIQUE",
+      "count": 28
+    },
+    {
+      "name": "CHINA UNIVERSITY OF GEOSCIENCES",
+      "count": 28
+    },
+    {
+      "name": "CHONGQING INSTITUTE OF GREEN AND INTELLIGENT TECHNOLOGY, CHINESE ACADEMY OF SCIENCES",
+      "count": 28
+    },
+    {
+      "name": "DALIAN OCEAN UNIVERSITY",
+      "count": 28
+    },
+    {
+      "name": "IMPERIAL COLLEGE LONDON",
+      "count": 28
+    },
+    {
+      "name": "ISTITUTO SUPERIORE DI SANITA",
+      "count": 28
+    },
+    {
+      "name": "RUTGERS UNIVERISTY",
+      "count": 28
+    },
+    {
+      "name": "SHANDONG ACADEMY OF SCIENCES",
+      "count": 28
+    },
+    {
+      "name": "SHANGHAI NORMAL UNIVERSITY",
+      "count": 28
+    },
+    {
+      "name": "TU DRESDEN",
+      "count": 28
+    },
+    {
+      "name": "UIVERSITY OF PRETORIA",
+      "count": 28
+    },
+    {
+      "name": "UNIVERSITY OF KANSAS MEDICAL CENTER",
+      "count": 28
+    },
+    {
+      "name": "UNIVERSITY OF MARYLAND",
+      "count": 28
+    },
+    {
+      "name": "UNIVERSITY OF WISCONSIN - MADISON",
+      "count": 28
+    },
+    {
+      "name": "HANGZHOU NORMAL UNIVERSITY",
+      "count": 27
+    },
+    {
+      "name": "CHINESE RESEARCH ACADEMY OF ENVIRONMENTAL SCIENCES",
+      "count": 26
+    },
+    {
+      "name": "HOHAI UNIVERSITY",
+      "count": 26
+    },
+    {
+      "name": "IMCAS",
+      "count": 26
+    },
+    {
+      "name": "RAJIV GANDHI CENTRE FOR BIOTECHNOLOGY (RGCB)",
+      "count": 26
+    },
+    {
+      "name": "RUTGERS UNIVERSITY",
+      "count": 26
+    },
+    {
+      "name": "THE NORTHEAST  ELECTRIC POWER UNIVERSITY",
+      "count": 26
+    },
+    {
+      "name": "UNIVERSITY OF WEST LONDON",
+      "count": 26
+    },
+    {
+      "name": "XIAMEN UNIVERSITY",
+      "count": 26
+    },
+    {
+      "name": "DEPARTMENT OF CLINICAL SCIENCE UNIVERSITY OF BERGE",
+      "count": 25
+    },
+    {
+      "name": "SWEDISH MUSEUM OF NATURAL HISTORY",
+      "count": 25
+    },
+    {
+      "name": "CENTRO BIOLOGIA MOLECULAR SEVERO OCHOA (CBMSO)",
+      "count": 24
+    },
+    {
+      "name": "EUROPEAN COMMISSION DG JOINT RESEARCH CENTRE",
+      "count": 24
+    },
+    {
+      "name": "GEORG-AUGUST-UNIVERSITY GOETTINGEN",
+      "count": 24
+    },
+    {
+      "name": "INSTITUTE OF BIOENGINEERING, RESEARCH CENTER OF BIOTECHNOLOGY OF RAS",
+      "count": 24
+    },
+    {
+      "name": "INSTITUTE OF MICROBIOLOGY, GUANGDONG ACADEMY OF SCIENCE",
+      "count": 24
+    },
+    {
+      "name": "RADBOUD UNIVERSITY",
+      "count": 24
+    },
+    {
+      "name": "RADBOUD UNIVERSITY NIJMEGEN",
+      "count": 24
+    },
+    {
+      "name": "SHANGQIU NORMAL UNIVERSITY",
+      "count": 24
+    },
+    {
+      "name": "SNU",
+      "count": 24
+    },
+    {
+      "name": "SWISS FEDERAL INSTITUTE OF TECHNOLOGY LAUSANNE (EP",
+      "count": 24
+    },
+    {
+      "name": "UNIVERSIDADE FEDERAL DO PARA",
+      "count": 24
+    },
+    {
+      "name": "UNIVERSITY OF APPLIED SCIENCES AND ARTS WESTERN SWITZERLAND",
+      "count": 24
+    },
+    {
+      "name": "UNIWERSYTET WARMINSKO-MAZURSKI W OLSZTYNIE",
+      "count": 24
+    },
+    {
+      "name": "WENZHOU MEDICAL UNIVERSITY",
+      "count": 24
+    },
+    {
+      "name": "YORK UNIVERSITY",
+      "count": 24
+    },
+    {
+      "name": "COLLEGE OF ENGINEERING, UNIVERSITY OF MIAMI",
+      "count": 22
+    },
+    {
+      "name": "INSTITUTE OF MICROBIOLOGY CHINESE ACADEMY OF SCIENCES",
+      "count": 22
+    },
+    {
+      "name": "NEWCASTLE UNIVERSITY",
+      "count": 22
+    },
+    {
+      "name": "RIGSHOSPITALET",
+      "count": 22
+    },
+    {
+      "name": "SLOVAK ACADEMY OF SCIENCES",
+      "count": 22
+    },
+    {
+      "name": "TSHWANE UNIVERSITY TECHNOLOGY",
+      "count": 22
+    },
+    {
+      "name": "UNIVERSITY DUISBURG-ESSEN",
+      "count": 22
+    },
+    {
+      "name": "UNIVERSITY OF TORONTO",
+      "count": 22
+    },
+    {
+      "name": "WELLCOME SANGER INSTITUTE",
+      "count": 22
+    },
+    {
+      "name": "XINJIANG UNIVERSITY",
+      "count": 22
+    },
+    {
+      "name": "ZOOLOGICAL SURVEY OF INDIA",
+      "count": 22
+    },
+    {
+      "name": "INRAE",
+      "count": 21
+    },
+    {
+      "name": "QATAR ENVIRONMENT AND ENERGY RESEARCH INSTITUTE",
+      "count": 21
+    },
+    {
+      "name": "UNIVERSITY OF CINCINNATI",
+      "count": 21
+    },
+    {
+      "name": "CBRC, COMPUTATIONAL BIOSCIENCE RESEARCH CENTER, KA",
+      "count": 20
+    },
+    {
+      "name": "CINVESTAV",
+      "count": 20
+    },
+    {
+      "name": "DIBRUGARH UNIVERSITY",
+      "count": 20
+    },
+    {
+      "name": "EWHA WOMANS UNIVERSITY",
+      "count": 20
+    },
+    {
+      "name": "FRIEDRICH SCHILLER UNIVERSITY JENA",
+      "count": 20
+    },
+    {
+      "name": "INEOS OXFORD INSTITUTE FOR ANTIMICROBIAL RESEARCH",
+      "count": 20
+    },
+    {
+      "name": "INSTITUTE OF HYDROBIOLOGY",
+      "count": 20
+    },
+    {
+      "name": "LAWERENCE BERKELEY NATIONAL LAB",
+      "count": 20
+    },
+    {
+      "name": "LAWRENCE LIVERMORE NATIONAL LABORATORY",
+      "count": 20
+    },
+    {
+      "name": "MONASH UNIVERSITY",
+      "count": 20
+    },
+    {
+      "name": "NANJING TECH UNIVERSITY",
+      "count": 20
+    },
+    {
+      "name": "NATURAL HISTORY MUSEUM OF DENMARK",
+      "count": 20
+    },
+    {
+      "name": "NILE UNIVERSITY",
+      "count": 20
+    },
+    {
+      "name": "ROTHAMSTED RESEARCH",
+      "count": 20
+    },
+    {
+      "name": "SENCKENBERG",
+      "count": 20
+    },
+    {
+      "name": "SHANTOU UNIVERSITY",
+      "count": 20
+    },
+    {
+      "name": "UNIVERSITY OF BOLZANO",
+      "count": 20
+    },
+    {
+      "name": "UNIVERSITY OF THE CHINESE ACADEMY OF SCIENCES",
+      "count": 20
+    },
+    {
+      "name": "PEKING  UNIVERSITY",
+      "count": 19
+    },
+    {
+      "name": "TIANJINCHENGJIANUNIVERSITY",
+      "count": 19
+    },
+    {
+      "name": "CAPITAL INSTITUTE OF PEDIATRICS",
+      "count": 18
+    },
+    {
+      "name": "HUNAN NORMAL UNIVERSITY",
+      "count": 18
+    },
+    {
+      "name": "JOHNS HOPKINS UNIVERSITY APPLIED PHYSICS LAB",
+      "count": 18
+    },
+    {
+      "name": "MEDICAL UNIVERISTY OF GRAZ",
+      "count": 18
+    },
+    {
+      "name": "NANJING UNIVERSITY OF CHINESE MEDICINE GULOU CLINICAL MEDICAL COLLEGE",
+      "count": 18
+    },
+    {
+      "name": "NORCE (NORWEGIAN RESEARCH CENTRE )",
+      "count": 18
+    },
+    {
+      "name": "SHANGHAI UNIVERSITY OF TRADITIONAL CHINESE MEDICINE",
+      "count": 18
+    },
+    {
+      "name": "SHANXI AGRICULTURAL UNIVERSITY",
+      "count": 18
+    },
+    {
+      "name": "SOUTH CHINA INSTITUTE OF ENVIRONMENTAL SCIENCES, MEE, GUANGZHOU, CHINA",
+      "count": 18
+    },
+    {
+      "name": "SOUTHWEST MEDICAL UNIVERSITY",
+      "count": 18
+    },
+    {
+      "name": "STATE KEY LABORATORY OF PATHOGEN AND BIOSECURITY, BEIJIN",
+      "count": 18
+    },
+    {
+      "name": "THE JACKSON LABORATORY FOR GENOMIC MEDICINE",
+      "count": 18
+    },
+    {
+      "name": "UNIVERSIDAD AUTONOMA CHAPINGO",
+      "count": 18
+    },
+    {
+      "name": "UNIVERSIDAD DE CONCEPCION",
+      "count": 18
+    },
+    {
+      "name": "UNIVERSITY OF IOWA",
+      "count": 18
+    },
+    {
+      "name": "UNIVERSITY OF SOUTH-EASTERN NORWAY, DEPARTMENT OF",
+      "count": 18
+    },
+    {
+      "name": "UNIVERSITY OF PRETORIA",
+      "count": 17
+    },
+    {
+      "name": "BEIJING FORESTRY UNIVERSITY",
+      "count": 16
+    },
+    {
+      "name": "DEZHOU UNIVERSITY",
+      "count": 16
+    },
+    {
+      "name": "DR. B. LAL INSTITUTE OF BIOTECHNOLOGY",
+      "count": 16
+    },
+    {
+      "name": "INSTITUT PASTEUR MONTEVIDEO",
+      "count": 16
+    },
+    {
+      "name": "JIANGNAN UNIVERSITY",
+      "count": 16
+    },
+    {
+      "name": "KYUNG HEE UNIVERSITY",
+      "count": 16
+    },
+    {
+      "name": "NEW YORK UNIVERSITY",
+      "count": 16
+    },
+    {
+      "name": "NORTHEAST ELECTRIC POWER UNIVERSITY",
+      "count": 16
+    },
+    {
+      "name": "NORWEGIAN UNIVERSITY OF LIFE SCIENCES",
+      "count": 16
+    },
+    {
+      "name": "UNIVERSITY OF CAMERINO",
+      "count": 16
+    },
+    {
+      "name": "XYLAB",
+      "count": 16
+    },
+    {
+      "name": "YANCHENG INSTITUTE OF TECHNOLOGY",
+      "count": 16
+    },
+    {
+      "name": "HUNAN UNIVERSITY",
+      "count": 15
+    },
+    {
+      "name": "KHEL",
+      "count": 15
+    },
+    {
+      "name": "STONY BROOK UNIVERSITY",
+      "count": 15
+    },
+    {
+      "name": "UNIVERSITY OF CALGARY, CANADA",
+      "count": 15
+    },
+    {
+      "name": "AIR FORCE RESEARCH LABORATORY",
+      "count": 14
+    },
+    {
+      "name": "ANHUI UNIVERSITY",
+      "count": 14
+    },
+    {
+      "name": "CHINA CENTERS FOR DISEASE CONTROL AND PREVENTION",
+      "count": 14
+    },
+    {
+      "name": "CHINA UNIVERSITY OF PETROLEUM (BEIJING)",
+      "count": 14
+    },
+    {
+      "name": "DTU CGE",
+      "count": 14
+    },
+    {
+      "name": "HAINAN UNIVERSITY",
+      "count": 14
+    },
+    {
+      "name": "HUNAN AGRICULTURAL UNIVERSITY",
+      "count": 14
+    },
+    {
+      "name": "MEE",
+      "count": 14
+    },
+    {
+      "name": "NINGBO UNIVERSITY",
+      "count": 14
+    },
+    {
+      "name": "RAM LAL ANAND COLLEGE, UNIVERSITY OF DELHI",
+      "count": 14
+    },
+    {
+      "name": "RESEARCH CENTER FOR ECO-ENVIRONMENTAL SCIENSES, CHINESE ACADEMY OF SCIENSES",
+      "count": 14
+    },
+    {
+      "name": "SHANGHAI JIAOTONG UNIVERSITY",
+      "count": 14
+    },
+    {
+      "name": "UNIVERSIDAD DE LOS ANDES",
+      "count": 14
+    },
+    {
+      "name": "UNIVERSIDAD NACIONAL DE MAR DEL PLATA",
+      "count": 14
+    },
+    {
+      "name": "EARTH HOLOGENOME INIATIATIVE",
+      "count": 13
+    },
+    {
+      "name": "UNIVERSITY OF GUELPH",
+      "count": 13
+    },
+    {
+      "name": "AGRICULTURE AND AGRI-FOOD CANADA",
+      "count": 12
+    },
+    {
+      "name": "COMPUTATIONAL BIOLOGY AND MICROBIAL ECOLOGY",
+      "count": 12
+    },
+    {
+      "name": "CSIR-NEERI",
+      "count": 12
+    },
+    {
+      "name": "DALIAN UNIVERSITY OF TECHNOLOGY",
+      "count": 12
+    },
+    {
+      "name": "FEDERAL RESEARCH AND CLINICAL CENTRE OF PHYSICAL-CHEMICAL MEDICINE",
+      "count": 12
+    },
+    {
+      "name": "GUANGZHOU UNIVERSITY",
+      "count": 12
+    },
+    {
+      "name": "HARBIN NORMAL UNIVERSITY",
+      "count": 12
+    },
+    {
+      "name": "HEBEI UNIVERSITY OF SCIENCE AND TECHNOLOGY",
+      "count": 12
+    },
+    {
+      "name": "HENAN NORNAL UNIVERSITY",
+      "count": 12
+    },
+    {
+      "name": "HENAN UNIVERSITY OF TECHNOLOGY",
+      "count": 12
+    },
+    {
+      "name": "INRAE OCCITANIE",
+      "count": 12
+    },
+    {
+      "name": "INSTITUT PASTEUR - MONTEVIDEO",
+      "count": 12
+    },
+    {
+      "name": "INSTITUTE OF GEOCHEMISTRY, CHINESE ACADEMY OF SCIENCES",
+      "count": 12
+    },
+    {
+      "name": "INSTITUTE OF URBAN ENVIRONMENT,CHINESE ACADEMY OF",
+      "count": 12
+    },
+    {
+      "name": "JET PROPULSION LABORATORY, CALIFORNIA INSTITUTE OF TECHNOLOGY",
+      "count": 12
+    },
+    {
+      "name": "LANZHOU INSTITUTE OF HUSBANDRY AND PHARMACEUTICAL SCIENCES OF CHINESE ACADEMY OF AGRICULTURAL SCIENC",
+      "count": 12
+    },
+    {
+      "name": "MAKERERE UNIVERSITY",
+      "count": 12
+    },
+    {
+      "name": "MICHIGAN STATE UNIVERSITY",
+      "count": 12
+    },
+    {
+      "name": "NANJING UNIVERSITY OF SCIENCE AND TECHNOLOGY",
+      "count": 12
+    },
+    {
+      "name": "RAM LAL ANAND COLLEGE",
+      "count": 12
+    },
+    {
+      "name": "THE NATIONAL UNIVERSITY OF MALAYSIA",
+      "count": 12
+    },
+    {
+      "name": "UNITN",
+      "count": 12
+    },
+    {
+      "name": "UNIVERSIDADE DE VIGO",
+      "count": 12
+    },
+    {
+      "name": "UNIVERSITY OF CHICAGO",
+      "count": 12
+    },
+    {
+      "name": "UNIVERSITY OF DELAWARE",
+      "count": 12
+    },
+    {
+      "name": "USDA-AGRICULTURAL RESEARCH SERVICE",
+      "count": 12
+    },
+    {
+      "name": "WAGENINGEN UNIVERSITY AND RESEARCH MICROBIOLOGY",
+      "count": 12
+    },
+    {
+      "name": "WAGENINGEN UNIVERSITY, LABORATORY OF MICROBIOLOGY",
+      "count": 12
+    },
+    {
+      "name": "XI 'AN UNIVERSITY OF ARCHITECTURE AND TECHNOLOGY",
+      "count": 12
+    },
+    {
+      "name": "YANBIAN UNIVERSITY",
+      "count": 12
+    },
+    {
+      "name": "NATIONAL INSTITUTE OF BIOLOGY",
+      "count": 11
+    },
+    {
+      "name": "SHIHEZI UNIVERSITY",
+      "count": 11
+    },
+    {
+      "name": "UNIVERSITY OF ALBERTA",
+      "count": 11
+    },
+    {
+      "name": "CENTRE FOR ANTIBIOTIC RESISTANCE",
+      "count": 10
+    },
+    {
+      "name": "CENTRE FOR TRANSLATIONAL MICROBIOME RESEARCH (CTMR",
+      "count": 10
+    },
+    {
+      "name": "CHANGZHOU UNIVERSITY",
+      "count": 10
+    },
+    {
+      "name": "FLORIDA A&M UNIVERSITY",
+      "count": 10
+    },
+    {
+      "name": "KOREA ADVANCED INSTITUTE OF SCIENCE AND TECHNOLOGY",
+      "count": 10
+    },
+    {
+      "name": "NANJING AGRICULTURE UNIVERSITY",
+      "count": 10
+    },
+    {
+      "name": "PENN STATE COLLEGE OF MEDICINE",
+      "count": 10
+    },
+    {
+      "name": "SBCP LAB, HANYANG UNIVERSITY",
+      "count": 10
+    },
+    {
+      "name": "SCIENCE FOR LIFE LABORATORY, KTH ROYAL INSTITUTE O",
+      "count": 10
+    },
+    {
+      "name": "SHUIXIA100",
+      "count": 10
+    },
+    {
+      "name": "TIANJIN INSTITUTE OF INDUSTRIAL BIOTECHNOLOGY, CHINESE ACADEMY OF SCIENCES",
+      "count": 10
+    },
+    {
+      "name": "TUNGHAI UNIVERSITY",
+      "count": 10
+    },
+    {
+      "name": "UNISA",
+      "count": 10
+    },
+    {
+      "name": "UNIVERSIDAD AUTONOMA DE NUEVO LEON",
+      "count": 10
+    },
+    {
+      "name": "UNIVERSIDAD SAN SEBASTIAN",
+      "count": 10
+    },
+    {
+      "name": "UNIVERSITE OF COPENHAGEN",
+      "count": 10
+    },
+    {
+      "name": "UNIVERSITY COLLEGE DUBLIN",
+      "count": 10
+    },
+    {
+      "name": "UNIVERSITY OF VETERINARY AND PHARMACEUTICAL SCIENCES BRNO",
+      "count": 10
+    },
+    {
+      "name": "ZHEJIANG UNIVERSITY SCHOOL OF MEDICINE",
+      "count": 10
+    },
+    {
+      "name": "NORTHERN ARIZONA UNIVERSITY",
+      "count": 9
+    },
+    {
+      "name": "SOUTH UNIVERSITY OF SCIENCE AND TECHNOLOGY OF CHINA",
+      "count": 9
+    },
+    {
+      "name": "UNIVERSITY OF INNLAND NORWAY",
+      "count": 9
+    },
+    {
+      "name": "CSIR-NATIONAL BOTANICAL RESEARCH INSTITUTE",
+      "count": 8
+    },
+    {
+      "name": "CSIR-NATIONAL ENVIRONMENTAL ENGINEERING RESEARCH I",
+      "count": 8
+    },
+    {
+      "name": "DONGHUA UNIVERSITY",
+      "count": 8
+    },
+    {
+      "name": "EAST CHINA UNIVERSITY OF SCIENCE AND TECHNOLONGY",
+      "count": 8
+    },
+    {
+      "name": "HENAN NORMAL UNNIVERSITY",
+      "count": 8
+    },
+    {
+      "name": "HOUSTON_WBE_SARS-COV-2",
+      "count": 8
+    },
+    {
+      "name": "KARLSRUHE INSTITUTE OF TECHNOLOGY",
+      "count": 8
+    },
+    {
+      "name": "KMU",
+      "count": 8
+    },
+    {
+      "name": "KY DEPT. FOR PUBLIC HEALTH LAB SERVICES",
+      "count": 8
+    },
+    {
+      "name": "LINNAEUS UNIVERSITY",
+      "count": 8
+    },
+    {
+      "name": "NORWEGIAN INSTITUTE OF PUBLIC HEALTH",
+      "count": 8
+    },
+    {
+      "name": "OSDR",
+      "count": 8
+    },
+    {
+      "name": "PF BIOINFO GENOTOUL INRAE TOULOUSE",
+      "count": 8
+    },
+    {
+      "name": "SOUTHERN UNIVERSITY OF SCIENCE AND TECHNOLOGY",
+      "count": 8
+    },
+    {
+      "name": "THE NORWEGIAN UNIVERSITY OF LIFE SCIENCES",
+      "count": 8
+    },
+    {
+      "name": "TIAN JIN CHENG JIAN UNIVERSITY",
+      "count": 8
+    },
+    {
+      "name": "UASWS",
+      "count": 8
+    },
+    {
+      "name": "UMASS",
+      "count": 8
+    },
+    {
+      "name": "UNB",
+      "count": 8
+    },
+    {
+      "name": "UNIVERSITE NANGUI ABROGOUA",
+      "count": 8
+    },
+    {
+      "name": "UNIVERSITY OF BUENOS AIRES",
+      "count": 8
+    },
+    {
+      "name": "UNIVERSITY OF CALIFORNIA BERKELEY",
+      "count": 8
+    },
+    {
+      "name": "UNIVERSITY OF TECHNOLOGY SYDNEY",
+      "count": 8
+    },
+    {
+      "name": "XIAN SHIYOU UNIVERISITY",
+      "count": 8
+    },
+    {
+      "name": "ZHEJIANG UNIVERSITY OF SCIENCE AND TECHNOLOGY",
+      "count": 8
+    },
+    {
+      "name": "ZHEJIANG UNIVERSITY OF TECHNOLOGY",
+      "count": 8
+    },
+    {
+      "name": "KOREA UNIVERSITY",
+      "count": 7
+    },
+    {
+      "name": "SANDIA NATIONAL LABORATORIES",
+      "count": 7
+    },
+    {
+      "name": "SHANGHAI JIAO TONG UNIVERSITY",
+      "count": 7
+    },
+    {
+      "name": "ZHENGZHOU UNIVERSITY",
+      "count": 7
+    },
+    {
+      "name": "ADDIS ABABA UNIVERSITY",
+      "count": 6
+    },
+    {
+      "name": "BEIJING NORMAL UNIVERSITY",
+      "count": 6
+    },
+    {
+      "name": "BOND UNIVERSITY",
+      "count": 6
+    },
+    {
+      "name": "CHARLES DARWIN UNIVERSITY",
+      "count": 6
+    },
+    {
+      "name": "CHINA MEDICAL UNIVERSITY",
+      "count": 6
+    },
+    {
+      "name": "CHINESE ACADEMY OF SCIENCE",
+      "count": 6
+    },
+    {
+      "name": "EOTVOS LORAND UNIVERSITY",
+      "count": 6
+    },
+    {
+      "name": "EPFL -  ENVIRONMENTAL CHEMISTRY LABORATORY LCE",
+      "count": 6
+    },
+    {
+      "name": "FISHERY MACHINERY AND INSTRUMENT RESEARCH INSTITUTE",
+      "count": 6
+    },
+    {
+      "name": "FUNDACAO EZEQUIEL DIAS",
+      "count": 6
+    },
+    {
+      "name": "HANGZHOU MEDICAL COLLEGE",
+      "count": 6
+    },
+    {
+      "name": "IHE DELFT INSTITUTE FOR WATER EDUCATION",
+      "count": 6
+    },
+    {
+      "name": "IICT",
+      "count": 6
+    },
+    {
+      "name": "LANZHOU JIAOTONG UNIVERSITY",
+      "count": 6
+    },
+    {
+      "name": "NATIONAL ENERGY TECHNOLOGY LABORATORY",
+      "count": 6
+    },
+    {
+      "name": "NATIONAL TAIWAN UNIVERSITY",
+      "count": 6
+    },
+    {
+      "name": "NORTHWEST INSTITUTE OF PLATEAU BIOLOGY",
+      "count": 6
+    },
+    {
+      "name": "RADBOUD UNIVERSITY, DEPARTMENT MICROBIOLOGY",
+      "count": 6
+    },
+    {
+      "name": "SICHUAN NORMAL UNIVERSITY",
+      "count": 6
+    },
+    {
+      "name": "TECHNION-ISRAEL INSTITUTE OF TECHNOLOGY",
+      "count": 6
+    },
+    {
+      "name": "UNIVERSITY OF KUFA",
+      "count": 6
+    },
+    {
+      "name": "UNIVERSITY OF PORTSMOUTH",
+      "count": 6
+    },
+    {
+      "name": "UNIVERSITY OF QUEENSLAND-AWMC",
+      "count": 6
+    },
+    {
+      "name": "UNIVERSITY OF SHANGHAI FOR SCIENCE AND TECHNOLOGY",
+      "count": 6
+    },
+    {
+      "name": "UNIVERSITY OF WASHINGTON-SEATTLE",
+      "count": 6
+    },
+    {
+      "name": "UNSW SYDNEY",
+      "count": 6
+    },
+    {
+      "name": "XI'AN JIAOTONG UNIVRSITY",
+      "count": 6
+    },
+    {
+      "name": "ZHEJIANG CHINESE MEDICAL UNIVERSITY",
+      "count": 6
+    },
+    {
+      "name": "CHANGSHA UNIVERSITY OF SCIENCE & TECHNOLOGY",
+      "count": 5
+    },
+    {
+      "name": "HOLOGENOMIX B.V.",
+      "count": 5
+    },
+    {
+      "name": "LOS ALAMOS NATIONAL LABORATORY",
+      "count": 5
+    },
+    {
+      "name": "NISC",
+      "count": 5
+    },
+    {
+      "name": "TAMPERE UNIVERSITY",
+      "count": 5
+    },
+    {
+      "name": "UNIVERSIDADE DE SANTIAGO DE COMPOSTELA",
+      "count": 5
+    },
+    {
+      "name": "ADAM MICKIEWICZ UNIVERSITY",
+      "count": 4
+    },
+    {
+      "name": "ADVANCED WATER MANAGEMENT CENTRE, UNIVERSITY OF QU",
+      "count": 4
+    },
+    {
+      "name": "ALAGAPPA UNIVERSITY",
+      "count": 4
+    },
+    {
+      "name": "ANHUI NORMAL UNIVERSITY",
+      "count": 4
+    },
+    {
+      "name": "ASBIOS (TIANJIN) BIOTECHNOLOGY CO., LTD.",
+      "count": 4
+    },
+    {
+      "name": "AU-DBS",
+      "count": 4
+    },
+    {
+      "name": "BHARATHIDASAN UNIVERSITY",
+      "count": 4
+    },
+    {
+      "name": "BITS PILANI KK BIRLA GOA CAMPUS",
+      "count": 4
+    },
+    {
+      "name": "CHENGDU INSTITUTE OF BIOLOGY",
+      "count": 4
+    },
+    {
+      "name": "DANA FARBER CANCER INSTITUTE",
+      "count": 4
+    },
+    {
+      "name": "DEAKIN UNIVERSITY",
+      "count": 4
+    },
+    {
+      "name": "DUKE UNIVERSITY",
+      "count": 4
+    },
+    {
+      "name": "FLORIDA ATLANTIC UNIVERSITY",
+      "count": 4
+    },
+    {
+      "name": "GUJARAT UNIVERSITY",
+      "count": 4
+    },
+    {
+      "name": "HEBEI UNIVERSITY OF TECHNOLOGY",
+      "count": 4
+    },
+    {
+      "name": "INDUSTRIAL TECHNOLOGY DEVELOPMENT INSTITUTE",
+      "count": 4
+    },
+    {
+      "name": "INSTITUTE OF MOLECULAR GENETICS OF THE ASCR V.V.I.",
+      "count": 4
+    },
+    {
+      "name": "INSTITUTO DE HIGIENE, UDELAR",
+      "count": 4
+    },
+    {
+      "name": "JIANGSU COLLABORATIVE INNOVATION CENTER FOR SOLID",
+      "count": 4
+    },
+    {
+      "name": "JINAN UNIVERSITY",
+      "count": 4
+    },
+    {
+      "name": "KAIST",
+      "count": 4
+    },
+    {
+      "name": "KARLSRUHER INSTITUTE FOR TECHNOLOGY",
+      "count": 4
+    },
+    {
+      "name": "KING ABDULAZIZ UNIVERSITY",
+      "count": 4
+    },
+    {
+      "name": "LIAONING NORMAL UNIVERSITY",
+      "count": 4
+    },
+    {
+      "name": "LUMC",
+      "count": 4
+    },
+    {
+      "name": "NATIONAL AND KAPODISTRIAN UNIVERSITY OF ATHENS",
+      "count": 4
+    },
+    {
+      "name": "NATURALIS BIODIVERSITY CENTER",
+      "count": 4
+    },
+    {
+      "name": "NJAU",
+      "count": 4
+    },
+    {
+      "name": "PHASE GENOMICS",
+      "count": 4
+    },
+    {
+      "name": "POZNAN UNIVERSITY OF TECHNOLOGY",
+      "count": 4
+    },
+    {
+      "name": "RESEACRH CENTER",
+      "count": 4
+    },
+    {
+      "name": "SCUT",
+      "count": 4
+    },
+    {
+      "name": "TOKYO MEDICAL AND DENTAL UNIVERSITY",
+      "count": 4
+    },
+    {
+      "name": "UCLA-NL",
+      "count": 4
+    },
+    {
+      "name": "UNIMIB",
+      "count": 4
+    },
+    {
+      "name": "UNIVERSIDAD TECNOLOGICA METROPOLITANA (UTEM)",
+      "count": 4
+    },
+    {
+      "name": "UNIVERSIDADE DO ESTADO DO AMAZONAS",
+      "count": 4
+    },
+    {
+      "name": "UNIVERSITAT DE VALENCIA",
+      "count": 4
+    },
+    {
+      "name": "UNIVERSITE DE LYON",
+      "count": 4
+    },
+    {
+      "name": "UNIVERSITY OF FLORIDA",
+      "count": 4
+    },
+    {
+      "name": "UNIVERSITY OF ILLINOIS",
+      "count": 4
+    },
+    {
+      "name": "UNIVERSITY OF MEMPHIS",
+      "count": 4
+    },
+    {
+      "name": "UNIVERSITY OF NAPLES FEDERICO II",
+      "count": 4
+    },
+    {
+      "name": "UNIVERSITY OF PADOVA",
+      "count": 4
+    },
+    {
+      "name": "UNIVERSITY OF PUBLIC SERVICE,FACULTY OF WATER SCIENCES",
+      "count": 4
+    },
+    {
+      "name": "UNIVERSITY OF SCIENCE AND TECHNOLOGY OF CHINA",
+      "count": 4
+    },
+    {
+      "name": "UNIVERSITY OF SCIENCE, VNU-HCM",
+      "count": 4
+    },
+    {
+      "name": "UNIVERSITY OF UTAH",
+      "count": 4
+    },
+    {
+      "name": "UNIVERSITY TUNIS EL MANAR, FACULTY OF SCIENCE OF TUNIS, BIOCHEMISTRY AND BIOTECHNOLOGY LABORATORY",
+      "count": 4
+    },
+    {
+      "name": "WARSAW UNIVERSITY OF TECHNOLOGY",
+      "count": 4
+    },
+    {
+      "name": "WEILL CORNELL MEDICINE DEPARTMENT OF PHYSIOLOGY AN",
+      "count": 4
+    },
+    {
+      "name": "XI'AN POLYTECHNIC UNIVERSITY",
+      "count": 4
+    },
+    {
+      "name": "XI'AN UNIVERSITY OF TECHNOLOGY",
+      "count": 4
+    },
+    {
+      "name": "XI`AN UNIVERSITY OF ARCHITECTURE AND TECHNOLOGY",
+      "count": 4
+    },
+    {
+      "name": "FUZHOU UNIVERSITY",
+      "count": 3
+    },
+    {
+      "name": "HANZHOOU NORMOL UNIVERSITY",
+      "count": 3
+    },
+    {
+      "name": "SIKSHA O ANUSANDHAN (DEEMED TO BE) UNIVERSITY",
+      "count": 3
+    },
+    {
+      "name": "THE UNIVERSITY OF QUEENSLAND",
+      "count": 3
+    },
+    {
+      "name": "UNIVERSITY OF WISCONSIN SCHOOL OF VETERINARY MEDICINE",
+      "count": 3
+    },
+    {
+      "name": "AGRICULTURAL BIOTECHNOLOGY RESEARCH INSTITUTE OF IRAN (ABRII)",
+      "count": 2
+    },
+    {
+      "name": "AGRICULTURAL RESEARCH ORGANISATION",
+      "count": 2
+    },
+    {
+      "name": "AIT AUSTRIAN INSTITUTE OF TECHNOLOGY",
+      "count": 2
+    },
+    {
+      "name": "AL-QADISIYAH UNIVERSITY",
+      "count": 2
+    },
+    {
+      "name": "BEIJING GENOME INSTITUTE",
+      "count": 2
+    },
+    {
+      "name": "BEIJING GENOMICS INSTITUTE, SHENZHEN",
+      "count": 2
+    },
+    {
+      "name": "BEIJING UNIVERSITY OF CIVIL ENGINEERING AND ARCHITECTURE",
+      "count": 2
+    },
+    {
+      "name": "BIELEFELD UNIVERSITY",
+      "count": 2
+    },
+    {
+      "name": "BITS PILANI K K BIRLA GOA CAMPUS",
+      "count": 2
+    },
+    {
+      "name": "BOTSWANA INTERNATIONAL UNIVERSITY OF SCIENCE & TECHNOLOGY",
+      "count": 2
+    },
+    {
+      "name": "CEBITEC BIELEFELD",
+      "count": 2
+    },
+    {
+      "name": "CENTER OF BIOLOGICAL ENGINEERING",
+      "count": 2
+    },
+    {
+      "name": "CENTRAL INSTITUTE OF FISHERIES TECHNOLGY",
+      "count": 2
+    },
+    {
+      "name": "CPC",
+      "count": 2
+    },
+    {
+      "name": "CSIR-IMTECH",
+      "count": 2
+    },
+    {
+      "name": "DEFENCE RESEARCH AND DEVELOPMENT ESTABLISHMENT",
+      "count": 2
+    },
+    {
+      "name": "DEPARTMENT OF FORENSIC SCIENCE, CENTRAL SOUTH UNIV",
+      "count": 2
+    },
+    {
+      "name": "DEPARTMENT OF PEDIATRICS, TANGDU HOSPITAL, AIR FOR",
+      "count": 2
+    },
+    {
+      "name": "EKITI STATE UNIVERSITY",
+      "count": 2
+    },
+    {
+      "name": "EMBRAPA DAIRY CATTLE",
+      "count": 2
+    },
+    {
+      "name": "ESCUELA SUPERIOR POLITECNICA DEL LITORAL",
+      "count": 2
+    },
+    {
+      "name": "ETH ZURICH,",
+      "count": 2
+    },
+    {
+      "name": "EVANDRO CHAGAS INSTITUTE",
+      "count": 2
+    },
+    {
+      "name": "FEDERAL UNIVERSITY OF UBERLANDIA",
+      "count": 2
+    },
+    {
+      "name": "FILAMENTOUS FUNGI",
+      "count": 2
+    },
+    {
+      "name": "FLORIDA STATE UNIVERSITY",
+      "count": 2
+    },
+    {
+      "name": "GENEBANG",
+      "count": 2
+    },
+    {
+      "name": "GENSKEY MEDICAL TECHNOLOGY CO LTD  BEIJING",
+      "count": 2
+    },
+    {
+      "name": "HEBEI UNIVERSITY OF ARCHITECTURE",
+      "count": 2
+    },
+    {
+      "name": "INDIAN INSTITUTE OF TECHNOLOGY",
+      "count": 2
+    },
+    {
+      "name": "INNER MONGOLIA AGRICULTURAL UNIVERSITY, COLLEGE OF LIFE SCIENCE",
+      "count": 2
+    },
+    {
+      "name": "INSTITUT DE GENETIQUE ET MICROBIOLOGIE",
+      "count": 2
+    },
+    {
+      "name": "INSTITUTE OF BIOCHEMISTRY AND BIOPHYSICS  POLISH A",
+      "count": 2
+    },
+    {
+      "name": "INSTITUTE OF BIOORGANIC CHEMISTRY",
+      "count": 2
+    },
+    {
+      "name": "INSTITUTE OF HYDROBIOLOGY CHINESE ACADEMY OF SCIENCES",
+      "count": 2
+    },
+    {
+      "name": "INSTITUTE OF SCIENCE TOKYO",
+      "count": 2
+    },
+    {
+      "name": "KOREA RESEARCH INSTITUTE OF BIOSCIENCE AND BIOTECH",
+      "count": 2
+    },
+    {
+      "name": "KU LEUVEN - UNIVERSITY OF LEUVEN",
+      "count": 2
+    },
+    {
+      "name": "MISSISSIPPI STATE UNIVERSITY",
+      "count": 2
+    },
+    {
+      "name": "NANJIN MEDICAL UNIVERSITY",
+      "count": 2
+    },
+    {
+      "name": "NATIONAL AUTONOMOUS UNIVERSITY OF MEXICO",
+      "count": 2
+    },
+    {
+      "name": "NATIONAL CENTRAL UNIVERSITY, TAIWAN",
+      "count": 2
+    },
+    {
+      "name": "NATIONAL CHENG KUNG UNIVERSITY",
+      "count": 2
+    },
+    {
+      "name": "NATIONAL CHUNG HSING UNIVERSITY",
+      "count": 2
+    },
+    {
+      "name": "NATIONAL INSTITUTE OF ECOLOGY, KOREA",
+      "count": 2
+    },
+    {
+      "name": "NATIONAL INSTITUTE OF PUBLIC HEALTH",
+      "count": 2
+    },
+    {
+      "name": "NATIONAL INSTITUTE OF TECHNOLOGY, WARANGAL",
+      "count": 2
+    },
+    {
+      "name": "NJU",
+      "count": 2
+    },
+    {
+      "name": "NORTH WEST UNIVERSITY",
+      "count": 2
+    },
+    {
+      "name": "NTU-WUST",
+      "count": 2
+    },
+    {
+      "name": "ORDU UNIVERSITY",
+      "count": 2
+    },
+    {
+      "name": "P.D. PATEL INSTITUTE OF APPLIED SCIENCES, CHARUSAT UNIVERSITY",
+      "count": 2
+    },
+    {
+      "name": "PERIYAR UNIVERSITY",
+      "count": 2
+    },
+    {
+      "name": "QILU UNIVERSITY OF TECHNOLOGY (SHANDONG ACADEMY OF SCIENCES)",
+      "count": 2
+    },
+    {
+      "name": "REGIONAL CENTRE FOR BIOTECHNOLOGY",
+      "count": 2
+    },
+    {
+      "name": "RESEARCH CENTER OF ECO-ENVIRONMENTAL SCIENCES, CHINESE ACADEMY SCIENCES",
+      "count": 2
+    },
+    {
+      "name": "SANMING UNIVERSITY",
+      "count": 2
+    },
+    {
+      "name": "SAVANNAH RIVER NATIONAL LABORATORY",
+      "count": 2
+    },
+    {
+      "name": "SHANXI UNIVERSITY",
+      "count": 2
+    },
+    {
+      "name": "SHENYANG AGRICULTURAL UNIVERSITY",
+      "count": 2
+    },
+    {
+      "name": "SHENYANG JIANZHU UNIVERSITY",
+      "count": 2
+    },
+    {
+      "name": "SVSB",
+      "count": 2
+    },
+    {
+      "name": "TECHNICAL UNIVERSITY OF HAMBURG",
+      "count": 2
+    },
+    {
+      "name": "UNIVERSIDADE DE AVEIRO",
+      "count": 2
+    },
+    {
+      "name": "UNIVERSITY HOSPITAL ZURICH, DIVISION OF GASTROENTE",
+      "count": 2
+    },
+    {
+      "name": "UNIVERSITY OF CALIFORNIA AT IRVINE",
+      "count": 2
+    },
+    {
+      "name": "UNIVERSITY OF COLORADO BOULDER",
+      "count": 2
+    },
+    {
+      "name": "UNIVERSITY OF MELBOURNE",
+      "count": 2
+    },
+    {
+      "name": "UNIVERSITY OF PAVIA",
+      "count": 2
+    },
+    {
+      "name": "UNIVERSITY OF RWANDA",
+      "count": 2
+    },
+    {
+      "name": "UNIVERSITY OF SOUTH AUSTRALIA",
+      "count": 2
+    },
+    {
+      "name": "UNIVERSITY OF TEXAS AT AUSTIN",
+      "count": 2
+    },
+    {
+      "name": "UNIVERSITY TUNIS EL MANAR, FACULTY OF SCIENCES OF TUNIS",
+      "count": 2
+    },
+    {
+      "name": "WEST CHINA HOSPITAL, SICHUAN UNIVERSITY",
+      "count": 2
+    },
+    {
+      "name": "ZHEJIANG SCI-TECH UNIVERSITY",
+      "count": 2
+    },
+    {
+      "name": "CANADIAN RESEARCH INSTITUTE FOR FOOD SAFETY",
+      "count": 1
+    },
+    {
+      "name": "CHOSUN UNIVERSITY",
+      "count": 1
+    },
+    {
+      "name": "HUBEI UNIVERSITY OF TECHNOLOGY",
+      "count": 1
+    },
+    {
+      "name": "LOUISIANA ANIMAL DISEASE DIAGNOSTIC LABORATORY - LOUISIANA STATE UNIVERSITY",
+      "count": 1
+    },
+    {
+      "name": "MAX-DELBRUECK-CENTER",
+      "count": 1
+    },
+    {
+      "name": "MAYO CLINIC",
+      "count": 1
+    },
+    {
+      "name": "NORTHWEST A&F UNIVERSITY (NORTHWEST AGRICULTURE AND FORESTRY UNIVERSITY)",
+      "count": 1
+    },
+    {
+      "name": "UNIVERSITY OF WYOMING",
+      "count": 1
+    },
+    {
+      "name": "WAGENINGEN UNIVERSITY",
+      "count": 1
+    },
+    {
+      "name": "WEST CHINA SCHOOL OF PUBLIC HEALTH AND WEST CHINA FOURTH HOSPITAL, SICHUAN UNIVERSITY",
+      "count": 1
+    },
+    {
+      "name": "WITTUM_LAB",
+      "count": 1
+    }
+  ],
+  "largestProject": {
+    "accession": "PRJEB44932",
+    "title": "Surveillance of SARS-CoV-2 genomic variants in wastewater in Switzerland",
+    "run_count": 6758,
+    "biosample_count": 6630,
+    "country_count": 0,
+    "city_count": 0,
+    "assay_count": 1,
+    "center_count": 1,
+    "years": [
+      2023,
+      2024
+    ]
+  },
+  "topProjects": [
+    {
+      "accession": "PRJEB44932",
+      "title": "Surveillance of SARS-CoV-2 genomic variants in wastewater in Switzerland",
+      "run_count": 6758,
+      "biosample_count": 6630,
+      "country_count": 0,
+      "city_count": 0,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2023,
+        2024
+      ]
+    },
+    {
+      "accession": "PRJEB70237",
+      "title": "HELMi infant and parental stool WGS metagenomes",
+      "run_count": 2664,
+      "biosample_count": 2664,
+      "country_count": 0,
+      "city_count": 0,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2024
+      ]
+    },
+    {
+      "accession": "PRJNA271013",
+      "title": "New York City MTA subway samples Metagenome",
+      "run_count": 1572,
+      "biosample_count": 1457,
+      "country_count": 1,
+      "city_count": 1,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2015
+      ]
+    },
+    {
+      "accession": "PRJNA348753",
+      "title": "Recovery of nearly 8,000 uncultivated bacterial and archaeal genomes substantially flesh out the tree of life",
+      "run_count": 1358,
+      "biosample_count": 1358,
+      "country_count": 6,
+      "city_count": 7,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2017
+      ]
+    },
+    {
+      "accession": "PRJNA858189",
+      "title": "Shanghai metro Raw sequence reads",
+      "run_count": 1273,
+      "biosample_count": 2,
+      "country_count": 1,
+      "city_count": 1,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2023,
+        2024
+      ]
+    },
+    {
+      "accession": "PRJEB102331",
+      "title": "Towards a Comprehensive Wastewater Virome Atlas for Pathogen Monitoring",
+      "run_count": 1118,
+      "biosample_count": 1118,
+      "country_count": 0,
+      "city_count": 0,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2025,
+        2026
+      ]
+    },
+    {
+      "accession": "PRJEB80377",
+      "title": "CDC wastewater pathogen spike-in",
+      "run_count": 1095,
+      "biosample_count": 735,
+      "country_count": 0,
+      "city_count": 0,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2024
+      ]
+    },
+    {
+      "accession": "PRJEB98012",
+      "title": "Creeping Fat",
+      "run_count": 980,
+      "biosample_count": 242,
+      "country_count": 0,
+      "city_count": 0,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2025
+      ]
+    },
+    {
+      "accession": "PRJNA946141",
+      "title": "South Florida - Rapid Acceleration of Diagnostics: Development and Proof-of-Concept Implementation of the South Florida Miami RADx-rad",
+      "run_count": 821,
+      "biosample_count": 821,
+      "country_count": 1,
+      "city_count": 1,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2024
+      ]
+    },
+    {
+      "accession": "PRJNA436039",
+      "title": "TPA metagenomic assembly of the PRJNA436039 data set",
+      "run_count": 783,
+      "biosample_count": 783,
+      "country_count": 1,
+      "city_count": 1,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2019
+      ]
+    },
+    {
+      "accession": "PRJEB108450",
+      "title": "Exploring Fecal Microbiome in the CHILD COVID-19 sub-project",
+      "run_count": 736,
+      "biosample_count": 238,
+      "country_count": 0,
+      "city_count": 0,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2026
+      ]
+    },
+    {
+      "accession": "PRJNA1011313",
+      "title": "whole genome sequencing",
+      "run_count": 728,
+      "biosample_count": 728,
+      "country_count": 1,
+      "city_count": 0,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2025
+      ]
+    },
+    {
+      "accession": "PRJNA1121404",
+      "title": "Staphylococcus Aureus sequencing from CF Patients.",
+      "run_count": 713,
+      "biosample_count": 713,
+      "country_count": 1,
+      "city_count": 1,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2024
+      ]
+    },
+    {
+      "accession": "PRJEB25617",
+      "title": "Home chemical and microbial transitions across urbanization",
+      "run_count": 611,
+      "biosample_count": 611,
+      "country_count": 0,
+      "city_count": 0,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2019
+      ]
+    },
+    {
+      "accession": "PRJNA1070654",
+      "title": "Seasonality of Respiratory, Enteric and Urinary Viruses in Wastewater",
+      "run_count": 576,
+      "biosample_count": 576,
+      "country_count": 1,
+      "city_count": 1,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2024
+      ]
+    },
+    {
+      "accession": "PRJEB76295",
+      "title": "Pathogenic Bacteroides fragilis strains can emerge from gut-resident commensals",
+      "run_count": 566,
+      "biosample_count": 480,
+      "country_count": 0,
+      "city_count": 0,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2024
+      ]
+    },
+    {
+      "accession": "PRJNA293225",
+      "title": "MULTI-DRUG RESISTANT ESCHERICHIA COLI IN HUMANS, POULTRY AND POULTRYENVIRONMENT IN THE FEDERAL CAPITAL TERRITORY, NIGERIA: POTENTIAL RISK FOR HUMAN HEALTH",
+      "run_count": 556,
+      "biosample_count": 545,
+      "country_count": 1,
+      "city_count": 2,
+      "assay_count": 1,
+      "center_count": 2,
+      "years": [
+        2017,
+        2018,
+        2020,
+        2023,
+        2024,
+        2025
+      ]
+    },
+    {
+      "accession": "PRJEB84944",
+      "title": "Shotgun sequencing of 56 mother-infant dyads from the ALADDIN birth cohort",
+      "run_count": 547,
+      "biosample_count": 547,
+      "country_count": 0,
+      "city_count": 0,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2025
+      ]
+    },
+    {
+      "accession": "PRJNA1356541",
+      "title": "Metagenomic strain tracking among children in urban and rural communities in low- and middle-income countries.",
+      "run_count": 511,
+      "biosample_count": 511,
+      "country_count": 1,
+      "city_count": 0,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2026
+      ]
+    },
+    {
+      "accession": "PRJEB52774",
+      "title": "TPA metagenomic assembly of the PRJEB52774 data set",
+      "run_count": 486,
+      "biosample_count": 477,
+      "country_count": 9,
+      "city_count": 0,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2022,
+        2023
+      ]
+    },
+    {
+      "accession": "PRJEB73327",
+      "title": "Three-dimensional microbial mapping (3DMM) of ISS environment",
+      "run_count": 464,
+      "biosample_count": 464,
+      "country_count": 0,
+      "city_count": 0,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2024
+      ]
+    },
+    {
+      "accession": "PRJEB86881",
+      "title": "Deep shotgun metagenomics of the gut microbiome in Malawian adults",
+      "run_count": 453,
+      "biosample_count": 450,
+      "country_count": 0,
+      "city_count": 0,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2025
+      ]
+    },
+    {
+      "accession": "PRJNA1415085",
+      "title": "Metagenomic Profiling of Antimicrobial Resistance in Wastewater from Metropolitan Cities of India",
+      "run_count": 447,
+      "biosample_count": 447,
+      "country_count": 1,
+      "city_count": 4,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2026
+      ]
+    },
+    {
+      "accession": "PRJNA1147314",
+      "title": "Clearing the air on pollutant disruptions of the gut-brain axis: Developmental exposure to Benzo[a]pyrene disturbs zebrafish behavior and the gut microbiome in adults and subsequent generations",
+      "run_count": 425,
+      "biosample_count": 425,
+      "country_count": 1,
+      "city_count": 1,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2025
+      ]
+    },
+    {
+      "accession": "PRJNA1338502",
+      "title": "Molecular Approaches for Quantifying and Characterizing the Microbiome of Low-Biomass Spacecraft Environments",
+      "run_count": 415,
+      "biosample_count": 415,
+      "country_count": 1,
+      "city_count": 3,
+      "assay_count": 1,
+      "center_count": 1,
+      "years": [
+        2026
+      ]
+    }
+  ]
+}

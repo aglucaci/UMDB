@@ -176,6 +176,7 @@
   </div>
 
   <script src="./assets/db.js"></script>
+  <script src="./assets/page-loading.js"></script>
   <script>
     (async () => {
       const heroStats = document.getElementById("heroStats");
@@ -216,15 +217,17 @@
       renderTable(snapshotTable, ["Feature", "What It Means", "Where To Explore It"], [], "Loading release snapshot...");
 
       try {
-        const { manifest, allRuns } = await window.UMDBDB.fetchAllRuns();
-        const summary = window.UMDBDB.summarize(allRuns);
+        const [manifest, summary] = await Promise.all([
+          window.UMDBDB.fetchManifest(),
+          window.UMDBDB.fetchSummary()
+        ]);
         const countries = summary.countries.filter((x) => x.name !== "(unknown)");
         const cities = summary.cities.filter((x) => x.name !== "(unknown)");
         const assays = summary.assays.filter((x) => x.name !== "Unknown");
         const years = summary.years.slice().sort((a, b) => Number(a.name) - Number(b.name));
         const geoPct = Math.round((summary.geoResolvedRuns / Math.max(summary.totalRuns, 1)) * 100);
         const downloadPct = Math.round((summary.downloadableRuns / Math.max(summary.totalRuns, 1)) * 100);
-        const largestProject = summary.projects.slice().sort((a, b) => b.runs.size - a.runs.size)[0];
+        const largestProject = summary.largestProject;
 
         heroStats.innerHTML = `
           <div class="metric"><span class="label">SRR Records</span><span class="value">${window.UMDBDB.formatNumber(summary.totalRuns)}</span><span class="note">Run-level records in the current release</span></div>
@@ -246,7 +249,7 @@
           [
             [
               "Largest BioProject",
-              largestProject ? `${largestProject.accession} with ${window.UMDBDB.formatNumber(largestProject.runs.size)} runs` : "Unavailable",
+              largestProject ? `${largestProject.accession} with ${window.UMDBDB.formatNumber(largestProject.run_count)} runs` : "Unavailable",
               `<a href="./explorer.html">BioProject Explorer</a>`
             ],
             [

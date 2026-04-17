@@ -1,5 +1,5 @@
 from __future__ import annotations
-import argparse, datetime as dt
+import argparse, datetime as dt, json
 from typing import Any, Dict, List
 
 from .config import (
@@ -12,6 +12,30 @@ from .ncbi import esearch_recent, esearch_day, esearch_history, esummary_sra
 from .ingest import ingest_uids_to_srr, debug_paths
 from .exports import rebuild_srr_exports_chunked, write_latest_srr_safe
 from .ai_curation import curate_records
+
+def print_report_summary(report: Dict[str, Any]):
+    tag = report.get("tag", "run")
+    counters = report.get("counters", {}) if isinstance(report.get("counters", {}), dict) else {}
+    ai = report.get("ai_curation", {}) if isinstance(report.get("ai_curation", {}), dict) else {}
+    parts = [f"tag={tag}"]
+
+    if "records_considered" in report:
+        parts.append(f"records_considered={report.get('records_considered', 0)}")
+    if counters:
+        parts.extend([
+            f"uids_input={counters.get('uids_input', 0)}",
+            f"uids_new={counters.get('uids_new', 0)}",
+            f"srr_emitted={counters.get('srr_emitted', 0)}",
+        ])
+    if ai:
+        parts.extend([
+            f"ai_reviewed={ai.get('reviewed', 0)}",
+            f"ai_skipped_cached={ai.get('skipped_cached', 0)}",
+            f"ai_errors={ai.get('errors', 0)}",
+        ])
+
+    print("[SUMMARY] " + " ".join(parts))
+    print("[SUMMARY_JSON] " + json.dumps(report, ensure_ascii=False))
 
 def build_argparser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser()
@@ -146,6 +170,7 @@ def run():
                             max_records=args.ai_max_records,
                         )
                         report.setdefault("ai_curation", ai_counts)
+                    print_report_summary(report)
                     year = dt.date.today().year
                     append_jsonl(f"{DATA_DIR}/srr_catalog_{year}.jsonl", added_srr)
 
@@ -165,13 +190,15 @@ def run():
                         })
                 reports.append(report)
             else:
-                reports.append({
+                report = {
                     "tag": tag,
                     "generated_utc": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
                     "counters": {"uids_input": 0, "uids_new": 0, "srr_emitted": 0},
                     "queries": query_reports,
                     "urls": {"esummary": esummary_url},
-                })
+                }
+                print_report_summary(report)
+                reports.append(report)
 
         elif args.cmd == "backfill-year":
             year = args.year
@@ -210,6 +237,7 @@ def run():
                         )
                         report.setdefault("ai_curation", ai_counts)
                     append_jsonl(f"{DATA_DIR}/srr_catalog_{year}.jsonl", added_srr)
+                print_report_summary(report)
                 reports.append(report)
 
         elif args.cmd == "crawl":
@@ -271,6 +299,7 @@ def run():
                     this_year = dt.date.today().year
                     append_jsonl(f"{DATA_DIR}/srr_catalog_{this_year}.jsonl", added_srr)
 
+                print_report_summary(report)
                 reports.append(report)
                 total_seen += len(ids)
 
@@ -307,12 +336,14 @@ def run():
                 overwrite=args.overwrite,
                 max_records=args.max_records,
             )
-            reports.append({
+            report = {
                 "tag": "curate_ai",
                 "generated_utc": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
                 "ai_curation": ai_counts,
                 "records_considered": len(records),
-            })
+            }
+            print_report_summary(report)
+            reports.append(report)
 
         write_latest_srr_safe(latest_added[:5000])
         write_json(DOCS_LATEST_DEBUG, {

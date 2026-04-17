@@ -154,40 +154,16 @@
       </div>
     </section>
 
-    <section class="section">
-      <div class="section-header">
-        <h2>Current Release Snapshot</h2>
-        <p>This panel reads the live manifest so the download page stays aligned with the published database.</p>
-      </div>
-      <div class="metric-grid" id="releaseStats">
-        <div class="metric"><span class="label">Loading</span><span class="value">...</span><span class="note">Reading release metadata</span></div>
-      </div>
-    </section>
-
     <footer class="site-footer">
       Direct file links on this page refer to the public release bundled with the site. Update the descriptions here whenever the schema or distribution layout changes.
     </footer>
   </div>
 
   <script src="./assets/db.js"></script>
+  <script src="./assets/page-loading.js"></script>
   <script>
     (async () => {
-      const container = document.getElementById("releaseStats");
       const primaryFilesTable = document.getElementById("primaryFilesTable");
-
-      function formatTimestamp(value) {
-        if (!value) return "Unknown";
-        const d = new Date(value);
-        if (Number.isNaN(d.getTime())) return value;
-        return d.toLocaleString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-          timeZoneName: "short"
-        });
-      }
 
       function renderTable(target, columns, rows, emptyMessage) {
         const body = rows.length
@@ -211,13 +187,6 @@
         const partLabel = (manifest.parts || []).length > 1
           ? `<a href="./db/${firstPart}"><span class="mono">docs/db/${firstPart}</span></a> and ${(manifest.parts || []).length - 1} companion part files`
           : `<a href="./db/${firstPart}"><span class="mono">docs/db/${firstPart}</span></a>`;
-
-        container.innerHTML = `
-          <div class="metric"><span class="label">Generated</span><span class="value" style="font-size:22px">${formatTimestamp(manifest.generated_utc || manifest.generated || "")}</span><span class="note">Timestamp stored in the public manifest</span></div>
-          <div class="metric"><span class="label">Total SRR Records</span><span class="value">${window.UMDBDB.formatNumber(manifest.total_records || 0)}</span><span class="note">Records distributed across the published part files</span></div>
-          <div class="metric"><span class="label">Part Files</span><span class="value">${window.UMDBDB.formatNumber((manifest.parts || []).length)}</span><span class="note">Chunked JSON files used by the explorer and analytics pages</span></div>
-          <div class="metric"><span class="label">Release Years</span><span class="value">${window.UMDBDB.formatNumber((manifest.years || []).length)}</span><span class="note">Distinct years represented in the current manifest summary</span></div>
-        `;
 
         renderTable(primaryFilesTable,
           ["File", "Purpose", "Audience"],
@@ -251,7 +220,6 @@
           "No public file entries are available."
         );
       } catch (err) {
-        container.innerHTML = `<div class="metric"><span class="label">Status</span><span class="value">Unavailable</span><span class="note">${err.message}</span></div>`;
         renderTable(primaryFilesTable, ["File", "Purpose", "Audience"], [], err.message);
       }
     })();

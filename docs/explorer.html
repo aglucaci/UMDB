@@ -713,6 +713,7 @@
   let aborter = null;
   let biosampleCache = null;
   let biosampleCachePromise = null;
+  let loadSession = 0;
 
   // --------- Elements ----------
   const el = (id) => document.getElementById(id);
@@ -1626,7 +1627,7 @@
 
   // --------- Loading ----------
   async function loadManifest() {
-    const r = await fetch(MANIFEST_URL, {cache:"no-store"});
+    const r = await fetch(MANIFEST_URL, {cache:"default"});
     if (!r.ok) throw new Error(`Failed to fetch manifest: ${r.status} ${r.statusText}`);
     manifest = await r.json();
     return manifest;
@@ -1650,12 +1651,12 @@
       if (aborter.signal.aborted) break;
 
       const url = normalizePartPath(part.path);
-      pLoad.textContent = `Loaded ${loadedParts}/${totalParts} parts · ${loadedRecords.toLocaleString()} records`;
+      pLoad.textContent = `Loaded ${loadedParts}/${totalParts} parts - ${loadedRecords.toLocaleString()} records`;
       setProgress(loadedParts, totalParts);
 
       let data = null;
       try {
-        const r = await fetch(url, {signal: aborter.signal, cache:"no-store"});
+        const r = await fetch(url, {signal: aborter.signal, cache:"default"});
         if (!r.ok) throw new Error(`Fetch failed: ${r.status} ${r.statusText}`);
         data = await r.json();
       } catch (e) {
@@ -1678,7 +1679,7 @@
     }
 
     setProgress(totalParts, totalParts);
-    pLoad.textContent = `Loaded ${loadedParts}/${totalParts} parts · ${loadedRecords.toLocaleString()} records`;
+      pLoad.textContent = `Loaded ${loadedParts}/${totalParts} parts - ${loadedRecords.toLocaleString()} records`;
     btnStop.disabled = true;
 
     if (!aborter.signal.aborted) {
@@ -1688,6 +1689,151 @@
     }
 
     applyFilters();
+  }
+
+  async function loadParts({loadAll}) {
+    if (!manifest?.parts?.length) return;
+
+    if (aborter) aborter.abort();
+    aborter = new AbortController();
+    loadSession += 1;
+
+    const sessionId = loadSession;
+    const totalParts = manifest.parts.length;
+    let loadedParts = 0;
+    let loadedRecords = 0;
+    let nextPartIndex = 0;
+
+    const refreshLoadUI = () => {
+      pLoad.textContent = `Loaded ${loadedParts}/${totalParts} parts - ${loadedRecords.toLocaleString()} records`;
+      setProgress(loadedParts, totalParts);
+    };
+
+    const finishLoad = (status) => {
+      if (sessionId !== loadSession) return;
+
+      btnStop.disabled = true;
+      refreshLoadUI();
+
+      if (status === "stopped") {
+        setMsg(`<span class="warn">Stopped.</span> Loaded ${loadedRecords.toLocaleString()} SRR records so far.`, "muted");
+      } else if (status === "ready") {
+        setMsg(`<span class="ok">Ready.</span> Loaded ${loadedRecords.toLocaleString()} SRR records.`, "ok");
+      }
+
+      applyFilters();
+    };
+
+    const loadBatch = async (batchSize) => {
+      let loadedAny = false;
+
+      while (nextPartIndex < totalParts && batchSize > 0) {
+        if (aborter.signal.aborted || sessionId !== loadSession) {
+          return {status: "stopped", loadedAny};
+        }
+
+        const part = manifest.parts[nextPartIndex];
+        const url = normalizePartPath(part.path);
+
+        try {
+          const r = await fetch(url, {signal: aborter.signal, cache:"default"});
+          if (!r.ok) throw new Error(`Fetch failed: ${r.status} ${r.statusText}`);
+          const data = await r.json();
+
+          if (Array.isArray(data)) {
+            allRuns.push(...data);
+            loadedRecords += data.length;
+          }
+
+          loadedParts += 1;
+          nextPartIndex += 1;
+          batchSize -= 1;
+          loadedAny = true;
+          refreshLoadUI();
+        } catch (e) {
+          if (aborter.signal.aborted || sessionId !== loadSession) {
+            return {status: "stopped", loadedAny};
+          }
+          setMsg(`Error loading <span class="mono">${escapeHtml(url)}</span>: <span class="err">${escapeHtml(e.message)}</span>`, "err");
+          btnStop.disabled = true;
+          return {status: "error", loadedAny};
+        }
+      }
+
+      if (aborter.signal.aborted || sessionId !== loadSession) return {status: "stopped", loadedAny};
+      if (nextPartIndex >= totalParts) return {status: "ready", loadedAny};
+      return {status: "partial", loadedAny};
+    };
+
+    const continueStreaming = async () => {
+      const result = await loadBatch(2);
+      if (sessionId !== loadSession) return;
+
+      if (result.loadedAny) {
+        applyFilters();
+      }
+
+      if (result.status === "partial") {
+        setMsg(
+          `Interactive. Loaded ${loadedRecords.toLocaleString()} SRR records so far; remaining parts are still loading in the background.`,
+          "muted"
+        );
+        window.setTimeout(continueStreaming, 0);
+        return;
+      }
+
+      if (result.status === "ready") {
+        finishLoad("ready");
+        return;
+      }
+
+      if (result.status === "stopped") {
+        finishLoad("stopped");
+      }
+    };
+
+    btnStop.disabled = false;
+    refreshLoadUI();
+
+    if (loadAll) {
+      setMsg("Loading all part files...", "muted");
+
+      while (true) {
+        const result = await loadBatch(4);
+        if (result.status === "partial") continue;
+        if (result.status === "ready") {
+          finishLoad("ready");
+        } else if (result.status === "stopped") {
+          finishLoad("stopped");
+        }
+        return;
+      }
+    }
+
+    setMsg("Loading first chunk for Explorer...", "muted");
+    const firstChunk = await loadBatch(1);
+    if (sessionId !== loadSession) return;
+
+    if (firstChunk.loadedAny) {
+      applyFilters();
+    }
+
+    if (firstChunk.status === "ready") {
+      finishLoad("ready");
+      return;
+    }
+
+    if (firstChunk.status === "stopped") {
+      finishLoad("stopped");
+      return;
+    }
+
+    if (firstChunk.status === "error") {
+      return;
+    }
+
+    setMsg("Interactive. First chunk loaded; remaining parts are continuing in the background.", "ok");
+    window.setTimeout(continueStreaming, 0);
   }
 
   function resetUI() {
@@ -1996,5 +2142,6 @@ echo "[UMDB] completed FASTQ export into $OUTDIR/fastq"
   })();
 })();
 </script>
+<script src="./assets/page-loading.js"></script>
 </body>
 </html>

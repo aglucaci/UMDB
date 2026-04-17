@@ -1,5 +1,9 @@
 (function(){
   const MANIFEST_URL = "./db/srr_records_manifest.json";
+  const SUMMARY_URL = "./db/summary.json";
+  let manifestPromise = null;
+  let summaryPromise = null;
+  let allRunsPromise = null;
 
   function norm(value){
     return (value ?? "").toString().trim();
@@ -67,26 +71,81 @@
   }
 
   async function fetchManifest(){
-    const res = await fetch(MANIFEST_URL, { cache: "no-store" });
-    if (!res.ok) throw new Error("Unable to load manifest");
-    return await res.json();
+    if (!manifestPromise){
+      manifestPromise = fetch(MANIFEST_URL, { cache: "default" }).then(async (res) => {
+        if (!res.ok) throw new Error("Unable to load manifest");
+        return await res.json();
+      }).catch((err) => {
+        manifestPromise = null;
+        throw err;
+      });
+    }
+    return await manifestPromise;
+  }
+
+  async function fetchSummary(){
+    if (!summaryPromise){
+      summaryPromise = fetch(SUMMARY_URL, { cache: "default" }).then(async (res) => {
+        if (!res.ok) throw new Error("Unable to load summary");
+        return await res.json();
+      }).catch(async () => {
+        const { manifest, allRuns } = await fetchAllRuns();
+        const summary = summarize(allRuns);
+        const largestProject = summary.projects.slice().sort((a, b) => b.runs.size - a.runs.size)[0];
+        return {
+          generated_utc: manifest.generated_utc || manifest.generated || "",
+          totalRuns: summary.totalRuns,
+          totalProjects: summary.totalProjects,
+          totalBioSamples: summary.totalBioSamples,
+          totalCountries: summary.totalCountries,
+          totalCities: summary.totalCities,
+          geoResolvedRuns: summary.geoResolvedRuns,
+          downloadableRuns: summary.downloadableRuns,
+          years: summary.years,
+          assays: summary.assays,
+          countries: summary.countries,
+          cities: summary.cities,
+          centers: summary.centers,
+          largestProject: largestProject ? {
+            accession: largestProject.accession,
+            title: largestProject.title,
+            run_count: largestProject.runs.size,
+            biosample_count: largestProject.biosamples.size,
+            years: Array.from(largestProject.years).sort((a, b) => a - b)
+          } : null,
+          topProjects: []
+        };
+      }).catch((err) => {
+        summaryPromise = null;
+        throw err;
+      });
+    }
+    return await summaryPromise;
   }
 
   async function fetchAllRuns(progressCb){
-    const manifest = await fetchManifest();
-    const parts = manifest.parts || [];
-    const allRuns = [];
+    if (!allRunsPromise){
+      allRunsPromise = (async () => {
+        const manifest = await fetchManifest();
+        const parts = manifest.parts || [];
+        const allRuns = [];
 
-    for (let i = 0; i < parts.length; i += 1){
-      const url = normalizePartPath(parts[i].path);
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) throw new Error("Unable to load " + url);
-      const chunk = await res.json();
-      if (Array.isArray(chunk)) allRuns.push(...chunk);
-      if (progressCb) progressCb({ done: i + 1, total: parts.length, manifest, allRuns });
+        for (let i = 0; i < parts.length; i += 1){
+          const url = normalizePartPath(parts[i].path);
+          const res = await fetch(url, { cache: "default" });
+          if (!res.ok) throw new Error("Unable to load " + url);
+          const chunk = await res.json();
+          if (Array.isArray(chunk)) allRuns.push(...chunk);
+          if (progressCb) progressCb({ done: i + 1, total: parts.length, manifest, allRuns });
+        }
+
+        return { manifest, allRuns };
+      })().catch((err) => {
+        allRunsPromise = null;
+        throw err;
+      });
     }
-
-    return { manifest, allRuns };
+    return await allRunsPromise;
   }
 
   function groupProjects(allRuns){
@@ -171,6 +230,7 @@
 
   const api = {
     fetchManifest,
+    fetchSummary,
     fetchAllRuns,
     summarize,
     topItems,

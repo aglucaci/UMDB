@@ -49,9 +49,6 @@
         <a class="button-link primary" href="./index.html">Open Database Explorer</a>
         <a class="button-link" href="./methodology.html">Read Methods</a>
       </div>
-      <div class="hero-stats" id="heroStats">
-        <div class="metric"><span class="label">Loading</span><span class="value">...</span><span class="note">Reading manifest and record summaries</span></div>
-      </div>
     </section>
 
     <section class="section">
@@ -130,22 +127,6 @@
   </div>
 
   <script src="./assets/db.js"></script>
-  <script>
-    (async () => {
-      const stats = document.getElementById("heroStats");
-      try {
-        const { allRuns } = await window.UMDBDB.fetchAllRuns();
-        const summary = window.UMDBDB.summarize(allRuns);
-        stats.innerHTML = `
-          <div class="metric"><span class="label">SRR Records</span><span class="value">${window.UMDBDB.formatNumber(summary.totalRuns)}</span><span class="note">Public run-level records currently indexed</span></div>
-          <div class="metric"><span class="label">BioProjects</span><span class="value">${window.UMDBDB.formatNumber(summary.totalProjects)}</span><span class="note">Aggregated project-level entries</span></div>
-          <div class="metric"><span class="label">Countries</span><span class="value">${window.UMDBDB.formatNumber(summary.totalCountries)}</span><span class="note">Distinct country labels with resolved names</span></div>
-          <div class="metric"><span class="label">Geo-Resolved Runs</span><span class="value">${Math.round((summary.geoResolvedRuns / Math.max(summary.totalRuns, 1)) * 100)}%</span><span class="note">Runs with both country and city present</span></div>
-        `;
-      } catch (err) {
-        stats.innerHTML = `<div class="metric"><span class="label">Status</span><span class="value">Unavailable</span><span class="note">${err.message}</span></div>`;
-      }
-    })();
-  </script>
+  <script src="./assets/page-loading.js"></script>
 </body>
 </html>
