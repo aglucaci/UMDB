@@ -9,7 +9,7 @@ The repository has two jobs:
 
 The current public site is available at:
 
-https://aglucaci.github.io/umdb/
+https://aglucaci.github.io/UMDB/
 
 ## What This Repository Is
 
