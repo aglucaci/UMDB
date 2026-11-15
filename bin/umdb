@@ -14,6 +14,50 @@ REPO_ROOT="$(cd -P "$(dirname "$src")/.." && pwd)"
 cd "$REPO_ROOT"
 
 PY="${UMDB_PYTHON:-python3}"
+
+# Banner: shown once per invocation, on stderr, only in an interactive
+# terminal, so piped or redirected output (umdb queries > file) stays clean.
+# Disable with UMDB_NO_BANNER=1.
+banner() {
+  [ -n "${UMDB_NO_BANNER:-}" ] && return 0
+  [ -n "${UMDB_BANNER_SHOWN:-}" ] && return 0
+  [ -t 2 ] || return 0
+  export UMDB_BANNER_SHOWN=1
+  local c="" d="" r=""
+  if [ -z "${NO_COLOR:-}" ]; then c=$'\033[1;32m'; d=$'\033[2m'; r=$'\033[0m'; fi
+  cat >&2 <<EOF
+${c} _   _  __  __  ____   ____
+| | | ||  \\/  ||  _ \\ | __ )
+| | | || |\\/| || | | ||  _ \\
+| |_| || |  | || |_| || |_) |
+ \\___/ |_|  |_||____/ |____/${r}
+${d}  Urban Microbiome Database${r}
+
+EOF
+}
+banner
+
+# Output detail: -q/--quiet (summaries only), default (stages, progress, ETAs),
+# -v/--verbose (every NCBI request, cache hits, per-experiment lines).
+# Accepted anywhere on the command line; not stripped for `umdb test`.
+if [ "${1:-}" != "test" ] && [ "${1:-}" != "tests" ]; then
+  _kept=()
+  for _a in "$@"; do
+    case "$_a" in
+      -v|--verbose) export UMDB_VERBOSITY=2 ;;
+      -q|--quiet) export UMDB_VERBOSITY=0 ;;
+      *) _kept+=("$_a") ;;
+    esac
+  done
+  set -- ${_kept[@]+"${_kept[@]}"}
+fi
+# Colour: on when this terminal shows it (children writing through pipes,
+# e.g. `tee` in the backfill script, keep it). NO_COLOR or UMDB_COLOR=never
+# turn it off.
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ -z "${UMDB_COLOR:-}" ]; then
+  export UMDB_COLOR=always
+fi
+
 HARVESTER_CMDS=" crawl daily backfill-year curate-ai "
 
 usage() {
@@ -45,6 +89,11 @@ Development:
   umdb test                      run the offline test suite
   umdb install [dir]             put "umdb" on your PATH (symlink; default ~/.local/bin)
   umdb help                      this message
+
+Output: progress, ETAs and summaries by default, coloured in a terminal.
+  -v, --verbose    also show every NCBI request, cache hit and experiment
+  -q, --quiet      summaries and warnings only
+  NO_COLOR=1       plain output;  UMDB_NO_BANNER=1  hide the banner
 
 Settings are read from .env in the repository root (see .env.example).
 Add --help after a harvester command for its options, e.g. "umdb crawl --help".
@@ -81,7 +130,7 @@ case "$cmd" in
       case "$a" in -y|--yes) yes=1 ;; *) rest+=("$a") ;; esac
     done
     case " ${rest[*]:-} " in *" -h "*|*" --help "*) harvester compact "${rest[@]}" ;; esac
-    if [ $yes -eq 0 ] && [ -n "$(git status --porcelain -- data 2>/dev/null)" ]; then
+    if [ $yes -eq 0 ] && [ -n "$(git status --porcelain --untracked-files=no -- data 2>/dev/null)" ]; then
       echo "data/ has uncommitted changes; compaction rewrites catalog files permanently." >&2
       printf "Continue? [y/N] " >&2; read -r reply
       case "$reply" in y|Y|yes|YES) ;; *) echo "Aborted." >&2; exit 1 ;; esac

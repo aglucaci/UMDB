@@ -170,9 +170,9 @@ def get_bioproject_details(accession: str, bp_cache: Dict[str, Any], uid_cache: 
         bp_cache[accession] = {"accession": accession, "uid": "", "error": "uid_not_found"}
         return bp_cache[accession]
 
-    print("[INFO] Parsing Bioproject esummary:", uid)
+    from .utils import log
+    log(f"      BioProject {accession}: esummary uid={uid}", level=2)
     details = parse_bioproject_esummary(uid)
     details["accession"] = details.get("accession") or accession
     bp_cache[accession] = details
-    print("details:", details)
     return details

@@ -5,7 +5,7 @@ from typing import Any, Dict, Iterator, List
 from .config import DATA_DIR, DB_DIR, DOCS_LATEST_SRR, MAX_OUTPUT_BYTES
 from .utils import (
     utc_now, read_json, write_json, iter_jsonl_glob,
-    write_json_array_chunked, file_size
+    write_json_array_chunked, file_size, log, paint, num, fmt_duration, TIER_STYLE, slim_record
 )
 
 def _find_year_catalog_prefixes() -> List[str]:
@@ -60,7 +60,7 @@ def latest_record_positions(prefixes: List[str]) -> Dict[str, int]:
 def compact_catalog() -> Dict[str, int]:
     """Rewrite data/srr_catalog_*.jsonl keeping only the newest record per run.
 
-    One pass over the catalog writes the kept records to a temporary
+    Records are also slimmed (see utils.slim_record). One pass over the catalog writes the kept records to a temporary
     directory (re-chunked under 50 MB per year); only after every year has
     been written are the old files replaced. Records without a run accession
     are kept. Superseded rows are removed for good; earlier versions remain
@@ -88,7 +88,7 @@ def compact_catalog() -> Dict[str, int]:
             if _run_id(rec) and pos not in keep_pos:
                 stats["superseded_removed"] += 1
                 continue
-            buffers.setdefault(base, []).append(rec)
+            buffers.setdefault(base, []).append(slim_record(rec))
             stats["records_after"] += 1
             if len(buffers[base]) >= 2000:
                 flush(base)
@@ -277,7 +277,8 @@ def build_summary(records_iter: Iterator[Dict[str, Any]], generated_utc: str = "
         "topProjects": project_rows[:25],
     }
 
-def refresh_derived_annotations(rec: Dict[str, Any], bs_cache: Dict[str, Any]) -> Dict[str, Any]:
+def refresh_derived_annotations(rec: Dict[str, Any], bs_cache: Dict[str, Any],
+                                bp_cache: Dict[str, Any] | None = None) -> Dict[str, Any]:
     """Recompute rule-derived geo and assay fields with the current rules.
 
     Catalog JSONL files store whatever the classifiers produced at ingest time,
@@ -302,26 +303,41 @@ def refresh_derived_annotations(rec: Dict[str, Any], bs_cache: Dict[str, Any]) -
             title, row.get("SampleName", "") or "", row.get("Sample", "") or "",
             row.get("Study", "") or "", row.get("BioProject", "") or "",
         ])
-    rec["eligibility"] = assess_eligibility(rec, bsd, rec.get("bioproject") or {})
-    return rec
+    # Eligibility reads the full BioProject text (description), which slim run
+    # records no longer carry: use the cached project record when available.
+    bp_acc = _norm(row.get("BioProject") or (rec.get("bioproject") or {}).get("accession")).upper()
+    full_bp = (bp_cache or {}).get(bp_acc) if bp_acc else None
+    bp = full_bp if isinstance(full_bp, dict) and not full_bp.get("error") else (rec.get("bioproject") or {})
+    rec["eligibility"] = assess_eligibility(rec, bsd, bp)
+    return slim_record(rec)
 
 
 def rebuild_srr_exports_chunked():
+    import time
+    t0 = time.time()
     prefixes = _find_year_catalog_prefixes()
     from .config import BIOPROJECT_CACHE, BIOSAMPLE_CACHE, AI_CURATION_CACHE
+    log(f"Reading catalog: {', '.join(os.path.basename(p) for p in prefixes) or '(empty)'} (+ part files)")
     ai_cache = read_json(AI_CURATION_CACHE, {})
     bs_cache = read_json(BIOSAMPLE_CACHE, {})
+    bp_cache = read_json(BIOPROJECT_CACHE, {})
 
     # After a --refresh harvest a run can have several records; publish only
     # the newest one, and never publish a run twice.
     winners = latest_record_positions(prefixes)
+    total_rows = sum(1 for _ in _iter_catalog(prefixes))
+    superseded = total_rows - len(winners)
+    log(f"{num(len(winners))} unique runs in {num(total_rows)} catalog rows"
+        + (f" ({paint(f'{superseded:,} older duplicate records skipped', 'warn')}; run 'umdb compact' to remove them)"
+           if superseded > 0 else ""))
+    log(f"Re-applying geography, assay and eligibility rules; merging {num(len(ai_cache))} AI reviews")
 
     def all_records() -> Iterator[Dict[str, Any]]:
         for pos, _, rec in _iter_catalog(prefixes):
             srr = _run_id(rec)
             if srr and winners.get(srr) != pos:
                 continue
-            rec = refresh_derived_annotations(rec, bs_cache)
+            rec = refresh_derived_annotations(rec, bs_cache, bp_cache)
             if srr and isinstance(ai_cache.get(srr), dict):
                 rec["ai_curation"] = ai_cache[srr]
             yield rec
@@ -342,6 +358,8 @@ def rebuild_srr_exports_chunked():
     manifest["catalog_file_years"] = sorted(years)
     manifest.pop("years", None)
 
+    for part in manifest.get("parts", []):
+        log(f"  wrote {part['path']}: {num(part['records'])} runs, {file_size(part['path']) / 1e6:.1f} MB", level=1)
     write_json(os.path.join(DB_DIR, "srr_records_manifest.json"), manifest)
     write_json(os.path.join(DB_DIR, "srr_index.json"), {
         "generated": utc_now(),
@@ -350,7 +368,6 @@ def rebuild_srr_exports_chunked():
         "catalog_file_years": manifest["catalog_file_years"],
     })
 
-    bp_cache = read_json(BIOPROJECT_CACHE, {})
     if bp_cache:
         write_json(os.path.join(DB_DIR, "bioprojects.json"), bp_cache)
     if bs_cache:
@@ -360,10 +377,16 @@ def rebuild_srr_exports_chunked():
 
     summary_records = all_records
 
-    write_json(
-        os.path.join(DB_DIR, "summary.json"),
-        build_summary(summary_records(), generated_utc=manifest.get("generated_utc", "")),
-    )
+    summary = build_summary(summary_records(), generated_utc=manifest.get("generated_utc", ""))
+    write_json(os.path.join(DB_DIR, "summary.json"), summary)
+    log(f"Summary: {num(summary['totalRuns'])} runs, {num(summary['totalBioSamples'])} BioSamples, "
+        f"{num(summary['totalProjects'])} BioProjects, {num(summary['totalCountries'])} countries")
+    for tier in summary.get("eligibility", []):
+        name, runs, samples = tier["name"], tier["runs"], tier["biosamples"]
+        runs_s, samples_s = f"{runs:>8,}", f"{samples:>8,}"
+        log(f"  {paint(name.ljust(18), TIER_STYLE.get(name, 'dim'))} "
+            f"{paint(runs_s, 'num')} runs {paint(samples_s, 'num')} BioSamples")
+    log(f"docs/db rebuilt in {fmt_duration(time.time() - t0)}")
 
 def write_latest_srr_safe(latest_items: List[Dict[str, Any]]):
     payload = {"generated_utc": utc_now(), "count": len(latest_items), "items": latest_items}

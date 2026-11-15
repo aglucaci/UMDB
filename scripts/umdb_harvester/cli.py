@@ -7,7 +7,12 @@ from .config import (
     BIOSAMPLE_CACHE, BIOPROJECT_CACHE, BIOPROJECT_UID_CACHE, AI_CURATION_CACHE, OPENAI_MODEL, OPENAI_API_KEY,
     DOCS_LATEST_DEBUG, DATA_DIR, DB_DIR
 )
+import sys
+import time
+
 from .utils import ensure_dirs, load_set, read_json, write_json, append_jsonl, iter_jsonl_glob
+from .utils import log, header, warn, paint, num, fmt_duration, VERBOSITY
+from . import ncbi as ncbi_mod
 from .ncbi import esearch_recent, esearch_day, esearch_history, esummary_sra
 from .ingest import ingest_uids_to_srr, debug_paths
 from .exports import rebuild_srr_exports_chunked, write_latest_srr_safe
@@ -34,8 +39,11 @@ def print_report_summary(report: Dict[str, Any]):
             f"ai_errors={ai.get('errors', 0)}",
         ])
 
-    print("[SUMMARY] " + " ".join(parts))
-    print("[SUMMARY_JSON] " + json.dumps(report, ensure_ascii=False))
+    # Machine-readable lines (parsed by scripts/deep_backfill.sh). Shown in
+    # logs and pipes, and in a terminal only with -v.
+    if not sys.stdout.isatty() or VERBOSITY >= 2:
+        print("[SUMMARY] " + " ".join(parts), flush=True)
+        print("[SUMMARY_JSON] " + json.dumps(report, ensure_ascii=False), flush=True)
 
 def build_argparser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser()
@@ -120,8 +128,14 @@ def run():
 
     if args.cmd == "compact":
         from .exports import compact_catalog
+        header("umdb compact: keep only the newest record per run")
+        t0 = time.time()
         stats = compact_catalog()
-        print("[SUMMARY] compact " + " ".join(f"{k}={v}" for k, v in stats.items()))
+        removed = stats["superseded_removed"]
+        log(f"{num(stats['records_before'])} records read, "
+            f"{paint(f'{removed:,} superseded removed', 'warn' if removed else 'dim')}, "
+            f"{num(stats['records_after'])} kept in {fmt_duration(time.time() - t0)}")
+        print("[SUMMARY] compact " + " ".join(f"{k}={v}" for k, v in stats.items()), flush=True)
         return
 
     if ((getattr(args, "ai_curate", False) or args.cmd == "curate-ai") and not OPENAI_API_KEY):
@@ -140,6 +154,36 @@ def run():
     latest_added: List[Dict[str, Any]] = []
     reports: List[Dict[str, Any]] = []
     query_specs = resolve_query_specs(args)
+    t_run = time.time()
+
+    # --- What this run will do ---
+    header(f"umdb {args.cmd}")
+    if args.cmd != "curate-ai":
+        log(f"Query profiles ({len(query_specs)}): "
+            + ", ".join(paint(s["name"], "key") for s in query_specs)
+            + paint(f"  (version {QUERY_PROFILES_VERSION})", "dim"))
+        settings = []
+        if args.cmd == "backfill-year":
+            settings.append(f"year {num(str(args.year))}")
+            settings.append("per-day cap " + (paint("none (all hits)", "num") if args.max_per_day <= 0 else num(args.max_per_day)))
+        elif args.cmd == "daily":
+            settings.append(f"last {num(args.recent_days)} days, up to {num(args.max_per_day)} per profile")
+        elif args.cmd == "crawl":
+            settings.append(f"page size {num(args.page_size)}, sort {args.sort}")
+            if args.max_total:
+                settings.append(f"max {num(args.max_total)} UIDs")
+            if args.stop_after_new_srr:
+                settings.append(f"stop after {num(args.stop_after_new_srr)} new runs")
+        settings.append(paint("REFRESH: re-fetching records already held", "warn") if args.refresh else "new records only")
+        settings.append("BioSample " + ("on" if args.fetch_biosample else paint("off", "warn")))
+        settings.append("BioProject " + ("on" if args.fetch_bioproject else paint("off", "warn")))
+        if getattr(args, "ai_curate", False):
+            settings.append(paint(f"AI curation ({args.ai_model})", "magenta"))
+        log("Settings: " + " · ".join(settings))
+    log(f"Catalog: {num(len(seen_srr))} runs from {num(len(seen_sra))} experiments already ingested; "
+        f"cached {num(len(biosample_cache))} BioSamples, {num(len(bp_cache))} BioProjects")
+    if not ncbi_mod.NCBI_API_KEY:
+        warn("NCBI_API_KEY is not set: NCBI allows 3 requests/s instead of 10 (add it to .env)")
 
     try:
         if args.cmd == "daily":
@@ -150,6 +194,9 @@ def run():
             seen_uids = set()
             for spec in query_specs:
                 found_uids, esearch_url = esearch_recent("sra", spec["query"], args.recent_days, args.max_per_day)
+                log(f"  {paint(spec['name'], 'key')}: {num(len(found_uids))} experiment(s)")
+                if len(found_uids) >= args.max_per_day:
+                    warn(f"{spec['name']} hit --max-per-day={args.max_per_day}; older matches were not retrieved")
                 query_reports.append({
                     "profile": spec["name"],
                     "query": spec["query"],
@@ -222,22 +269,35 @@ def run():
         elif args.cmd == "backfill-year":
             year = args.year
             start = dt.date(year, 1, 1)
-            for n in range(366):
+            today = dt.date.today()
+            last = min(dt.date(year, 12, 31), today)
+            days_total = (last - start).days + 1 if last >= start else 0
+            year_runs = year_refreshed = year_experiments = 0
+            t_year = time.time()
+            if days_total <= 0:
+                warn(f"{year} is in the future; nothing to search")
+            for n in range(days_total):
                 day = start + dt.timedelta(n)
-                if day.year != year:
-                    break
                 ds = day.isoformat()
+                t_day = time.time()
                 uids: List[str] = []
                 seen_uids = set()
+                hits = []
                 for spec in query_specs:
                     found_uids, _ = esearch_day("sra", spec["query"], ds, args.max_per_day)
+                    if found_uids:
+                        hits.append(f"{spec['name']} {num(len(found_uids))}")
                     if args.max_per_day > 0 and len(found_uids) >= args.max_per_day:
-                        print(f"[WARN] {ds} profile={spec['name']} hit --max-per-day={args.max_per_day}; "
-                              "later records for this day were not retrieved", flush=True)
+                        warn(f"{ds} profile={spec['name']} hit --max-per-day={args.max_per_day}; "
+                             "later records for this day were not retrieved")
                     for uid in found_uids:
                         if uid not in seen_uids:
                             seen_uids.add(uid)
                             uids.append(uid)
+                year_experiments += len(uids)
+                log(f"{paint(ds, 'bold')} day {n + 1}/{days_total}: "
+                    + (f"{num(len(uids))} experiment(s)  " + paint("(" + ", ".join(hits) + ")", "dim") if uids
+                       else paint("no matching experiments", "dim")))
                 summaries, _ = esummary_sra(uids)
 
                 added_srr, report = ingest_uids_to_srr(
@@ -263,8 +323,29 @@ def run():
                 print_report_summary(report)
                 reports.append(report)
 
+                c = report.get("counters", {})
+                written, refreshed = c.get("srr_emitted", 0), c.get("srr_refreshed", 0)
+                year_runs += written
+                year_refreshed += refreshed
+                done = n + 1
+                eta = (time.time() - t_year) / done * (days_total - done)
+                if uids:
+                    errors = c.get("sra_uid_errors", 0)
+                    log(f"  -> {paint(f'{written:,} runs written', 'good' if written else 'dim')}"
+                        + (f" ({refreshed:,} refreshed)" if refreshed else "")
+                        + (f", {paint(f'{errors} failed', 'err')}" if errors else "")
+                        + f" in {fmt_duration(time.time() - t_day)}"
+                        + paint(f"  | {year}: {year_runs:,} runs so far, ETA {fmt_duration(eta)}, "
+                                f"{ncbi_mod.STATS['requests']:,} requests", "dim"))
+
+            header(f"{year} complete")
+            log(f"{num(days_total)} days searched, {num(year_experiments)} experiment hits, "
+                f"{paint(f'{year_runs:,} runs written', 'good')}"
+                + (f" ({num(year_refreshed)} refreshes of existing runs)" if year_refreshed else "")
+                + f" in {fmt_duration(time.time() - t_year)}")
+
         elif args.cmd == "crawl":
-            print("CRAWLING SEARCHES")
+            log("Paging through every match, newest first")
             retstart = 0
             page = 0
             total_seen = 0
@@ -285,12 +366,13 @@ def run():
                             seen_page_ids.add(uid)
                             ids.append(uid)
                 if not ids:
+                    log("No more matches; crawl complete")
                     break
 
                 summaries, _ = esummary_sra(ids)
                 tag = f"crawl_{page:06d}"
-
-                print("[INFO] calling def ingest_uids_to_srr, count total=", count_total, "total seen=", total_seen)
+                log(f"{paint(f'Page {page + 1}', 'bold')}: results {num(retstart + 1)}-{num(retstart + args.page_size)} "
+                    f"of {num(count_total)} (largest profile), {num(len(ids))} unique experiments")
                 added_srr, report = ingest_uids_to_srr(
                     tag=tag, 
                     uids=ids, 
@@ -326,15 +408,21 @@ def run():
                 print_report_summary(report)
                 reports.append(report)
                 total_seen += len(ids)
+                log(f"  -> {paint(f'{new_srr_count:,} runs written', 'good' if new_srr_count else 'dim')}"
+                    + paint(f"  | {new_srr_total:,} this crawl, {total_seen:,} experiments scanned, "
+                            f"{ncbi_mod.STATS['requests']:,} requests", "dim"))
 
                 if args.stop_after_new_srr and new_srr_total >= args.stop_after_new_srr:
+                    log(f"Stopping: reached --stop-after-new-srr={args.stop_after_new_srr}")
                     break
 
                 retstart += args.page_size
                 page += 1
                 if retstart >= count_total:
+                    log("Reached the end of the result list; crawl complete")
                     break
                 if max_total and total_seen >= max_total:
+                    log(f"Stopping: reached --max-total={max_total}")
                     break
 
         else:  # curate-ai
@@ -368,6 +456,8 @@ def run():
                     if args.max_records and len(records) >= args.max_records:
                         break
 
+            log(f"AI curation with {paint(args.model, 'magenta')}: {num(len(records))} record(s) loaded"
+                + (" (overwriting cached reviews)" if args.overwrite else ""))
             ai_counts = curate_records(
                 records,
                 ai_cache=ai_cache,
@@ -377,6 +467,9 @@ def run():
                 overwrite=args.overwrite,
                 max_records=args.max_records,
             )
+            log(f"  -> {paint(str(ai_counts.get('reviewed', 0)) + ' reviewed', 'good')}, "
+                f"{num(ai_counts.get('skipped_cached', 0))} unchanged (cached), "
+                + paint(f"{ai_counts.get('errors', 0)} errors", "err" if ai_counts.get("errors") else "dim"))
             report = {
                 "tag": "curate_ai",
                 "generated_utc": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
@@ -394,9 +487,28 @@ def run():
             "reports": reports
         })
 
+        header("Rebuilding the published database (docs/db)")
         rebuild_srr_exports_chunked()
 
+        totals: Dict[str, int] = {}
+        for rep in reports:
+            for k, v in (rep.get("counters") or {}).items():
+                totals[k] = totals.get(k, 0) + int(v or 0)
+        header(f"umdb {args.cmd} finished in {fmt_duration(time.time() - t_run)}")
+        if args.cmd != "curate-ai":
+            written = totals.get("srr_emitted", 0)
+            log(f"{paint(f'{written:,} runs written', 'good' if written else 'dim')}"
+                + (f" ({num(totals.get('srr_refreshed', 0))} refreshed)" if totals.get("srr_refreshed") else "")
+                + f" from {num(totals.get('sra_uids_processed_ok', 0))} experiments"
+                + (f", {paint(str(totals['sra_uid_errors']) + ' experiments failed', 'err')}" if totals.get("sra_uid_errors") else ""))
+            log(f"Catalog now: {num(len(seen_srr))} runs from {num(len(seen_sra))} experiments")
+        log(ncbi_mod.stats_line())
+
+    except KeyboardInterrupt:
+        warn("Interrupted. Caches are saved; completed batches are kept and the run can be resumed.")
+        raise
     finally:
+        log("Saving caches (BioSample, BioProject, AI)", level=2)
         write_json(BIOSAMPLE_CACHE, biosample_cache)
         write_json(BIOPROJECT_CACHE, bp_cache)
         write_json(BIOPROJECT_UID_CACHE, bp_uid_cache)

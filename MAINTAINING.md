@@ -45,7 +45,7 @@ Locally, the same names go in `.env` (see [.env.example](.env.example)).
 
 ### Backfill years (deepest search)
 
-Locally, use the wrapper. It runs `backfill-year` for each year with all five profiles, paging through **every** hit for every day (no per-day cap). It logs each year and skips completed years when re-run.
+Locally, use the wrapper. It runs `backfill-year` for each year with the seven default profiles, paging through **every** hit for every day (no per-day cap). It logs each year and skips completed years when re-run.
 
 **Deepest possible search, overwriting old data:**
 
@@ -70,7 +70,7 @@ umdb backfill 2018 2024 --commit
 
 Other options: `--max-per-day N` (cap instead of paging everything), `--profile NAME`, `--oldest-first`, `--ai`, `--redo`. Run `umdb backfill --help` for the list.
 
-Logs and markers are in `logs/backfill/` (git-ignored): `<year>.done` for normal runs, `<year>.refresh.done` for refresh runs. Delete a marker, or pass `--redo`, to run a year again. Each year makes hundreds of thousands of NCBI requests, and a refresh re-requests everything already held, so expect many hours per year even with an API key.
+Progress streams to the terminal: per-day hits, runs written, an ETA for the current year and for the remaining years. Add `-v` for every NCBI request, or `-q` for year summaries only. Logs and markers are in `logs/backfill/` (git-ignored; logs are plain text): `<year>.done` for normal runs, `<year>.refresh.done` for refresh runs. Delete a marker, or pass `--redo`, to run a year again. Each year makes hundreds of thousands of NCBI requests, and a refresh re-requests everything already held, so expect many hours per year even with an API key.
 
 Exports always publish only the newest record per run, so the site is correct even before compaction.
 
@@ -118,13 +118,14 @@ Seen runs are skipped by default, so corrections NCBI submitters make to already
 | --- | --- | --- |
 | Backfill finishes instantly with 0 new runs | Code older than 2026-11 (`edat` date search) | Update; see the CHANGELOG |
 | Workflow green, nothing new committed | The `.cli` invocation (see Known issue), or genuinely no new runs | Check the `[SUMMARY]` lines in the job log; no lines means nothing ran |
+| `CERTIFICATE_VERIFY_FAILED` / `self-signed certificate in certificate chain` | A network or security tool inspects HTTPS and presents its own root, which Python's CA bundle does not trust | On macOS UMDB retries automatically with the System keychain roots (still verified). If that fails, export your organisation's root as PEM and set `UMDB_CA_BUNDLE=/path/root.pem` in `.env`, or run off the inspecting network. Verification is never disabled |
 | `HTTP failed: https://eutils...` | NCBI rate limiting or an outage | Check that the API key is set; retry later. `http_get` already retries 6 times with backoff |
 | `OPENAI_API_KEY is required` | AI curation requested without a key | Add the secret or `.env` entry, or drop `--ai-curate` |
 | Push rejected: file too large | A part file exceeded 100 MB | Lower `MAX_OUTPUT_BYTES`, rebuild, amend the commit |
 | Site shows old numbers | Pages build lag, or the browser cache | Wait a few minutes; hard-refresh |
 | Push conflict in a workflow | Two workflows committed at once | Re-run; the daily crawl uses a concurrency group |
 
-Per-run debug output: add `--debug` to write `data/debug/report_<tag>.json` and decision logs (not committed).
+Add `-v` to any `umdb` command to see each NCBI request (API key redacted) and cache hit as it happens. Per-run debug files: add `--debug` to write `data/debug/report_<tag>.json` and decision logs (not committed).
 
 ## Releases
 

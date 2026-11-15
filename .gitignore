@@ -10,3 +10,8 @@ logs/
 
 # macOS Finder metadata
 .DS_Store
+
+# Editor swap/backup files (may contain .env secrets)
+*.swp
+*.swo
+*~

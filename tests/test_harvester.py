@@ -227,6 +227,11 @@ class EligibilityTests(unittest.TestCase):
         self.assertEqual(self.tier(r, bs(env_medium="soil")), "non_urban")
         self.assertEqual(self.tier(rec_with("metagenome"), bs(built_struc_set="rural", env_medium="dust")), "non_urban")
 
+    def test_city_in_place_name_is_not_urban_wording(self):
+        r = rec_with("farm metagenome")
+        self.assertEqual(self.tier(r, bs(isolation_source="camel stable, China: Fukang City, Xinjiang")), "non_urban")
+        self.assertEqual(self.tier(rec_with("soil metagenome"), bs(isolation_source="city park soil")), "confirmed_urban")
+
     def test_swine_wastewater_is_non_urban(self):
         r = rec_with("wastewater metagenome", city="Xinxing", project_title="Metagenomes of swine wastewater")
         self.assertEqual(self.tier(r), "non_urban")
@@ -342,12 +347,60 @@ class RefreshTests(unittest.TestCase):
             append_lines.assert_not_called()
 
 
+class SlimRecordTests(unittest.TestCase):
+    def test_slim_drops_repeated_text_and_keeps_site_fields(self):
+        from umdb_harvester.utils import slim_record
+        rec = {"srr": "SRR1",
+               "bioproject": {"accession": "PRJNA1", "uid": "9", "title": "Subway", "center_name": "C",
+                              "description": "long abstract " * 50, "esummary_items": {"x": "y"},
+                              "ncbi": {"bioproject_url": "u"}},
+               "debug": {"runinfo_url": "r", "runinfo_columns": ["Run"] * 47, "biosample_url": "b"}}
+        out = slim_record(rec)
+        self.assertEqual(out["bioproject"], {"accession": "PRJNA1", "uid": "9", "title": "Subway", "center_name": "C"})
+        self.assertEqual(out["debug"], {"runinfo_url": "r", "biosample_url": "b"})
+        self.assertEqual(slim_record(out), out)          # idempotent
+        self.assertIn("description", rec["bioproject"])  # input untouched
+
+    def test_export_uses_cached_project_text_for_eligibility(self):
+        from umdb_harvester.exports import refresh_derived_annotations
+        rec = {"srr": "SRR1", "title": "", "runinfo_row": {"BioProject": "PRJNA1", "ScientificName": "air metagenome"},
+               "bioproject": {"accession": "PRJNA1", "title": "Air study"}, "geo": {}}
+        bp_cache = {"PRJNA1": {"accession": "PRJNA1", "title": "Air study",
+                               "description": "Bioaerosols sampled across the New York City subway system"}}
+        without = refresh_derived_annotations(rec, {}, {})
+        with_cache = refresh_derived_annotations(rec, {}, bp_cache)
+        self.assertEqual(without["eligibility"]["status"], "uncertain")
+        self.assertEqual(with_cache["eligibility"]["status"], "probable_urban")
+        self.assertNotIn("description", with_cache["bioproject"])
+        self.assertTrue(all("value" not in e for e in with_cache["eligibility"]["evidence"] if e["source"] == "BioProject"))
+
+
 class QueryProfileTests(unittest.TestCase):
     def test_urban_compartments_not_excluded(self):
         for name, q in QUERY_PROFILES.items():
-            not_clause = q.split("NOT", 1)[1].lower() if "NOT" in q else ""
-            for term in ("soil", "sediment", "freshwater", "river", "lake", " plant "):
+            not_clause = q.split(" NOT ", 1)[1].lower() if " NOT " in q else ""
+            for term in ("soil", "sediment", "freshwater", "river", "lake", " plant ", "hospital"):
                 self.assertNotIn(term, not_clause, f"{name} excludes {term.strip()}")
+
+    def test_defaults_are_the_seven_environment_profiles(self):
+        from umdb_harvester.config import DEFAULT_QUERY_PROFILE_NAMES
+        self.assertEqual(len(DEFAULT_QUERY_PROFILE_NAMES), 7)
+        self.assertNotIn("wastewater_sars_cov_2", DEFAULT_QUERY_PROFILE_NAMES)
+        self.assertTrue(set(DEFAULT_QUERY_PROFILE_NAMES) <= set(QUERY_PROFILES))
+
+    def test_no_terms_ncbi_mishandles(self):
+        import re
+        for name, q in QUERY_PROFILES.items():
+            # NCBI drops "ITS" as a stopword and truncates short wildcards to 600 variants.
+            self.assertIsNone(re.search(r"\bITS\b(?![12])", q), f"{name} relies on bare ITS")
+            self.assertNotIn("metagenom*", q, f"{name} uses a truncated wildcard")
+
+    def test_no_bare_catch_all_terms(self):
+        import re
+        for name, q in QUERY_PROFILES.items():
+            unquoted = re.sub(r'"[^"]*"', " ", q)   # quoted phrases are fine
+            for term in ("surface", "swab", "station", "air", "bus", "train"):
+                self.assertIsNone(re.search(rf"\b{term}\b", unquoted, re.I), f"{name} uses bare '{term}'")
 
 
 if __name__ == "__main__":

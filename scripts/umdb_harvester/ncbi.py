@@ -4,18 +4,131 @@ import xml.etree.ElementTree as ET
 from typing import Any, Dict, List, Tuple
 
 from .config import EUTILS, NCBI_API_KEY, TOOL_NAME, NCBI_EMAIL, BIOPROJECT_RE
-from .utils import _sleep_backoff
+import re
+import time
+
+from .utils import _sleep_backoff, log, warn, num, paint
+
+# Running totals for progress and summary lines.
+STATS = {"requests": 0, "retries": 0, "failures": 0, "bytes": 0, "seconds": 0.0}
+
+
+def _redact(url: str) -> str:
+    return re.sub(r"(api_key|email)=[^&]+", r"\1=REDACTED", url)
+
+
+# --- TLS -------------------------------------------------------------------
+# Certificates are always verified. Python ships its own CA bundle and ignores
+# the macOS keychain, so networks that inspect HTTPS (institutional proxies
+# whose root certificate IT installs in the System keychain) fail with
+# CERTIFICATE_VERIFY_FAILED. On macOS UMDB then retries once with the roots
+# from the System keychain added. UMDB_CA_BUNDLE points at an explicit PEM file.
+import os
+import ssl
+import subprocess
+import sys
+
+_SSL_CONTEXT: "ssl.SSLContext | None" = None
+_KEYCHAIN_TRIED = False
+MACOS_KEYCHAINS = ("/Library/Keychains/System.keychain",
+                   "/System/Library/Keychains/SystemRootCertificates.keychain")
+
+
+def _ssl_context() -> ssl.SSLContext:
+    global _SSL_CONTEXT
+    if _SSL_CONTEXT is None:
+        _SSL_CONTEXT = ssl.create_default_context()
+        bundle = os.getenv("UMDB_CA_BUNDLE", "").strip()
+        if bundle:
+            _SSL_CONTEXT.load_verify_locations(cafile=os.path.expanduser(bundle))
+            log(f"Using extra CA certificates from UMDB_CA_BUNDLE={bundle}")
+    return _SSL_CONTEXT
+
+
+def _macos_keychain_bundle() -> "str | None":
+    """Export certificates from the macOS System keychains to a PEM file."""
+    try:
+        pem = subprocess.run(["security", "find-certificate", "-a", "-p", *MACOS_KEYCHAINS],
+                             capture_output=True, text=True, timeout=60).stdout
+    except Exception:
+        return None
+    if "BEGIN CERTIFICATE" not in pem:
+        return None
+    path = os.path.join(os.path.expanduser("~"), ".cache", "umdb", "macos-system-roots.pem")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(pem)
+    return path
+
+
+def _is_cert_error(exc: Exception) -> bool:
+    reason = getattr(exc, "reason", exc)
+    return isinstance(reason, ssl.SSLCertVerificationError) or "CERTIFICATE_VERIFY_FAILED" in str(exc)
+
+
+def _try_keychain_roots() -> bool:
+    """Add macOS System keychain roots to the context, once. True if added."""
+    global _KEYCHAIN_TRIED
+    if _KEYCHAIN_TRIED or sys.platform != "darwin":
+        return False
+    _KEYCHAIN_TRIED = True
+    path = _macos_keychain_bundle()
+    if not path:
+        return False
+    _ssl_context().load_verify_locations(cafile=path)
+    log(paint("Python's CA bundle could not verify NCBI's certificate chain; "
+              f"added the macOS System keychain roots ({path}). Certificates are still verified.", "dim"))
+    return True
+
+
+CERT_HELP = (
+    "TLS certificate verification failed for NCBI. Something on your network presents a certificate "
+    "Python does not trust (often an institutional HTTPS-inspection proxy). Fixes: (1) get your "
+    "organisation's root certificate (.pem) and set UMDB_CA_BUNDLE=/path/to/root.pem in .env; "
+    "(2) run from a network without inspection (e.g. off VPN); (3) ask IT to install the root in the "
+    "macOS System keychain. Verification is never disabled."
+)
+
 
 def http_get(url: str, retries: int = 6) -> bytes:
     headers = {"User-Agent": f"{TOOL_NAME}/1.0 ({NCBI_EMAIL or 'no-email'})"}
     req = urllib.request.Request(url, headers=headers)
-    for i in range(retries):
+    last_err = ""
+    attempt = 0
+    while attempt < retries:
+        t0 = time.time()
         try:
-            with urllib.request.urlopen(req, timeout=60) as r:
-                return r.read()
-        except Exception:
-            _sleep_backoff(i)
-    raise RuntimeError(f"HTTP failed: {url}")
+            with urllib.request.urlopen(req, timeout=60, context=_ssl_context()) as r:
+                data = r.read()
+            dt_s = time.time() - t0
+            STATS["requests"] += 1
+            STATS["bytes"] += len(data)
+            STATS["seconds"] += dt_s
+            log(f"    GET {_redact(url)[:160]} -> {len(data):,} B in {dt_s:.2f}s", level=2)
+            return data
+        except Exception as exc:
+            last_err = str(exc)
+            if _is_cert_error(exc):
+                if _try_keychain_roots():
+                    continue  # retry immediately with the extra roots; not a counted attempt
+                STATS["failures"] += 1
+                raise RuntimeError(f"{CERT_HELP} (error: {last_err})") from exc
+            STATS["retries"] += 1
+            attempt += 1
+            if attempt < retries:
+                warn(f"NCBI request failed ({last_err}); retry {attempt}/{retries - 1}: {_redact(url)[:120]}")
+                _sleep_backoff(attempt - 1)
+    STATS["failures"] += 1
+    raise RuntimeError(f"HTTP failed after {retries} attempts ({last_err}): {_redact(url)}")
+
+
+def stats_line() -> str:
+    s = STATS
+    avg = (s["seconds"] / s["requests"]) if s["requests"] else 0.0
+    failures = paint(f"{s['failures']} failures", "err" if s["failures"] else "dim")
+    retries = paint(f"{s['retries']} retries", "warn" if s["retries"] else "dim")
+    return (f"NCBI: {num(s['requests'])} requests, {retries}, {failures}, "
+            f"{s['bytes'] / 1e6:.1f} MB downloaded, {avg:.2f}s per request")
 
 def parse_xml(data: bytes) -> ET.Element:
     return ET.fromstring(data)

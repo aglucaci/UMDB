@@ -49,7 +49,9 @@ umdb serve                                # preview at http://localhost:8000
 | `umdb queries` | Print the exact discovery queries |
 | `umdb test` | Run the test suite |
 
-`umdb` works from any directory. Without installing it, use `bin/umdb` or `python3 -m scripts.umdb_harvester <command>` from the repository root. No packages need installing (Python standard library only).
+`umdb` works from any directory. In an interactive terminal it prints a UMDB banner on stderr (never into pipes or files); set `UMDB_NO_BANNER=1` to hide it.
+
+**Output.** By default every command reports what it is doing: settings and catalog state at the start, then hits per profile for each day or page, experiments ingested with progress and ETA, runs written, export steps with eligibility tiers, and a closing summary with NCBI request statistics. Output is colour-coded in a terminal: green for runs written, yellow for warnings, red for errors, cyan for counts, and per-tier colours. Add `-v` / `--verbose` to see every NCBI request (API key redacted), cache hit and experiment, or `-q` / `--quiet` for summaries only. `NO_COLOR=1` gives plain output. Log files written by `umdb backfill` / `umdb deepest` are always plain text. Without installing it, use `bin/umdb` or `python3 -m scripts.umdb_harvester <command>` from the repository root. No packages need installing (Python standard library only).
 
 ## What This Repository Is
 
@@ -98,17 +100,7 @@ All records remain subject to the quality and completeness of the original publi
 
 ## Discovery Strategy
 
-UMDB (Urban Microbiome Database) no longer relies on a single search string for study discovery. The harvester now supports a multi-profile query strategy intended to improve recall across different ways urban microbiome studies are described in public repositories.
-
-The default discovery pass combines several query profiles:
-
-- urban shotgun and metagenomic studies
-- urban amplicon and marker-gene studies
-- wastewater and sewage surveillance studies
-- transit and surface microbiome studies
-- urban air, aerosol, and dust studies
-
-This improves coverage for studies that do not all use the same vocabulary in titles, abstracts, or repository metadata.
+Discovery uses seven urban-environment query profiles, one per environment UMDB recognises: municipal wastewater, air and dust, built environment, the `urban metagenome` label, transit, urban soil and greenspace, and urban water and drainage. Each relies on NCBI's environment organism labels (for example `wastewater metagenome`) and on urban phrases ("public transit", "urban soil"), never on catch-all words like "surface" or "air" alone, and none excludes whole habitats. SARS-CoV-2 targeted amplicon surveillance is available as an opt-in profile. `umdb queries` prints the exact queries.
 
 Matching a query decides inclusion; a rule-based eligibility screen then labels each run's urban evidence. See [INCLUSION_CRITERIA.md](INCLUSION_CRITERIA.md) for the full criteria and their known gaps.
 

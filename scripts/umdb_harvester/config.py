@@ -38,86 +38,86 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()
 
-"""
-DEFAULT_QUERY = (
-    '((urban OR city OR cities OR subway OR transit OR "built environment" '
-    'OR wastewater OR sewage OR stormwater OR "public transit" OR "surface swab") '
-    'AND (microbiome OR metagenom* OR metatranscriptom* OR "shotgun metagenomic" '
-    'OR "environmental swab" OR "RNA-seq" OR "amplicon"))'
-)
-"""
-
-"""
-DEFAULT_QUERY = (
-    '('
-    '('
-        'urban OR city OR cities OR metropolitan OR municipal OR '
-        '"built environment" OR infrastructure OR '
-        'subway OR metro OR transit OR railway OR airport OR '
-        'wastewater OR sewage OR stormwater OR '
-        'sidewalk OR street OR road OR pavement OR '
-        'building OR housing OR hospital OR school OR '
-        'surface OR fomite OR air OR aerosol'
-    ') '
-    'AND '
-    '('
-        'metagenom* OR metatranscriptom* OR '
-        '"shotgun sequencing" OR '
-        '"shotgun metagenomic" OR '
-        '"environmental sequencing" OR '
-        '"environmental DNA" OR eDNA OR '
-        '"RNA sequencing" OR RNA-seq OR '
-        'microbiome OR microbiota OR '
-        'amplicon OR 16S OR 18S OR ITS'
-    ')'
-    ')'
-)
-"""
-
-"""
-DEFAULT_QUERY = (
-    '('
-      '('
-        # Urban/city constraint (strong)
-        '(urban OR "built environment" OR city OR cities OR metropolitan OR municipal OR '
-        'subway OR metro OR transit OR railway OR airport OR '
-        'wastewater OR sewage OR stormwater OR '
-        '"public transport" OR "public transit" OR '
-        'sidewalk OR street OR pavement OR '
-        'building OR housing OR hospital OR school OR '
-        '"surface swab" OR surface OR fomite OR air OR aerosol)'
-      ') '
-      'AND '
-      '('
-        # Shotgun WGS metagenomics OR metatranscriptomics constraint (strong)
-        '("shotgun metagenom*" OR "shotgun sequencing" OR "whole genome shotgun" OR WGS OR '
-        'metagenom* OR metatranscriptom* OR "total RNA" OR "metatranscriptome")'
-      ') '
-      'AND '
-      '('
-        # Environmental sampling signal (helps keep it non-host and non-clinical)
-        '(environment* OR "built environment" OR wastewater OR sewage OR stormwater OR '
-        'surface OR swab OR air OR aerosol)'
-      ') '
-      'NOT '
-      '('
-        # Exclude amplicon / marker-gene / targeted assays
-        'amplicon OR "marker gene" OR "16S" OR "16S rRNA" OR "18S" OR "ITS" OR '
-        '"COI" OR "barcod*" OR "qPCR" OR "PCR amplicon" OR "V3-V4" OR "V4 region"'
-      ')'
-    ')'
-)
-
-"""
-
 # Bump whenever any profile string changes; recorded in harvest reports so a
 # release can state exactly which discovery queries produced it.
-#   2026.11 - stop excluding soil/sediment/freshwater/river/lake (urban soils and
-#             waterways are in scope; eligibility is decided by sampling context)
-#             and "plant" (which silently dropped "wastewater treatment plant").
-QUERY_PROFILES_VERSION = "2026.11"
+#   2026.11   stop excluding soil/sediment/freshwater/river/lake and "plant".
+#   2026.11.2 replace the five broad profiles (kept below as
+#             LEGACY_QUERY_PROFILES) with seven urban-environment profiles built
+#             on NCBI environment organism labels ([ORGN]) and urban phrases.
+#             No catch-all terms ("surface", "air", "swab", "station" alone), no
+#             global NOT block. Word forms are spelled out because NCBI drops
+#             "ITS" as a stopword and truncates metagenom* to 600 variants.
+#             SARS-CoV-2 targeted amplicon surveillance moved to an opt-in
+#             profile. On 2025 releases: ~64k experiments instead of ~600k+, with
+#             98% of the 2024 confirmed-urban and 95% of probable-urban catalog
+#             runs still found and 99.5% of non-environmental runs no longer matched.
+QUERY_PROFILES_VERSION = "2026.11.2"
+
+# Method words: any microbial-community assay.
+_METHOD = (
+    '(microbiome OR microbiomes OR microbiota OR metagenome OR metagenomes OR metagenomic OR metagenomics '
+    'OR metatranscriptome OR metatranscriptomic OR metatranscriptomics OR virome OR amplicon OR "16S" '
+    'OR "16S rRNA" OR "18S" OR "internal transcribed spacer" OR ITS1 OR ITS2)'
+)
+# Targeted SARS-CoV-2 amplicon panels (public-health wastewater surveillance).
+_SARS_COV_2_AMPLICON = '(("SARS-CoV-2" OR "severe acute respiratory syndrome coronavirus 2"[ORGN]) AND amplicon[Strategy])'
+_WASTEWATER = (
+    '("wastewater metagenome"[ORGN] OR "activated sludge metagenome"[ORGN] OR "sludge metagenome"[ORGN] '
+    'OR ((wastewater OR sewage OR sewer OR influent) AND (municipal OR urban OR city OR "treatment plant" '
+    'OR WWTP OR sewershed OR community)))'
+)
 
 QUERY_PROFILES = {
+    # Municipal wastewater and sewage microbiomes (shotgun, metatranscriptomic, amplicon).
+    "municipal_wastewater": f'({_WASTEWATER} NOT {_SARS_COV_2_AMPLICON})',
+    # Urban and indoor air, aerosols, dust.
+    "air_dust": (
+        '("air metagenome"[ORGN] OR "aerosol metagenome"[ORGN] OR "dust metagenome"[ORGN] OR '
+        '(("urban air" OR "city air" OR bioaerosol OR bioaerosols OR "road dust" OR "particulate matter") AND '
+        + _METHOD + '))'
+    ),
+    # Buildings, classrooms, offices, indoor surfaces.
+    "built_environment": (
+        '("indoor metagenome"[ORGN] OR (("built environment" OR "built-environment" OR "indoor microbiome" '
+        'OR "indoor air" OR "public building" OR classroom OR classrooms OR "office building") AND ' + _METHOD + '))'
+    ),
+    # Samples labelled with NCBI's urban metagenome taxon.
+    "urban_metagenome": '"urban metagenome"[ORGN]',
+    # Subways, stations, public transport surfaces.
+    "transit": (
+        '((subway OR "metro station" OR "public transit" OR "public transport" OR "public transportation" '
+        'OR "railway station" OR "train station" OR "bus station" OR turnstile OR turnstiles OR handrail '
+        'OR handrails) AND ' + _METHOD + ')'
+    ),
+    # Urban soils, parks, greenspace, roadsides.
+    "urban_soil_greenspace": (
+        '(("urban soil" OR "urban soils" OR "urban park" OR "city park" OR "urban green" OR greenspace '
+        'OR "green space" OR roadside OR "urban garden") AND ' + _METHOD + ')'
+    ),
+    # Stormwater, urban rivers and canals, combined sewers.
+    "urban_water_drainage": (
+        '((stormwater OR "storm water" OR "storm drain" OR "urban river" OR "urban stream" OR "urban lake" '
+        'OR "urban canal" OR "combined sewer" OR "urban runoff") AND ' + _METHOD + ')'
+    ),
+    # Opt-in (not in the defaults): targeted SARS-CoV-2 amplicon wastewater surveillance.
+    # Roughly 58k experiments in 2025 alone; pathogen panels, not microbiome studies.
+    "wastewater_sars_cov_2": f'({_WASTEWATER} AND {_SARS_COV_2_AMPLICON})',
+}
+
+DEFAULT_QUERY_PROFILE_NAMES = [
+    "municipal_wastewater",
+    "air_dust",
+    "built_environment",
+    "urban_metagenome",
+    "transit",
+    "urban_soil_greenspace",
+    "urban_water_drainage",
+]
+
+# Profiles used for releases up to April 2026 (QUERY_PROFILES_VERSION 2026.11
+# and earlier). Kept so those harvests can be reproduced: pass them with
+# --query "$(python3 -c '...LEGACY_QUERY_PROFILES[...]')" if ever needed.
+LEGACY_QUERY_PROFILES = {
     "urban_shotgun": (
         '('
           '('
@@ -232,15 +232,9 @@ QUERY_PROFILES = {
     )
 }
 
-DEFAULT_QUERY_PROFILE_NAMES = [
-    "urban_shotgun",
-    "urban_amplicon",
-    "wastewater_surveillance",
-    "transit_and_surface",
-    "air_and_dust",
-]
 
-DEFAULT_QUERY = QUERY_PROFILES["urban_shotgun"]
+DEFAULT_QUERY = QUERY_PROFILES["municipal_wastewater"]
+
 
 
 

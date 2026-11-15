@@ -22,7 +22,7 @@ All metadata come from NCBI E-utilities. No sequence reads are downloaded; the e
 | 2. Experiment summary | `esummary` (`db=sra`) | Batches of 200 UIDs | Experiment title, study name, SRX accession (from `ExpXml`) | `title` on each run record |
 | 3. Run table | `efetch` (`db=sra`, `rettype=runinfo`) | One request per experiment; one row per run | All **47 RunInfo columns**, verbatim | `runinfo_row` |
 | 4. BioSample | `efetch` (`db=biosample`) | One request per **new** BioSample; cached (failures too). `--refresh` re-fetches each once | Every submitted attribute, plus title and organism | `data/cache/biosample.json`; the location is parsed into `geo` |
-| 5. BioProject | `esearch` accession → UID, then `esummary` (`db=bioproject`) | Once per **new** BioProject; cached. `--refresh` re-fetches each once | Title, description, organism, data type, dates, center, plus every raw esummary field | `data/cache/bioproject.json` (+ `bioproject_uid.json`), **and copied onto every run record** as `bioproject` |
+| 5. BioProject | `esearch` accession → UID, then `esummary` (`db=bioproject`) | Once per **new** BioProject; cached. `--refresh` re-fetches each once | Title, description, organism, data type, dates, center, plus every raw esummary field | `data/cache/bioproject.json` (+ `bioproject_uid.json`); each run keeps a short `bioproject` summary |
 
 Steps 4 and 5 run only with `--fetch-biosample` / `--fetch-bioproject`. All `umdb` workflows and examples pass both.
 
@@ -34,7 +34,7 @@ UMDB then derives and adds `geo`, `assay` and `eligibility` (at export), `ncbi` 
 
 | Item | Amount |
 | --- | --- |
-| Runs | 59,921 unique, about **4 KB** of JSON each |
+| Runs | 59,921 unique; about 4 KB of JSON each as harvested before 2026-11, about **2.6 KB** as slim records |
 | RunInfo columns per run | 47 |
 | BioSamples cached | 54,318. Attributes per sample: median 5, maximum 908; **1,947 distinct attribute names** across submitters (hence the field normalization in the geo and eligibility rules) |
 | BioProjects cached | 1,609 |
@@ -58,9 +58,15 @@ A deep harvest makes roughly one run-table request per experiment plus one reque
 
 NCBI values are stored as NCBI returns them: RunInfo numbers are strings, dates keep NCBI's formats, and BioSample attribute names keep the submitter's spelling (`geo_loc_name`, `geographic location`, …). Normalized values exist only in the derived blocks (`geo`, `assay`, `eligibility`).
 
-### Known redundancy
+### Slim run records
 
-About half of each run record is repeated text. Every run embeds its BioProject's full description and raw esummary fields, and repeats the 47 RunInfo column names in `debug`. Storing these once per project, with runs referencing the project accession, would roughly halve the catalog and the published files.
+Text that is identical for every run of a study is stored once, not per run:
+
+- The BioProject **description and raw esummary fields** live only in `data/cache/bioproject.json` and `docs/db/bioprojects.json`. Each run keeps a short `bioproject` block (accession, UID, title, center, data type, submission date) for display.
+- The 47 RunInfo **column names** are no longer repeated in `debug`.
+- Eligibility evidence from BioProject text records the field and matched terms, not the text itself.
+
+New harvests write slim records; `umdb export` slims what it publishes, and `umdb compact` slims `data/`. On the current catalog the run files drop from 230 MB to 152 MB, and the published run parts from 481 MB (with the double-counted rows) to 243 MB in 5 files. Look up a run's full project text by `bioproject.accession` in `bioprojects.json`.
 
 ---
 
@@ -119,7 +125,7 @@ Country, city and assay values in the summary use the effective annotation (see 
 | `assay` | object | Derived assay class (see below) |
 | `bioproject` | object | BioProject metadata (see below) |
 | `ncbi` | object | Links: `sra_uid_url`, `srr_url`, `bioproject_url` |
-| `debug` | object | `runinfo_url`, `runinfo_columns`, `biosample_url`: the exact requests used |
+| `debug` | object | `runinfo_url`, `biosample_url`: the exact requests used (older records may also list `runinfo_columns`) |
 | `provenance` | object | `ingested_utc` (harvest time), `source` (`ncbi_eutils`) |
 | `eligibility` | object | Rule-based urban eligibility tier and evidence, assigned at export (see below) |
 | `ai_curation` | object | Present only if the run was AI-reviewed; merged at export (see below) |
@@ -173,16 +179,17 @@ Derived from the BioSample `geo_loc_name` attribute (INSDC format `Country: free
 
 ### `bioproject`
 
+On each run record (short form):
+
 | Field | Description |
 | --- | --- |
 | `accession`, `uid` | PRJNA… accession and NCBI UID |
-| `title`, `description` | Project title and abstract |
-| `organism`, `data_type` | As registered |
-| `submission_date`, `last_update` | Registration dates (not collection dates) |
-| `center_name` | Registering center |
-| `ncbi.bioproject_url` | Link |
-| `esummary_items` | Raw esummary fields, verbatim |
+| `title` | Project title |
+| `center_name`, `data_type` | Registering center, data type |
+| `submission_date` | Registration date (not a collection date) |
 | `error` | Set when lookup failed (`invalid_accession`, `uid_not_found`) |
+
+The full record in `bioprojects.json` / `data/cache/bioproject.json`, keyed by accession, adds `description` (abstract), `organism`, `last_update`, `ncbi.bioproject_url` and `esummary_items` (raw esummary fields, verbatim). Records harvested before 2026-11 may still carry these on the run until the next `umdb compact`.
 
 ### `eligibility`
 
@@ -196,7 +203,7 @@ Assigned per run by [`eligibility.py`](scripts/umdb_harvester/eligibility.py) at
 | `urban_context` | Up to three of `transit`, `built_environment`, `municipal_wastewater`, `air_dust`, `soil_greenspace`, `water_drainage`, `surfaces_infrastructure`, strongest first. Empty unless confirmed or probable |
 | `location_resolution` | `coordinate`, `city`, `region`, `country` or `unknown` |
 | `location_validation` | `plausible`, `ambiguous`, `unverified` or `missing` (no gazetteer check yet, so never `verified`) |
-| `evidence[]` | Each item: `source` (`SRA`, `BioSample`, `BioProject`), `field`, `value` (first 200 characters), `signal`, and the matched `terms` |
+| `evidence[]` | Each item: `source` (`SRA`, `BioSample`, `BioProject`), `field`, `value` (first 200 characters; omitted for BioProject text, which is in `bioprojects.json`), `signal`, and the matched `terms` |
 | `evidence[].signal` | `environmental`, `non_environmental`, `laboratory`, `urban_explicit`, `urban_infrastructure`, `urban_location`, `non_urban_site`, `project_urban`, `project_non_urban` |
 | `decision_method` | `rules` |
 | `rules_version` | Version of the rule set |

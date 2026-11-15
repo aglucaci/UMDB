@@ -2,7 +2,9 @@ from __future__ import annotations
 import csv
 from typing import Any, Dict, List, Set, Tuple
 
-from .utils import inc, utc_now, append_lines, append_jsonl_one
+import time
+
+from .utils import inc, utc_now, append_lines, append_jsonl_one, log, warn, paint, num, fmt_duration, slim_record
 from .config import SEEN_SRA_UIDS, SEEN_SRR_RUNS, BIOPROJECT_RE
 from .ncbi import efetch_runinfo_text
 from .biosample import get_biosample_details, infer_geo
@@ -53,7 +55,6 @@ def build_srr_records_for_sra_uid(
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     rows, runinfo_dbg = parse_runinfo_rows(sra_uid, max_rows=runinfo_max_rows)
     title = (sra_summary.get("title") or "").strip()
-    #print("in build_srr_records_for_sra_uid")
     out: List[Dict[str, Any]] = []
     for r in rows:
         srr = (r.get("Run") or "").strip()
@@ -63,8 +64,13 @@ def build_srr_records_for_sra_uid(
         biosample_acc = (r.get("BioSample") or "").strip()
         biosample_details = {}
         if fetch_biosample and biosample_acc:
-            biosample_details = get_biosample_details(
-                biosample_acc, biosample_cache, force=_force_once(biosample_acc, refresh, _REFRESHED_BIOSAMPLES))
+            force = _force_once(biosample_acc, refresh, _REFRESHED_BIOSAMPLES)
+            cached = biosample_acc in biosample_cache and not force
+            biosample_details = get_biosample_details(biosample_acc, biosample_cache, force=force)
+            bs_err = (biosample_details or {}).get("error")
+            log(f"      BioSample {biosample_acc}: {'cached' if cached else 're-fetched' if force else 'fetched'}"
+                + (f" {paint('ERROR ' + str(bs_err)[:80], 'err')}" if bs_err
+                   else f" ({len((biosample_details or {}).get('attributes') or {})} attributes)"), level=2)
 
         geo = infer_geo(
             biosample_details,
@@ -85,10 +91,14 @@ def build_srr_records_for_sra_uid(
 
         bioproject_details = {}
         if fetch_bioproject and prj and BIOPROJECT_RE.match(prj):
-            bioproject_details = get_bioproject_details(
-                prj, bp_cache, bp_uid_cache, force=_force_once(prj, refresh, _REFRESHED_BIOPROJECTS))
+            force = _force_once(prj, refresh, _REFRESHED_BIOPROJECTS)
+            cached = prj in bp_cache and not force
+            bioproject_details = get_bioproject_details(prj, bp_cache, bp_uid_cache, force=force)
+            if not cached:
+                log(f"      BioProject {prj}: {'re-fetched' if force else 'fetched'}: "
+                    f"{(bioproject_details or {}).get('title', '')[:70]}", level=2)
 
-        out.append({
+        out.append(slim_record({
             "srr": srr,
             "sra_uid": sra_uid,
             "title": title,
@@ -107,7 +117,7 @@ def build_srr_records_for_sra_uid(
                 "biosample_url": (biosample_details or {}).get("efetch_url", ""),
             },
             "provenance": {"ingested_utc": utc_now(), "source": "ncbi_eutils"},
-        })
+        }))
 
     if debug:
         append_jsonl_one(decision_log_path, {
@@ -146,11 +156,17 @@ def ingest_uids_to_srr(
     counters: Dict[str, int] = {}
     paths = debug_paths(tag)
  
-    #print("IN ingest_uids_to_srr")
-
     inc(counters, "uids_input", len(uids))
     new_uids = list(uids) if refresh else [u for u in uids if u not in seen_sra]
     inc(counters, "uids_new", len(new_uids))
+    skipped = len(uids) - len(new_uids)
+    if new_uids:
+        log(f"  {'Refreshing' if refresh else 'Ingesting'} {num(len(new_uids))} experiment(s)"
+            + (f", skipping {num(skipped)} already in the catalog" if skipped else ""))
+    elif uids:
+        log(f"  All {num(len(uids))} experiment(s) already in the catalog; nothing to ingest "
+            f"{paint('(use --refresh to re-fetch)', 'dim')}")
+    t_start = time.time()
 
     if debug:
         write_json(paths["initial"], {
@@ -164,7 +180,7 @@ def ingest_uids_to_srr(
     sra_mark_seen: List[str] = []
     srr_mark_seen: List[str] = []
 
-    for uid in new_uids:
+    for i, uid in enumerate(new_uids, 1):
         ssum = summaries.get(uid, {"uid": uid, "title": "", "bioproject_guess": "", "items": {}})
         try:
             srr_rows, _ = build_srr_records_for_sra_uid(
@@ -199,6 +215,8 @@ def ingest_uids_to_srr(
 
             inc(counters, "srr_emitted", emitted)
             inc(counters, "sra_uids_processed_ok")
+            log(f"    [{i}/{len(new_uids)}] SRA {uid}: {len(srr_rows)} run(s), {emitted} written"
+                f"  {paint((ssum.get('title') or '')[:70], 'dim')}", level=2)
 
             if uid not in seen_sra:
                 seen_sra.add(uid)
@@ -206,8 +224,15 @@ def ingest_uids_to_srr(
 
         except Exception as e:
             inc(counters, "sra_uid_errors")
+            warn(f"SRA experiment {uid} failed: {e}")
             if debug:
                 append_jsonl_one(paths["decision"], {"uid": uid, "decision": "error", "error": str(e)})
+
+        if i % 50 == 0 and i < len(new_uids):
+            elapsed = time.time() - t_start
+            eta = elapsed / i * (len(new_uids) - i)
+            log(f"    progress {num(i)}/{num(len(new_uids))} experiments, "
+                f"{num(counters.get('srr_emitted', 0))} runs written, ETA {fmt_duration(eta)}")
 
     if sra_mark_seen:
         append_lines(SEEN_SRA_UIDS, sra_mark_seen)

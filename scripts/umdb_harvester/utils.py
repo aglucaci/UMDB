@@ -6,6 +6,105 @@ from .config import (
     DATA_DIR, DOCS_DIR, DB_DIR, CACHE_DIR, DEBUG_DIR, DOCS_DEBUG_DIR, MAX_OUTPUT_BYTES
 )
 
+# --- Logging -----------------------------------------------------------------
+# UMDB_VERBOSITY: 0 = quiet (summaries and warnings), 1 = normal (stages,
+# progress, ETAs; default), 2 = verbose (every NCBI request, cache hits).
+VERBOSITY = int(os.getenv("UMDB_VERBOSITY", "1") or "1")
+
+
+def _color_enabled() -> bool:
+    """UMDB_COLOR=always|never|auto (default auto: only when stdout is a terminal).
+    NO_COLOR (https://no-color.org) always disables colour."""
+    import sys
+    if os.getenv("NO_COLOR"):
+        return False
+    mode = (os.getenv("UMDB_COLOR") or "auto").lower()
+    if mode in ("always", "1", "yes"):
+        return True
+    if mode in ("never", "0", "no"):
+        return False
+    return sys.stdout.isatty()
+
+
+COLOR = _color_enabled()
+_STYLES = {
+    "dim": "2", "bold": "1", "head": "1;34", "ok": "32", "good": "1;32", "warn": "33",
+    "err": "1;31", "num": "1;36", "key": "36", "magenta": "35",
+}
+# Eligibility tiers, most to least urban.
+TIER_STYLE = {
+    "confirmed_urban": "good", "probable_urban": "ok", "uncertain": "warn",
+    "non_urban": "magenta", "non_environmental": "err",
+}
+
+
+def paint(text: Any, style: str) -> str:
+    text = str(text)
+    if not COLOR or style not in _STYLES:
+        return text
+    return f"\033[{_STYLES[style]}m{text}\033[0m"
+
+
+def num(value: Any) -> str:
+    """Highlight a number (thousands separators for ints)."""
+    return paint(f"{value:,}" if isinstance(value, int) else value, "num")
+
+
+def _stamp() -> str:
+    return paint(f"[{time.strftime('%H:%M:%S')}]", "dim")
+
+
+def log(msg: str, level: int = 1) -> None:
+    if VERBOSITY >= level:
+        print(f"{_stamp()} {msg}", flush=True)
+
+
+def header(msg: str, level: int = 1) -> None:
+    """A stage heading: a blank line, then the message in bold blue."""
+    if VERBOSITY >= level:
+        print(flush=True)
+        print(f"{_stamp()} {paint('== ' + msg, 'head')}", flush=True)
+
+
+def warn(msg: str) -> None:
+    print(f"{_stamp()} {paint('[WARN]', 'warn')} {msg}", flush=True)
+
+
+def error(msg: str) -> None:
+    print(f"{_stamp()} {paint('[ERROR]', 'err')} {msg}", flush=True)
+
+
+def fmt_duration(seconds: float) -> str:
+    seconds = int(max(0, seconds))
+    h, rem = divmod(seconds, 3600)
+    m, s = divmod(rem, 60)
+    if h:
+        return f"{h}h{m:02d}m"
+    if m:
+        return f"{m}m{s:02d}s"
+    return f"{s}s"
+
+
+# --- Record shape ------------------------------------------------------------
+# Per-run copy of BioProject metadata. The full record (description, raw
+# esummary fields) lives once per project in data/cache/bioproject.json and
+# docs/db/bioprojects.json.
+RUN_BIOPROJECT_FIELDS = ("uid", "accession", "title", "center_name", "data_type", "submission_date", "error")
+
+
+def slim_record(rec: Dict[str, Any]) -> Dict[str, Any]:
+    """Drop text repeated in every run record: the BioProject description and
+    raw esummary fields, and the RunInfo column-name list. Idempotent."""
+    out = dict(rec)
+    bp = out.get("bioproject")
+    if isinstance(bp, dict) and bp:
+        out["bioproject"] = {k: bp[k] for k in RUN_BIOPROJECT_FIELDS if k in bp and bp[k] not in (None, "")}
+    dbg = out.get("debug")
+    if isinstance(dbg, dict) and "runinfo_columns" in dbg:
+        out["debug"] = {k: v for k, v in dbg.items() if k != "runinfo_columns"}
+    return out
+
+
 def ensure_dirs():
     for p in [DATA_DIR, DOCS_DIR, DB_DIR, CACHE_DIR, DEBUG_DIR, DOCS_DEBUG_DIR]:
         os.makedirs(p, exist_ok=True)

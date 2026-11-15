@@ -22,11 +22,14 @@ Discovery profiles (version `QUERY_PROFILES_VERSION`):
 
 | Profile | Targets |
 | --- | --- |
-| `urban_shotgun` | Urban / built-environment shotgun metagenomics and metatranscriptomics |
-| `urban_amplicon` | Urban marker-gene (16S/18S/ITS) studies |
-| `wastewater_surveillance` | Wastewater, sewage, stormwater, sludge |
-| `transit_and_surface` | Transit systems and touched surfaces |
-| `air_and_dust` | Urban and indoor air, aerosols, dust |
+| `municipal_wastewater` | Municipal wastewater, sewage and sludge (SARS-CoV-2 amplicon panels excluded) |
+| `air_dust` | Urban and indoor air, aerosols, dust |
+| `built_environment` | Buildings, classrooms, offices, indoor surfaces |
+| `urban_metagenome` | Samples labelled `urban metagenome` |
+| `transit` | Subways, stations, public transport |
+| `urban_soil_greenspace` | Urban soil, parks, greenspace, roadsides |
+| `urban_water_drainage` | Stormwater, urban rivers and canals, combined sewers |
+| `wastewater_sars_cov_2` *(opt-in)* | SARS-CoV-2 targeted amplicon wastewater surveillance |
 
 Soil, sediment, freshwater, rivers and lakes are **not** excluded: urban soils and waterways are in scope. Eligibility should depend on sampling context, not on the material.
 

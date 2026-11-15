@@ -34,7 +34,7 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-RULES_VERSION = "2026.11.5"
+RULES_VERSION = "2026.11.6"
 
 TIERS = ("confirmed_urban", "probable_urban", "uncertain", "non_urban", "non_environmental")
 
@@ -136,8 +136,17 @@ HOST_PLACEHOLDERS = {
 SKIP_KEYS = ("geo_loc", "lat_lon", "collected_by", "sequenced_by", "project_name", "collection_date")
 
 
+# "Fukang City", "Salt Lake City": a place name, not a statement that the
+# sample site is urban. Removed before testing for explicit urban wording.
+PLACE_NAME_CITY = re.compile(r"\b[A-Z][\w'.-]*(?:\s+[A-Z][\w'.-]*)*\s+City\b")
+
+
 def _ev(source: str, field: str, value: str, signal: str, rx: Optional[re.Pattern] = None) -> Dict[str, Any]:
-    item: Dict[str, Any] = {"source": source, "field": field, "value": value[:200], "signal": signal}
+    item: Dict[str, Any] = {"source": source, "field": field, "signal": signal}
+    # BioProject text is the same for every run of a study and is published
+    # once in bioprojects.json, so only the matched terms are stored for it.
+    if source != "BioProject":
+        item["value"] = value[:200]
     if rx is not None:
         terms: List[str] = []
         for m in rx.finditer(value):
@@ -274,7 +283,7 @@ def assess_eligibility(
             for cat, rx in CONTEXT_RX.items():
                 if rx.search(val):
                     contexts[cat] = contexts.get(cat, 0) + 2
-        if URBAN_EXPLICIT.search(val):
+        if URBAN_EXPLICIT.search(PLACE_NAME_CITY.sub(" ", val)):
             evidence.append(_ev("BioSample", key, val, "urban_explicit", URBAN_EXPLICIT))
             explicit.append(key)
         if URBAN_INFRASTRUCTURE.search(val):
