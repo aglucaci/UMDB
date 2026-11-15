@@ -79,6 +79,14 @@ Deep harvest:
                                  (e.g. "umdb backfill 2018 2024 --commit"; --help for options)
   umdb compact                   drop superseded records from data/ (newest per run wins)
 
+Database and releases:
+  umdb db build                  (re)build data/umdb.sqlite from data/ (offline, ~30 s)
+  umdb db info                   build metadata and samples per eligibility tier
+  umdb db shell                  open the database in sqlite3
+  umdb db query "SQL"            run one SQL query (tab-separated output)
+  umdb release [--version V]     write a Parquet/TSV release to dist/releases/<V>/
+                                 (needs: pip install -r requirements-release.txt)
+
 Data and site:
   umdb export                    rebuild docs/db from data/ (offline)
   umdb serve [port]              preview the website (default port 8000)
@@ -140,6 +148,24 @@ case "$cmd" in
   export|rebuild)
     PYTHONPATH="$REPO_ROOT/scripts" exec "$PY" -c \
       "from umdb_harvester.exports import rebuild_srr_exports_chunked as r; r(); print('docs/db rebuilt')"
+    ;;
+  db)
+    sub="${1:-info}"; [ $# -gt 0 ] && shift
+    case "$sub" in
+      build) harvester db-build "$@" ;;
+      info) harvester db-info "$@" ;;
+      shell)
+        [ -f data/umdb.sqlite ] || { echo "data/umdb.sqlite not found; run: umdb db build" >&2; exit 1; }
+        exec sqlite3 -header -column data/umdb.sqlite "$@" ;;
+      query)
+        [ -f data/umdb.sqlite ] || { echo "data/umdb.sqlite not found; run: umdb db build" >&2; exit 1; }
+        [ $# -ge 1 ] || { echo 'usage: umdb db query "SELECT ..."' >&2; exit 2; }
+        exec sqlite3 -header -separator $'\t' data/umdb.sqlite "$1" ;;
+      *) echo "usage: umdb db build|info|shell|query \"SQL\"" >&2; exit 2 ;;
+    esac
+    ;;
+  release)
+    harvester release "$@"
     ;;
   serve|preview)
     port="${1:-8000}"

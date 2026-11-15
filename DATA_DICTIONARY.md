@@ -6,7 +6,7 @@ Field-level reference for the files UMDB publishes and keeps. For how the annota
 
 **Empty strings mean unknown.** Missing values are `""`, not `null`.
 
-**Contents:** [What UMDB pulls from NCBI](#what-umdb-pulls-from-ncbi) · [Published files](#published-files-docs) · [Run record](#run-record) · [Working files](#working-files-data) · [Dates](#dates-which-one-to-use)
+**Contents:** [What UMDB pulls from NCBI](#what-umdb-pulls-from-ncbi) · [SQLite database and releases](#sqlite-database-and-releases) · [Published files](#published-files-docs) · [Run record](#run-record) · [Working files](#working-files-data) · [Dates](#dates-which-one-to-use)
 
 ---
 
@@ -67,6 +67,12 @@ Text that is identical for every run of a study is stored once, not per run:
 - Eligibility evidence from BioProject text records the field and matched terms, not the text itself.
 
 New harvests write slim records; `umdb export` slims what it publishes, and `umdb compact` slims `data/`. On the current catalog the run files drop from 230 MB to 152 MB, and the published run parts from 481 MB (with the double-counted rows) to 243 MB in 5 files. Look up a run's full project text by `bioproject.accession` in `bioprojects.json`.
+
+---
+
+## SQLite database and releases
+
+`data/umdb.sqlite` (built by `umdb db build`, git-ignored) and the Parquet/TSV releases (`umdb release`) hold the same information in normalized tables: `projects`, `samples`, `experiments`, `runs`, `project_samples`, `ai_annotations`, plus the views `umdb_samples` and `umdb_runs`. Column names follow the record fields below (for example `samples.urban_status` = `eligibility.status`, `samples.city` = `geo.city`, `runs.release_date` = `runinfo_row.ReleaseDate`). Unknown values are NULL. Every release's `schema.json` lists each file's columns and types. Table-by-table description, indexes and example queries: [ARCHITECTURE.md](ARCHITECTURE.md#sqlite-schema-version-100).
 
 ---
 

@@ -15,3 +15,8 @@ logs/
 *.swp
 *.swo
 *~
+
+# Derived database and releases (rebuild with `umdb db build` / `umdb release`)
+data/umdb.sqlite
+data/umdb.sqlite.*
+dist/

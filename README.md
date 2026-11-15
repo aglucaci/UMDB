@@ -20,6 +20,7 @@ https://aglucaci.github.io/UMDB/
 | [INCLUSION_CRITERIA.md](INCLUSION_CRITERIA.md) | **How studies are selected as urban**: exact queries, eligibility tiers and rules, limitations, filtering recipes |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Setting up, running the harvester and tests, opening pull requests |
 | [MAINTAINING.md](MAINTAINING.md) | Workflows, secrets, routine operations, troubleshooting, releases |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | How data flows: JSONL source of truth → SQLite query database → Parquet releases and website JSON; schema and example queries |
 | [DATA_DICTIONARY.md](DATA_DICTIONARY.md) | What is pulled from NCBI (requests, volume, formats) and every field in the published files |
 | [CURATION.md](CURATION.md) | Inclusion criteria, annotation rules, AI review, known limitations |
 | [CHANGELOG.md](CHANGELOG.md) | What changed, including effects on catalog counts |
@@ -43,6 +44,8 @@ umdb serve                                # preview at http://localhost:8000
 | `umdb deepest [START END]` | Deepest possible search, year by year from 2007: every profile, every hit per day, re-fetches existing records and overwrites superseded data |
 | `umdb backfill [START END]` | Resumable year-by-year search for new records only (`--dry-run`, `--commit`, `--profile`, `--refresh`, …) |
 | `umdb compact` | Rewrite `data/` keeping only the newest record per run |
+| `umdb db build` / `info` / `shell` / `query "SQL"` | Build and query the SQLite database `data/umdb.sqlite` (normalized, indexed, full-text search) |
+| `umdb release [--version V]` | Write a versioned Parquet + TSV release with schema, manifest and checksums (`pip install -r requirements-release.txt`) |
 | `umdb export` | Rebuild `docs/db/` from `data/` offline (re-applies geo, assay and eligibility rules) |
 | `umdb serve [port]` | Preview the website |
 | `umdb status` | Release size, eligibility tiers, settings check |
@@ -188,7 +191,7 @@ UMDB/
 │       └── config.py
 ├── tests/
 ├── .env.example
-├── INCLUSION_CRITERIA.md, CONTRIBUTING.md, MAINTAINING.md, DATA_DICTIONARY.md, CURATION.md
+├── ARCHITECTURE.md, INCLUSION_CRITERIA.md, CONTRIBUTING.md, MAINTAINING.md, DATA_DICTIONARY.md, CURATION.md
 ├── CHANGELOG.md, SECURITY.md, CITATION.cff, LICENSE
 └── README.md
 ```

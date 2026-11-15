@@ -1,0 +1,4 @@
+# Optional: only needed for `umdb release` (Parquet) and DuckDB analysis.
+# The harvester itself uses the Python standard library only.
+pyarrow>=15
+duckdb>=1.0

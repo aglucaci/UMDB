@@ -375,6 +375,74 @@ class SlimRecordTests(unittest.TestCase):
         self.assertTrue(all("value" not in e for e in with_cache["eligibility"]["evidence"] if e["source"] == "BioProject"))
 
 
+class DatabaseTests(unittest.TestCase):
+    def _catalog(self, d):
+        import json
+        os.makedirs(os.path.join(d, "cache"))
+        recs = [
+            {"srr": "SRR1", "sra_uid": "1", "title": "subway swab",
+             "runinfo_row": {"Run": "SRR1", "Experiment": "SRX1", "BioSample": "SAMN1", "BioProject": "PRJNA1",
+                             "ScientificName": "metagenome", "LibraryStrategy": "WGS", "LibrarySource": "METAGENOMIC",
+                             "ReleaseDate": "2024-05-01 10:00:00", "spots": "1000", "bases": "150000"},
+             "provenance": {"ingested_utc": "2026-01-01T00:00:00Z"}},
+            {"srr": "SRR1", "sra_uid": "1", "title": "subway swab (refreshed)",
+             "runinfo_row": {"Run": "SRR1", "Experiment": "SRX1", "BioSample": "SAMN1", "BioProject": "PRJNA1",
+                             "ScientificName": "metagenome", "LibraryStrategy": "WGS", "LibrarySource": "METAGENOMIC",
+                             "ReleaseDate": "2024-05-01 10:00:00", "spots": "2000", "bases": "300000"},
+             "provenance": {"ingested_utc": "2026-11-15T00:00:00Z"}},
+            {"srr": "SRR2", "sra_uid": "2", "title": "stool",
+             "runinfo_row": {"Run": "SRR2", "Experiment": "SRX2", "BioSample": "SAMN2", "BioProject": "PRJNA1",
+                             "ScientificName": "human gut metagenome", "ReleaseDate": "2024-05-02"},
+             "provenance": {"ingested_utc": "2026-01-01T00:00:00Z"}},
+        ]
+        with open(os.path.join(d, "srr_catalog_2026.jsonl"), "w") as fh:
+            fh.writelines(json.dumps(r) + "\n" for r in recs)
+        json.dump({"SAMN1": {"accession": "SAMN1", "attributes": {
+                        "isolation_source": "subway station handrail", "geo_loc_name": "USA: New York City",
+                        "collection_date": "2019-06-04"}},
+                   "SAMN2": {"accession": "SAMN2", "attributes": {"isolation_source": "stool", "host": "Homo sapiens",
+                                                                   "collection_date": "2019"}}},
+                  open(os.path.join(d, "cache", "biosample.json"), "w"))
+        json.dump({"PRJNA1": {"accession": "PRJNA1", "title": "NYC subway", "description": "Subway surfaces"}},
+                  open(os.path.join(d, "cache", "bioproject.json"), "w"))
+
+    def test_build_query_and_newest_record(self):
+        import sqlite3, tempfile
+        from umdb_harvester import database, exports, config
+        with tempfile.TemporaryDirectory() as d:
+            self._catalog(d)
+            db = os.path.join(d, "umdb.sqlite")
+            with mock.patch.object(exports, "DATA_DIR", d), \
+                 mock.patch.object(database, "BIOSAMPLE_CACHE", os.path.join(d, "cache", "biosample.json")), \
+                 mock.patch.object(database, "BIOPROJECT_CACHE", os.path.join(d, "cache", "bioproject.json")), \
+                 mock.patch.object(database, "AI_CURATION_CACHE", os.path.join(d, "cache", "ai.json")):
+                counts = database.build_database(db)
+            self.assertEqual((counts["runs"], counts["samples"], counts["projects"]), (2, 2, 1))
+            con = sqlite3.connect(db)
+            self.assertEqual(con.execute("SELECT spots FROM runs WHERE accession='SRR1'").fetchone()[0], 2000)
+            s1 = con.execute("SELECT urban_status, urban_context, collection_date, collection_year, city "
+                             "FROM samples WHERE accession='SAMN1'").fetchone()
+            self.assertEqual(s1, ("confirmed_urban", "transit", "2019-06-04", 2019, "New York City"))
+            s2 = con.execute("SELECT urban_status, collection_date, collection_year FROM samples WHERE accession='SAMN2'").fetchone()
+            self.assertEqual(s2, ("non_environmental", None, 2019))
+            hits = con.execute("SELECT accession FROM search WHERE search MATCH 'handrail'").fetchall()
+            self.assertEqual(hits, [("SAMN1",)])
+            self.assertEqual(con.execute("SELECT count(*) FROM umdb_runs").fetchone()[0], 2)
+            self.assertEqual(con.execute("PRAGMA foreign_key_check").fetchall(), [])
+            # With 2 rows the planner rightly scans; check the indexes exist instead.
+            indexes = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='index'")}
+            self.assertTrue({"idx_samples_cohort", "idx_samples_urban", "idx_runs_sample"} <= indexes)
+            con.close()
+
+    def test_collection_date_parsing(self):
+        from umdb_harvester.database import parse_collection_date
+        self.assertEqual(parse_collection_date("2019-06-04"), ("2019-06-04", 2019))
+        self.assertEqual(parse_collection_date("2019-06"), (None, 2019))
+        self.assertEqual(parse_collection_date("2019/06/04"), ("2019-06-04", 2019))
+        self.assertEqual(parse_collection_date("missing"), (None, None))
+        self.assertEqual(parse_collection_date("Jun-2019"), (None, None))
+
+
 class QueryProfileTests(unittest.TestCase):
     def test_urban_compartments_not_excluded(self):
         for name, q in QUERY_PROFILES.items():

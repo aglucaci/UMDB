@@ -11,7 +11,7 @@ import sys
 import time
 
 from .utils import ensure_dirs, load_set, read_json, write_json, append_jsonl, iter_jsonl_glob
-from .utils import log, header, warn, paint, num, fmt_duration, VERBOSITY
+from .utils import log, header, warn, paint, num, fmt_duration, VERBOSITY, TIER_STYLE
 from . import ncbi as ncbi_mod
 from .ncbi import esearch_recent, esearch_day, esearch_history, esummary_sra
 from .ingest import ingest_uids_to_srr, debug_paths
@@ -55,6 +55,9 @@ def build_argparser() -> argparse.ArgumentParser:
             help="re-ingest already-seen experiments/runs and re-fetch their BioSample/BioProject; "
                  "the new record supersedes the old one (run 'compact' to drop superseded rows)")
 
+    def add_db_arg(parser):
+        parser.add_argument("--no-db", action="store_true", help="skip rebuilding data/umdb.sqlite after the export")
+
     def add_ai_args(parser):
         parser.add_argument("--ai-curate", action="store_true")
         parser.add_argument("--ai-model", default=OPENAI_MODEL)
@@ -71,6 +74,7 @@ def build_argparser() -> argparse.ArgumentParser:
     d.add_argument("--runinfo-max-rows", type=int, default=200000)
     d.add_argument("--recent-days", type=int, default=7)
     add_refresh_arg(d)
+    add_db_arg(d)
     add_ai_args(d)
 
     b = sub.add_parser("backfill-year")
@@ -84,6 +88,7 @@ def build_argparser() -> argparse.ArgumentParser:
     b.add_argument("--fetch-bioproject", action="store_true")
     b.add_argument("--runinfo-max-rows", type=int, default=200000)
     add_refresh_arg(b)
+    add_db_arg(b)
     add_ai_args(b)
 
     c = sub.add_parser("crawl")
@@ -98,9 +103,15 @@ def build_argparser() -> argparse.ArgumentParser:
     c.add_argument("--stop-after-new-srr", type=int, default=0)
     c.add_argument("--sort", default="date")
     add_refresh_arg(c)
+    add_db_arg(c)
     add_ai_args(c)
 
     sub.add_parser("compact", help="rewrite data/srr_catalog_*.jsonl keeping only the newest record per run")
+    sub.add_parser("db-build", help="(re)build data/umdb.sqlite from the catalog and caches")
+    sub.add_parser("db-info", help="show database build metadata and sample tiers")
+    rel = sub.add_parser("release", help="write a versioned Parquet/TSV release from data/umdb.sqlite")
+    rel.add_argument("--version", default="", help="release version (default: today's date, YYYY.MM.DD)")
+    rel.add_argument("--rebuild-db", action="store_true", help="rebuild the database first")
 
     a = sub.add_parser("curate-ai")
     a.add_argument("--model", default=OPENAI_MODEL)
@@ -125,6 +136,35 @@ def resolve_query_specs(args) -> List[Dict[str, str]]:
 def run():
     args = build_argparser().parse_args()
     ensure_dirs()
+
+    if args.cmd == "db-build":
+        from .database import build_database
+        header("umdb db build")
+        build_database()
+        return
+    if args.cmd == "db-info":
+        from .database import db_info, DB_PATH
+        info = db_info()
+        header(f"{DB_PATH} ({info['size_mb']:.1f} MB)")
+        for k, v in info["meta"].items():
+            log(f"  {k:24} {v}")
+        log("Samples by eligibility tier:")
+        for tier, n in info["sample_tiers"]:
+            log(f"  {paint(str(tier).ljust(18), TIER_STYLE.get(tier, 'dim'))} {num(n)}")
+        return
+    if args.cmd == "release":
+        from .release import write_release
+        header("umdb release")
+        try:
+            if args.rebuild_db:
+                from .database import build_database
+                build_database()
+            write_release(args.version)
+        except (RuntimeError, FileNotFoundError, FileExistsError) as exc:
+            from .utils import error
+            error(str(exc))
+            raise SystemExit(1)
+        return
 
     if args.cmd == "compact":
         from .exports import compact_catalog
@@ -489,6 +529,10 @@ def run():
 
         header("Rebuilding the published database (docs/db)")
         rebuild_srr_exports_chunked()
+        if not getattr(args, "no_db", False) and args.cmd != "curate-ai":
+            from .database import build_database
+            header("Rebuilding the SQLite database (data/umdb.sqlite)")
+            build_database()
 
         totals: Dict[str, int] = {}
         for rep in reports:
