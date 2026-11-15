@@ -1,0 +1,144 @@
+#!/usr/bin/env bash
+# umdb: single entry point for the UMDB harvester and maintenance tasks.
+# Works from any directory; always runs against this repository.
+set -euo pipefail
+
+# Resolve the repository root even when this file is reached through a symlink.
+src="${BASH_SOURCE[0]}"
+while [ -L "$src" ]; do
+  dir="$(cd -P "$(dirname "$src")" && pwd)"
+  src="$(readlink "$src")"
+  [[ "$src" != /* ]] && src="$dir/$src"
+done
+REPO_ROOT="$(cd -P "$(dirname "$src")/.." && pwd)"
+cd "$REPO_ROOT"
+
+PY="${UMDB_PYTHON:-python3}"
+HARVESTER_CMDS=" crawl daily backfill-year curate-ai "
+
+usage() {
+  cat <<'EOF'
+umdb: Urban Microbiome Database command line
+
+Harvesting (each finishes by rebuilding docs/db):
+  umdb crawl [opts]              paginate the query profiles, newest first
+  umdb daily [opts]              records released in the last N days (--recent-days)
+  umdb backfill-year --year Y    one calendar year, day by day
+  umdb curate-ai [opts]          AI review of harvested records (needs OPENAI_API_KEY)
+  umdb run <command> [opts]      same as above ("umdb run crawl ...")
+
+Deep harvest:
+  umdb deepest [years] [opts]    deepest possible search, year by year, 2007 .. now:
+                                 every profile, every hit per day, re-fetches existing
+                                 records and overwrites old data (= backfill --deepest)
+  umdb backfill [years] [opts]   resumable year-by-year search for new records
+                                 (e.g. "umdb backfill 2018 2024 --commit"; --help for options)
+  umdb compact                   drop superseded records from data/ (newest per run wins)
+
+Data and site:
+  umdb export                    rebuild docs/db from data/ (offline)
+  umdb serve [port]              preview the website (default port 8000)
+  umdb queries                   print the exact discovery queries
+  umdb status                    catalog size, eligibility tiers, settings check
+
+Development:
+  umdb test                      run the offline test suite
+  umdb install [dir]             put "umdb" on your PATH (symlink; default ~/.local/bin)
+  umdb help                      this message
+
+Settings are read from .env in the repository root (see .env.example).
+Add --help after a harvester command for its options, e.g. "umdb crawl --help".
+EOF
+}
+
+harvester() { exec "$PY" -m scripts.umdb_harvester "$@"; }
+
+cmd="${1:-help}"
+[ $# -gt 0 ] && shift
+
+case "$cmd" in
+  run)
+    [ $# -eq 0 ] && { echo "usage: umdb run <crawl|daily|backfill-year|curate-ai> [opts]" >&2; exit 2; }
+    sub="$1"; shift
+    if [[ "$HARVESTER_CMDS" != *" $sub "* ]]; then
+      # Allow "umdb run backfill", "umdb run export", etc.
+      exec "$REPO_ROOT/bin/umdb" "$sub" "$@"
+    fi
+    harvester "$sub" "$@"
+    ;;
+  crawl|daily|backfill-year|curate-ai)
+    harvester "$cmd" "$@"
+    ;;
+  backfill|deep-backfill)
+    exec "$REPO_ROOT/scripts/deep_backfill.sh" "$@"
+    ;;
+  deepest)
+    exec "$REPO_ROOT/scripts/deep_backfill.sh" --deepest "$@"
+    ;;
+  compact)
+    yes=0; rest=()
+    for a in "$@"; do
+      case "$a" in -y|--yes) yes=1 ;; *) rest+=("$a") ;; esac
+    done
+    case " ${rest[*]:-} " in *" -h "*|*" --help "*) harvester compact "${rest[@]}" ;; esac
+    if [ $yes -eq 0 ] && [ -n "$(git status --porcelain -- data 2>/dev/null)" ]; then
+      echo "data/ has uncommitted changes; compaction rewrites catalog files permanently." >&2
+      printf "Continue? [y/N] " >&2; read -r reply
+      case "$reply" in y|Y|yes|YES) ;; *) echo "Aborted." >&2; exit 1 ;; esac
+    fi
+    harvester compact ${rest[@]+"${rest[@]}"}
+    ;;
+  export|rebuild)
+    PYTHONPATH="$REPO_ROOT/scripts" exec "$PY" -c \
+      "from umdb_harvester.exports import rebuild_srr_exports_chunked as r; r(); print('docs/db rebuilt')"
+    ;;
+  serve|preview)
+    port="${1:-8000}"
+    echo "Serving docs/ at http://localhost:$port  (Ctrl-C to stop)"
+    exec "$PY" -m http.server "$port" --directory docs
+    ;;
+  queries)
+    PYTHONPATH="$REPO_ROOT/scripts" exec "$PY" -c \
+      "from umdb_harvester.config import QUERY_PROFILES as Q, QUERY_PROFILES_VERSION as V
+print('QUERY_PROFILES_VERSION', V, end='\n\n')
+for k, v in Q.items(): print(k, v, sep='\n', end='\n\n')"
+    ;;
+  status)
+    PYTHONPATH="$REPO_ROOT/scripts" exec "$PY" -c "
+import json, os
+from umdb_harvester import config as c
+s = json.load(open('docs/db/summary.json')) if os.path.exists('docs/db/summary.json') else {}
+print('Published release :', s.get('generated_utc', 'none'))
+print('Runs / BioSamples / BioProjects :', s.get('totalRuns'), '/', s.get('totalBioSamples'), '/', s.get('totalProjects'))
+for t in s.get('eligibility', []) or []:
+    print(f\"  {t['name']:16} {t['runs']:>8} runs {t['biosamples']:>8} BioSamples\")
+if not s.get('eligibility'):
+    print('  (no eligibility tiers in this release; run: umdb export)')
+seen = sum(1 for _ in open(c.SEEN_SRR_RUNS)) if os.path.exists(c.SEEN_SRR_RUNS) else 0
+print('Runs ingested (seen list) :', seen)
+print('NCBI_API_KEY set :', bool(c.NCBI_API_KEY), '| NCBI_EMAIL set :', bool(c.NCBI_EMAIL), '| OPENAI_API_KEY set :', bool(c.OPENAI_API_KEY))
+print('Query profiles version :', c.QUERY_PROFILES_VERSION)
+"
+    ;;
+  test|tests)
+    exec "$PY" -m unittest discover tests "$@"
+    ;;
+  install)
+    target="${1:-$HOME/.local/bin}"
+    mkdir -p "$target"
+    ln -sf "$REPO_ROOT/bin/umdb" "$target/umdb"
+    echo "Linked $target/umdb -> $REPO_ROOT/bin/umdb"
+    case ":$PATH:" in
+      *":$target:"*) echo "Ready: run 'umdb help'." ;;
+      *) echo "Add it to your PATH, e.g.:  echo 'export PATH=\"$target:\$PATH\"' >> ~/.zshrc && source ~/.zshrc" ;;
+    esac
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  *)
+    echo "umdb: unknown command '$cmd'" >&2
+    echo "Run 'umdb help' for the list of commands." >&2
+    exit 2
+    ;;
+esac

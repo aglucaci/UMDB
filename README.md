@@ -11,6 +11,46 @@ The current public site is available at:
 
 https://aglucaci.github.io/UMDB/
 
+> **How does UMDB decide a study is urban?** A broad keyword search of NCBI SRA decides what enters the catalog. A strict, sample-level **eligibility screen** then labels every run `confirmed_urban`, `probable_urban`, `uncertain`, `non_urban` or `non_environmental`, with the evidence behind the label. A city name alone never confirms a sample. Nothing is deleted: filter by tier in the explorer or on `eligibility.status`. See **[INCLUSION_CRITERIA.md](INCLUSION_CRITERIA.md)** for the exact queries, rules and limitations.
+
+## Documentation
+
+| Document | For |
+| --- | --- |
+| [INCLUSION_CRITERIA.md](INCLUSION_CRITERIA.md) | **How studies are selected as urban**: exact queries, eligibility tiers and rules, limitations, filtering recipes |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Setting up, running the harvester and tests, opening pull requests |
+| [MAINTAINING.md](MAINTAINING.md) | Workflows, secrets, routine operations, troubleshooting, releases |
+| [DATA_DICTIONARY.md](DATA_DICTIONARY.md) | What is pulled from NCBI (requests, volume, formats) and every field in the published files |
+| [CURATION.md](CURATION.md) | Inclusion criteria, annotation rules, AI review, known limitations |
+| [CHANGELOG.md](CHANGELOG.md) | What changed, including effects on catalog counts |
+| [SECURITY.md](SECURITY.md) | Reporting vulnerabilities, handling API keys |
+| [CITATION.cff](CITATION.cff) | How to cite UMDB |
+| [LICENSE](LICENSE) | CC BY-NC-SA 4.0 |
+
+## Quick Start
+
+```bash
+bin/umdb install                          # puts `umdb` on your PATH (~/.local/bin)
+cp .env.example .env                      # add NCBI_API_KEY and NCBI_EMAIL
+umdb test                                 # offline tests
+umdb crawl --sort date --page-size 100 --stop-after-new-srr 10 --fetch-bioproject --fetch-biosample
+umdb serve                                # preview at http://localhost:8000
+```
+
+| Command | Does |
+| --- | --- |
+| `umdb crawl` / `daily` / `backfill-year` / `curate-ai` | Harvester commands (also `umdb run <command>`); add `--help` for options |
+| `umdb deepest [START END]` | Deepest possible search, year by year from 2007: every profile, every hit per day, re-fetches existing records and overwrites superseded data |
+| `umdb backfill [START END]` | Resumable year-by-year search for new records only (`--dry-run`, `--commit`, `--profile`, `--refresh`, …) |
+| `umdb compact` | Rewrite `data/` keeping only the newest record per run |
+| `umdb export` | Rebuild `docs/db/` from `data/` offline (re-applies geo, assay and eligibility rules) |
+| `umdb serve [port]` | Preview the website |
+| `umdb status` | Release size, eligibility tiers, settings check |
+| `umdb queries` | Print the exact discovery queries |
+| `umdb test` | Run the test suite |
+
+`umdb` works from any directory. Without installing it, use `bin/umdb` or `python3 -m scripts.umdb_harvester <command>` from the repository root. No packages need installing (Python standard library only).
+
 ## What This Repository Is
 
 UMDB (Urban Microbiome Database) is designed as scientific infrastructure for urban metagenomics and related environmental sequencing studies. It focuses on public sequencing records associated with urban, built-environment, wastewater, air, surface, and similar city-linked contexts.
@@ -69,6 +109,8 @@ The default discovery pass combines several query profiles:
 - urban air, aerosol, and dust studies
 
 This improves coverage for studies that do not all use the same vocabulary in titles, abstracts, or repository metadata.
+
+Matching a query decides inclusion; a rule-based eligibility screen then labels each run's urban evidence. See [INCLUSION_CRITERIA.md](INCLUSION_CRITERIA.md) for the full criteria and their known gaps.
 
 Even with broader discovery, UMDB should still be treated as a high-recall public index rather than a guaranteed complete census of every urban microbiome study ever performed. Repository metadata are inconsistent, and some studies are only discoverable through follow-up curation.
 
@@ -141,7 +183,8 @@ UMDB/
 │       └── biosamples.json
 ├── logo/
 ├── scripts/
-│   └── urbanscope_harvester/
+│   └── umdb_harvester/
+│       ├── ai_curation.py
 │       ├── cli.py
 │       ├── ingest.py
 │       ├── exports.py
@@ -151,12 +194,16 @@ UMDB/
 │       ├── assay.py
 │       ├── utils.py
 │       └── config.py
+├── tests/
+├── .env.example
+├── INCLUSION_CRITERIA.md, CONTRIBUTING.md, MAINTAINING.md, DATA_DICTIONARY.md, CURATION.md
+├── CHANGELOG.md, SECURITY.md, CITATION.cff, LICENSE
 └── README.md
 ```
 
 ## What Lives In The Harvester Package
 
-The Python package under `scripts/urbanscope_harvester/` is the operational core of UMDB. The package path still uses the older internal module name, but it powers the current UMDB pipeline and published site.
+The Python package under `scripts/umdb_harvester/` is the operational core of UMDB. It powers the current UMDB pipeline and published site.
 
 - `cli.py` defines command-line entry behavior.
 - `ingest.py` coordinates harvesting and record assembly.
@@ -201,7 +248,7 @@ UMDB currently publishes a manifest-plus-parts layout for SRR-level records.
 - when the release was generated
 - how many total records exist
 - which part files belong to the release
-- which years are represented in the export summary
+- which harvest-file years are present (`catalog_file_years`)
 
 ### Part Files
 
@@ -213,6 +260,8 @@ UMDB currently publishes a manifest-plus-parts layout for SRR-level records.
 - `geo` for parsed geographic context
 - `assay` for high-level assay classification
 - `ncbi` for source URLs
+
+What is fetched from NCBI, data volumes, formats and every field are documented in [DATA_DICTIONARY.md](DATA_DICTIONARY.md#what-umdb-pulls-from-ncbi).
 
 The website loads these files directly in the browser and aggregates them into BioProject-level summaries for exploration.
 
@@ -263,20 +312,12 @@ In other words, a repository update is also a database release.
 
 ## Local AI Curation
 
-To use AI-assisted metadata curation locally, set your environment first:
-
-```bash
-export OPENAI_API_KEY="your_openai_api_key"
-export OPENAI_MODEL="gpt-4o-mini"
-export NCBI_API_KEY="your_ncbi_api_key"
-export NCBI_EMAIL="you@example.org"
-export NCBI_TOOL="umdb-srr-harvester"
-```
+To use AI-assisted metadata curation locally, add `OPENAI_API_KEY` (and optionally `OPENAI_MODEL`) to your `.env` alongside the NCBI settings. See [.env.example](.env.example). Variables exported in your shell override the file.
 
 You can curate newly harvested records during a deep crawl:
 
 ```bash
-python3 -m scripts.urbanscope_harvester.cli crawl \
+python3 -m scripts.umdb_harvester crawl \
   --fetch-biosample \
   --fetch-bioproject \
   --page-size 500 \
@@ -289,7 +330,7 @@ python3 -m scripts.urbanscope_harvester.cli crawl \
 You can also run AI curation against existing harvested records:
 
 ```bash
-python3 -m scripts.urbanscope_harvester.cli curate-ai \
+python3 -m scripts.umdb_harvester curate-ai \
   --model gpt-4o-mini \
   --max-records 500
 ```
@@ -297,7 +338,7 @@ python3 -m scripts.urbanscope_harvester.cli curate-ai \
 To overwrite previously cached AI reviews:
 
 ```bash
-python3 -m scripts.urbanscope_harvester.cli curate-ai \
+python3 -m scripts.umdb_harvester curate-ai \
   --model gpt-4o-mini \
   --overwrite \
   --max-records 500
@@ -306,7 +347,7 @@ python3 -m scripts.urbanscope_harvester.cli curate-ai \
 To target a single year:
 
 ```bash
-python3 -m scripts.urbanscope_harvester.cli curate-ai \
+python3 -m scripts.umdb_harvester curate-ai \
   --year 2024 \
   --max-records 500
 ```
@@ -315,7 +356,7 @@ python3 -m scripts.urbanscope_harvester.cli curate-ai \
 
 The repository also includes a dedicated full-dataset AI curation workflow:
 
-- Workflow file: `.github/workflows/urbanscope_full_ai_curation.yml`
+- Workflow file: `.github/workflows/umdb_full_ai_curation.yml`
 - Workflow name in GitHub Actions: `UMDB Full AI Curation`
 - Required secret: `OPENAI_API_KEY`
 - Optional but recommended secrets for NCBI-linked context: `NCBI_API_KEY`, `NCBI_EMAIL`
@@ -375,6 +416,10 @@ The project is intentionally lightweight.
 | Storage | Git repository artifacts | Low to free |
 | Hosting | GitHub Pages | Free |
 | Metadata access | NCBI public utilities | Free within usage guidance |
+
+## License
+
+UMDB (code, documentation, curated annotations and published data files) is licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/). You may share and adapt it for non-commercial purposes with attribution, and must distribute adaptations under the same license. See [LICENSE](LICENSE). Underlying NCBI metadata remain subject to NCBI's data use policies. To cite UMDB, see [CITATION.cff](CITATION.cff).
 
 ## Disclaimer
 

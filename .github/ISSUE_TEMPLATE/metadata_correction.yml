@@ -1,0 +1,51 @@
+name: Metadata correction
+description: A wrong country, city, assay, environment or urban label on a UMDB record
+labels: ["curation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        See [CURATION.md](https://github.com/aglucaci/UMDB/blob/main/CURATION.md) for how annotations are derived. Corrections need evidence from the source records.
+  - type: input
+    id: accession
+    attributes:
+      label: Run, BioSample or BioProject accession(s)
+      placeholder: SRR12345678 / SAMN12345678 / PRJNA123456
+    validations:
+      required: true
+  - type: dropdown
+    id: field
+    attributes:
+      label: Field that is wrong
+      options:
+        - Country
+        - City / region
+        - Assay class
+        - Urban vs non-urban (should not be in UMDB)
+        - Environment type
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: current
+    attributes:
+      label: Current value
+  - type: input
+    id: correct
+    attributes:
+      label: Correct value
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Quote the BioSample attribute, BioProject description or publication text that supports the correction, with a link or DOI.
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - label: This looks like a pattern affecting many records, not just one

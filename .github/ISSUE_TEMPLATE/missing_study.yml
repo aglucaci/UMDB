@@ -1,0 +1,38 @@
+name: Missing study
+description: A public urban microbiome study that UMDB does not include
+labels: ["missing-study"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks! Check the [explorer](https://aglucaci.github.io/UMDB/explorer.html) first to confirm the BioProject is not already listed.
+  - type: input
+    id: bioproject
+    attributes:
+      label: BioProject accession(s)
+      placeholder: PRJNA123456
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Urban environment sampled
+      options:
+        - Transit / public surfaces
+        - Built environment (indoor)
+        - Air / dust / aerosol
+        - Wastewater / sewage / stormwater
+        - Urban soil / greenspace
+        - Urban waterway
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: publication
+    attributes:
+      label: Publication (DOI or link), if any
+  - type: textarea
+    id: notes
+    attributes:
+      label: Why it belongs in UMDB
+      description: Anything that shows the samples come from an urban environment (not just from an organisation located in a city).

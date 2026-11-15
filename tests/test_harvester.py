@@ -6,10 +6,11 @@ from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
-from urbanscope_harvester import ncbi  # noqa: E402
-from urbanscope_harvester.assay import classify_assay  # noqa: E402
-from urbanscope_harvester.biosample import infer_geo, parse_geo_loc_name  # noqa: E402
-from urbanscope_harvester.config import QUERY_PROFILES  # noqa: E402
+from umdb_harvester import ncbi  # noqa: E402
+from umdb_harvester.assay import classify_assay  # noqa: E402
+from umdb_harvester.biosample import infer_geo, parse_geo_loc_name  # noqa: E402
+from umdb_harvester.config import QUERY_PROFILES  # noqa: E402
+from umdb_harvester.eligibility import assess_eligibility  # noqa: E402
 
 
 def row(strategy="", source="", selection="", name=""):
@@ -113,6 +114,232 @@ class NcbiTests(unittest.TestCase):
             out, _ = ncbi.esummary_sra(uids)
         self.assertEqual(len(out), 1200)
         self.assertTrue(all(n <= ncbi.ESUMMARY_BATCH_SIZE for n in calls))
+
+
+class DateSearchTests(unittest.TestCase):
+    def test_day_search_uses_pdat_and_slash_dates(self):
+        # SRA ignores datetype=edat and ISO dashes; both silently return zero hits.
+        import urllib.parse
+        seen = {}
+
+        def fake_get(url):
+            seen.update(urllib.parse.parse_qs(urllib.parse.urlparse(url).query))
+            return b"<eSearchResult><IdList/></eSearchResult>"
+
+        with mock.patch.object(ncbi, "http_get", side_effect=fake_get):
+            ncbi.esearch_day("sra", "wastewater", "2024-06-12", 10)
+        self.assertEqual(seen["datetype"], ["pdat"])
+        self.assertEqual(seen["mindate"], ["2024/06/12"])
+        self.assertEqual(seen["maxdate"], ["2024/06/12"])
+
+    def test_recent_search_uses_pdat(self):
+        import urllib.parse
+        seen = {}
+
+        def fake_get(url):
+            seen.update(urllib.parse.parse_qs(urllib.parse.urlparse(url).query))
+            return b"<eSearchResult><IdList/></eSearchResult>"
+
+        with mock.patch.object(ncbi, "http_get", side_effect=fake_get):
+            ncbi.esearch_recent("sra", "wastewater", 7, 10)
+        self.assertEqual(seen["datetype"], ["pdat"])
+
+
+def rec_with(organism, city="", city_status="parsed", project_title=""):
+    return {
+        "runinfo_row": {"ScientificName": organism},
+        "geo": {"city": city, "city_status": city_status},
+        "bioproject": {"title": project_title, "description": ""},
+    }
+
+
+def bs(**attrs):
+    return {"attributes": attrs, "title": ""}
+
+
+class EligibilityTests(unittest.TestCase):
+    def tier(self, rec, biosample=None):
+        return assess_eligibility(rec, biosample or {}, rec["bioproject"])["status"]
+
+    # Stage 2: environmental eligibility
+    def test_human_gut_is_non_environmental(self):
+        r = rec_with("human gut metagenome", city="New York City")
+        self.assertEqual(self.tier(r, bs(host="Homo sapiens", isolation_source="stool")), "non_environmental")
+
+    def test_clinical_blood_in_city_is_non_environmental(self):
+        r = rec_with("metagenome", city="Boston")
+        self.assertEqual(self.tier(r, bs(isolation_source="human blood")), "non_environmental")
+
+    def test_clinical_isolate_is_non_environmental(self):
+        r = rec_with("Staphylococcus aureus", city="Iowa City")
+        self.assertEqual(self.tier(r, bs(isolation_source="patient sputum")), "non_environmental")
+
+    def test_lab_material_is_non_environmental(self):
+        r = rec_with("bioreactor metagenome", city="Nanjing")
+        self.assertEqual(self.tier(r), "non_environmental")
+
+    def test_no_environmental_evidence_is_uncertain(self):
+        self.assertEqual(self.tier(rec_with("metagenome", city="Chicago")), "uncertain")
+
+    def test_isolate_from_wastewater_is_uncertain(self):
+        r = rec_with("Escherichia coli")
+        self.assertEqual(self.tier(r, bs(isolation_source="wastewater")), "uncertain")
+
+    def test_host_field_holding_environment_is_not_a_host(self):
+        r = rec_with("wastewater metagenome", city="Zurich")
+        self.assertEqual(self.tier(r, bs(host="Wastewater")), "probable_urban")
+
+    # Stage 3: urban origin
+    def test_explicit_building_setting_urban(self):
+        r = rec_with("metagenome")
+        self.assertEqual(self.tier(r, bs(building_setting="urban", isolation_source="surface swab")), "confirmed_urban")
+
+    def test_subway_handrail_is_confirmed(self):
+        r = rec_with("metagenome", city="New York City")
+        self.assertEqual(self.tier(r, bs(isolation_source="subway handrail")), "confirmed_urban")
+
+    def test_municipal_wastewater_influent_is_confirmed(self):
+        r = rec_with("wastewater metagenome")
+        self.assertEqual(self.tier(r, bs(isolation_source="municipal wastewater influent")), "confirmed_urban")
+
+    def test_city_alone_gives_probable(self):
+        r = rec_with("soil metagenome", city="Chicago")
+        self.assertEqual(self.tier(r, bs(isolation_source="soil")), "probable_urban")
+
+    def test_project_context_alone_gives_probable(self):
+        r = rec_with("air metagenome", project_title="Microbiome of the New York City subway")
+        self.assertEqual(self.tier(r), "probable_urban")
+
+    def test_wastewater_surveillance_project_gives_probable(self):
+        r = rec_with("wastewater metagenome", project_title="Wastewater surveillance of respiratory viruses")
+        self.assertEqual(self.tier(r), "probable_urban")
+
+    def test_wastewater_without_urban_evidence_is_uncertain(self):
+        self.assertEqual(self.tier(rec_with("wastewater metagenome")), "uncertain")
+
+    def test_ambiguous_state_city_is_uncertain(self):
+        r = rec_with("freshwater metagenome", city="", city_status="region_only")
+        self.assertEqual(self.tier(r, bs(env_medium="freshwater")), "uncertain")
+
+    def test_rural_site_is_non_urban(self):
+        r = rec_with("soil metagenome")
+        r["geo"]["raw"] = "USA: rural Pennsylvania"
+        self.assertEqual(self.tier(r, bs(env_medium="soil")), "non_urban")
+        self.assertEqual(self.tier(rec_with("metagenome"), bs(built_struc_set="rural", env_medium="dust")), "non_urban")
+
+    def test_swine_wastewater_is_non_urban(self):
+        r = rec_with("wastewater metagenome", city="Xinxing", project_title="Metagenomes of swine wastewater")
+        self.assertEqual(self.tier(r), "non_urban")
+
+    def test_space_station_is_non_urban(self):
+        r = rec_with("indoor metagenome", project_title="Microbial mapping of the ISS environment")
+        self.assertEqual(self.tier(r, bs(isolation_source="indoor surface")), "non_urban")
+
+    def test_urban_soil_needs_urban_evidence(self):
+        self.assertEqual(self.tier(rec_with("soil metagenome"), bs(env_medium="soil")), "uncertain")
+        self.assertEqual(self.tier(rec_with("soil metagenome"), bs(env_broad_scale="urban biome", env_medium="soil")), "confirmed_urban")
+
+    # Stage 4: annotation
+    def test_result_records_structured_evidence(self):
+        r = rec_with("air metagenome", city="Shanghai")
+        r["geo"].update({"raw": "China: Shanghai", "raw_field": "geo_loc_name"})
+        out = assess_eligibility(r, bs(isolation_source="subway platform air"), {})
+        self.assertEqual(out["status"], "confirmed_urban")
+        self.assertIn("transit", out["urban_context"])
+        self.assertEqual(out["location_resolution"], "city")
+        self.assertEqual(out["location_validation"], "plausible")
+        self.assertTrue(out["environmental_sample"])
+        self.assertEqual(out["decision_method"], "rules")
+        fields = {(e["source"], e["field"], e["signal"]) for e in out["evidence"]}
+        self.assertIn(("BioSample", "isolation_source", "urban_infrastructure"), fields)
+        self.assertIn(("BioSample", "geo_loc_name", "urban_location"), fields)
+
+
+class CatalogReadTests(unittest.TestCase):
+    def test_part_files_are_read_once(self):
+        import json, tempfile
+        from umdb_harvester import exports
+        from umdb_harvester.utils import iter_jsonl_glob
+        with tempfile.TemporaryDirectory() as d:
+            for name, runs in (("srr_catalog_2026.jsonl", ["A", "B"]),
+                               ("srr_catalog_2026_part000.jsonl", ["C"]),
+                               ("srr_catalog_2026_part001.jsonl", ["D"]),
+                               ("srr_catalog_2025.jsonl", ["E"])):
+                with open(os.path.join(d, name), "w") as fh:
+                    fh.writelines(json.dumps({"srr": r}) + "\n" for r in runs)
+            with mock.patch.object(exports, "DATA_DIR", d):
+                bases = exports._find_year_catalog_prefixes()
+            self.assertEqual([os.path.basename(b) for b in bases], ["srr_catalog_2025.jsonl", "srr_catalog_2026.jsonl"])
+            runs = [r["srr"] for b in bases for r in iter_jsonl_glob(b)]
+            self.assertEqual(sorted(runs), ["A", "B", "C", "D", "E"])
+
+
+class RefreshTests(unittest.TestCase):
+    def _write(self, d, name, recs):
+        import json
+        with open(os.path.join(d, name), "w") as fh:
+            fh.writelines(json.dumps(r) + "\n" for r in recs)
+
+    def test_newest_record_wins_and_compaction_drops_superseded(self):
+        import tempfile
+        from umdb_harvester import exports
+        from umdb_harvester.utils import iter_jsonl_glob
+        old = {"srr": "SRR1", "title": "old", "provenance": {"ingested_utc": "2026-01-01T00:00:00Z"}}
+        new = {"srr": "SRR1", "title": "new", "provenance": {"ingested_utc": "2026-11-15T00:00:00Z"}}
+        other = {"srr": "SRR2", "provenance": {"ingested_utc": "2026-02-01T00:00:00Z"}}
+        with tempfile.TemporaryDirectory() as d:
+            # The refreshed record lands in an older year's file: newest timestamp must still win.
+            self._write(d, "srr_catalog_2026.jsonl", [old, other])
+            self._write(d, "srr_catalog_2024.jsonl", [new])
+            with mock.patch.object(exports, "DATA_DIR", d):
+                bases = exports._find_year_catalog_prefixes()
+                winners = exports.latest_record_positions(bases)
+                kept = [rec for pos, _, rec in exports._iter_catalog(bases) if winners[rec["srr"]] == pos]
+                self.assertEqual(sorted((r["srr"], r.get("title")) for r in kept), [("SRR1", "new"), ("SRR2", None)])
+                stats = exports.compact_catalog()
+                bases = exports._find_year_catalog_prefixes()
+            self.assertEqual(stats, {"records_before": 3, "records_after": 2, "superseded_removed": 1})
+            after = [r for b in bases for r in iter_jsonl_glob(b)]
+            self.assertEqual(sorted((r["srr"], r.get("title")) for r in after), [("SRR1", "new"), ("SRR2", None)])
+            self.assertFalse([n for n in os.listdir(d) if n.startswith("umdb_compact_")])
+
+    def test_day_search_pages_until_count(self):
+        import urllib.parse
+        calls = []
+
+        def fake_get(url):
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+            start, size = int(q["retstart"][0]), int(q["retmax"][0])
+            calls.append((start, size))
+            ids = "".join(f"<Id>{i}</Id>" for i in range(start, min(start + size, 25000)))
+            return f"<eSearchResult><Count>25000</Count><IdList>{ids}</IdList></eSearchResult>".encode()
+
+        with mock.patch.object(ncbi, "http_get", side_effect=fake_get):
+            ids, _ = ncbi.esearch_day("sra", "x", "2024-01-01", 0)
+            capped, _ = ncbi.esearch_day("sra", "x", "2024-01-01", 500)
+        self.assertEqual(len(ids), 25000)
+        self.assertEqual(len(set(ids)), 25000)
+        self.assertEqual(calls[:3], [(0, 10000), (10000, 10000), (20000, 10000)])
+        self.assertEqual(len(capped), 500)
+
+    def test_refresh_reingests_seen_runs_without_duplicating_seen_lists(self):
+        from umdb_harvester import ingest
+        fake_rows = [{"srr": "SRR9", "sra_uid": "1"}]
+        with mock.patch.object(ingest, "build_srr_records_for_sra_uid", return_value=(fake_rows, {})), \
+             mock.patch.object(ingest, "append_lines") as append_lines:
+            seen_sra, seen_srr = {"1"}, {"SRR9"}
+            added, report = ingest.ingest_uids_to_srr(
+                tag="t", uids=["1"], summaries={}, biosample_cache={}, bp_cache={}, bp_uid_cache={},
+                seen_sra=seen_sra, seen_srr=seen_srr, fetch_biosample=False, fetch_bioproject=False,
+                debug=False, runinfo_max_rows=0, refresh=False)
+            self.assertEqual(added, [])
+            added, report = ingest.ingest_uids_to_srr(
+                tag="t", uids=["1"], summaries={}, biosample_cache={}, bp_cache={}, bp_uid_cache={},
+                seen_sra=seen_sra, seen_srr=seen_srr, fetch_biosample=False, fetch_bioproject=False,
+                debug=False, runinfo_max_rows=0, refresh=True)
+            self.assertEqual([r["srr"] for r in added], ["SRR9"])
+            self.assertEqual(report["counters"].get("srr_refreshed"), 1)
+            append_lines.assert_not_called()
 
 
 class QueryProfileTests(unittest.TestCase):

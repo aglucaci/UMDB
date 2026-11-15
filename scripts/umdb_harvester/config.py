@@ -1,0 +1,273 @@
+from __future__ import annotations
+import os, re
+
+
+def _load_dotenv(path: str = ".env") -> None:
+    """Load KEY=value lines from a local .env file (stdlib only).
+
+    Variables already set in the environment win, so CI secrets and one-off
+    `export`s override the file. Blank lines and # comments are ignored;
+    surrounding single/double quotes are stripped.
+    """
+    try:
+        with open(path, encoding="utf-8") as fh:
+            lines = fh.readlines()
+    except OSError:
+        return
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.removeprefix("export ").strip()
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
+            value = value[1:-1]
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+_load_dotenv(os.getenv("UMDB_ENV_FILE", ".env"))
+
+# NCBI / Eutils
+EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
+NCBI_API_KEY = os.getenv("NCBI_API_KEY", "").strip()
+TOOL_NAME = os.getenv("NCBI_TOOL", "umdb-srr-harvester")
+NCBI_EMAIL = os.getenv("NCBI_EMAIL", "")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()
+
+"""
+DEFAULT_QUERY = (
+    '((urban OR city OR cities OR subway OR transit OR "built environment" '
+    'OR wastewater OR sewage OR stormwater OR "public transit" OR "surface swab") '
+    'AND (microbiome OR metagenom* OR metatranscriptom* OR "shotgun metagenomic" '
+    'OR "environmental swab" OR "RNA-seq" OR "amplicon"))'
+)
+"""
+
+"""
+DEFAULT_QUERY = (
+    '('
+    '('
+        'urban OR city OR cities OR metropolitan OR municipal OR '
+        '"built environment" OR infrastructure OR '
+        'subway OR metro OR transit OR railway OR airport OR '
+        'wastewater OR sewage OR stormwater OR '
+        'sidewalk OR street OR road OR pavement OR '
+        'building OR housing OR hospital OR school OR '
+        'surface OR fomite OR air OR aerosol'
+    ') '
+    'AND '
+    '('
+        'metagenom* OR metatranscriptom* OR '
+        '"shotgun sequencing" OR '
+        '"shotgun metagenomic" OR '
+        '"environmental sequencing" OR '
+        '"environmental DNA" OR eDNA OR '
+        '"RNA sequencing" OR RNA-seq OR '
+        'microbiome OR microbiota OR '
+        'amplicon OR 16S OR 18S OR ITS'
+    ')'
+    ')'
+)
+"""
+
+"""
+DEFAULT_QUERY = (
+    '('
+      '('
+        # Urban/city constraint (strong)
+        '(urban OR "built environment" OR city OR cities OR metropolitan OR municipal OR '
+        'subway OR metro OR transit OR railway OR airport OR '
+        'wastewater OR sewage OR stormwater OR '
+        '"public transport" OR "public transit" OR '
+        'sidewalk OR street OR pavement OR '
+        'building OR housing OR hospital OR school OR '
+        '"surface swab" OR surface OR fomite OR air OR aerosol)'
+      ') '
+      'AND '
+      '('
+        # Shotgun WGS metagenomics OR metatranscriptomics constraint (strong)
+        '("shotgun metagenom*" OR "shotgun sequencing" OR "whole genome shotgun" OR WGS OR '
+        'metagenom* OR metatranscriptom* OR "total RNA" OR "metatranscriptome")'
+      ') '
+      'AND '
+      '('
+        # Environmental sampling signal (helps keep it non-host and non-clinical)
+        '(environment* OR "built environment" OR wastewater OR sewage OR stormwater OR '
+        'surface OR swab OR air OR aerosol)'
+      ') '
+      'NOT '
+      '('
+        # Exclude amplicon / marker-gene / targeted assays
+        'amplicon OR "marker gene" OR "16S" OR "16S rRNA" OR "18S" OR "ITS" OR '
+        '"COI" OR "barcod*" OR "qPCR" OR "PCR amplicon" OR "V3-V4" OR "V4 region"'
+      ')'
+    ')'
+)
+
+"""
+
+# Bump whenever any profile string changes; recorded in harvest reports so a
+# release can state exactly which discovery queries produced it.
+#   2026.11 - stop excluding soil/sediment/freshwater/river/lake (urban soils and
+#             waterways are in scope; eligibility is decided by sampling context)
+#             and "plant" (which silently dropped "wastewater treatment plant").
+QUERY_PROFILES_VERSION = "2026.11"
+
+QUERY_PROFILES = {
+    "urban_shotgun": (
+        '('
+          '('
+            '"urban" OR "city" OR "cities" OR metropolitan OR municipal OR '
+            '"built environment" OR "built-environment" OR '
+            'subway OR metro OR transit OR railway OR airport OR station OR '
+            '"public transit" OR "public transport" OR '
+            'wastewater OR sewage OR sewer OR stormwater OR '
+            'street OR sidewalk OR pavement OR road OR '
+            'building OR buildings OR housing OR dormitory OR hospital OR school OR campus OR '
+            '"surface swab" OR fomite OR surface OR '
+            'air OR aerosol OR dust'
+          ') '
+          'AND '
+          '('
+            '"whole genome shotgun" OR '
+            '"shotgun metagenom*" OR '
+            '"shotgun sequencing" OR '
+            'metagenom* OR '
+            'metatranscriptom* OR '
+            '"total RNA sequencing" OR '
+            '"metatranscriptome sequencing" OR '
+            'microbiome OR microbiota'
+          ') '
+          'AND '
+          '('
+            'environment* OR "built environment" OR wastewater OR sewage OR sewer OR stormwater OR '
+            'surface OR swab OR air OR aerosol OR dust'
+          ') '
+          'NOT '
+          '('
+            '"single-cell" OR scRNA OR "whole exome" OR WES OR '
+            'marine OR ocean OR '
+            'forest OR agricultur* OR farm OR rhizosphere'
+          ')'
+        ')'
+    ),
+    "urban_amplicon": (
+        '('
+          '('
+            '"urban" OR "city" OR "cities" OR metropolitan OR municipal OR '
+            '"built environment" OR "built-environment" OR '
+            'subway OR metro OR transit OR railway OR airport OR station OR '
+            'wastewater OR sewage OR sewer OR stormwater OR '
+            'street OR sidewalk OR pavement OR road OR '
+            'building OR buildings OR housing OR hospital OR school OR campus OR '
+            'surface OR swab OR fomite OR air OR aerosol OR dust'
+          ') '
+          'AND '
+          '('
+            'amplicon OR "marker gene" OR "16S" OR "16S rRNA" OR "18S" OR ITS OR '
+            '"V3-V4" OR "V4 region" OR "internal transcribed spacer" OR microbiome OR microbiota'
+          ') '
+          'AND '
+          '('
+            'environment* OR wastewater OR sewage OR sewer OR stormwater OR '
+            '"built environment" OR surface OR swab OR air OR aerosol OR dust'
+          ') '
+          'NOT '
+          '('
+            '"single-cell" OR scRNA OR "whole exome" OR WES OR '
+            'marine OR ocean OR '
+            'forest OR agricultur* OR farm OR rhizosphere'
+          ')'
+        ')'
+    ),
+    "wastewater_surveillance": (
+        '('
+          '('
+            'wastewater OR sewage OR sewer OR stormwater OR influent OR effluent OR sludge OR '
+            '"waste water" OR "waste-water"'
+          ') '
+          'AND '
+          '('
+            'urban OR city OR cities OR metropolitan OR municipal OR community OR public'
+          ') '
+          'AND '
+          '('
+            'microbiome OR microbiota OR metagenom* OR metatranscriptom* OR '
+            'amplicon OR "16S" OR ITS OR virome'
+          ')'
+        ')'
+    ),
+    "transit_and_surface": (
+        '('
+          '('
+            'subway OR metro OR transit OR railway OR train OR bus OR airport OR terminal OR station OR '
+            '"public transit" OR "public transport" OR '
+            'surface OR swab OR fomite OR handrail OR turnstile OR bench OR kiosk'
+          ') '
+          'AND '
+          '('
+            'microbiome OR microbiota OR metagenom* OR metatranscriptom* OR amplicon OR "16S" OR ITS'
+          ')'
+        ')'
+    ),
+    "air_and_dust": (
+        '('
+          '('
+            'urban OR city OR cities OR metropolitan OR municipal OR '
+            '"built environment" OR building OR hospital OR school OR classroom OR office'
+          ') '
+          'AND '
+          '('
+            'air OR aerosol OR bioaerosol OR dust OR particulate'
+          ') '
+          'AND '
+          '('
+            'microbiome OR microbiota OR metagenom* OR metatranscriptom* OR amplicon OR "16S" OR ITS'
+          ')'
+        ')'
+    )
+}
+
+DEFAULT_QUERY_PROFILE_NAMES = [
+    "urban_shotgun",
+    "urban_amplicon",
+    "wastewater_surveillance",
+    "transit_and_surface",
+    "air_and_dust",
+]
+
+DEFAULT_QUERY = QUERY_PROFILES["urban_shotgun"]
+
+
+
+
+
+
+
+# Paths
+DATA_DIR = "data"
+DOCS_DIR = "docs"
+DB_DIR = f"{DOCS_DIR}/db"
+CACHE_DIR = f"{DATA_DIR}/cache"
+DEBUG_DIR = f"{DATA_DIR}/debug"
+DOCS_DEBUG_DIR = f"{DOCS_DIR}/debug"
+
+SEEN_SRA_UIDS = f"{DATA_DIR}/seen_sra_uids.txt"
+SEEN_SRR_RUNS = f"{DATA_DIR}/seen_srr_runs.txt"
+
+BIOSAMPLE_CACHE = f"{CACHE_DIR}/biosample.json"
+BIOPROJECT_CACHE = f"{CACHE_DIR}/bioproject.json"
+BIOPROJECT_UID_CACHE = f"{CACHE_DIR}/bioproject_uid.json"
+AI_CURATION_CACHE = f"{CACHE_DIR}/ai_curation.json"
+
+DOCS_LATEST_SRR = f"{DOCS_DIR}/latest_srr.json"
+DOCS_LATEST_DEBUG = f"{DOCS_DEBUG_DIR}/latest_report.json"
+
+BIOPROJECT_RE = re.compile(r"\bPRJ(?:NA|EB|DB)\d+\b", re.I)
+
+# 50MB limit
+MAX_OUTPUT_BYTES = 50 * 1024 * 1024

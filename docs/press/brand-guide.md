@@ -54,4 +54,4 @@ Suggested attribution line:
 
 - Refer to the resource as `UMDB` on second reference after introducing the full name once.
 - Keep the expanded form as `Urban Microbiome Database`.
-- Do not refer to the current public-facing identity as `UrbanScope`.
+- Do not use earlier or informal project names for the public-facing identity.

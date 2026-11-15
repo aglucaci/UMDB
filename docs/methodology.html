@@ -143,8 +143,13 @@
               UMDB queries public NCBI-linked resources with one or more urban-environment query profiles rather than relying on a single keyword expression. This increases recall for studies described with different vocabulary.
             </div>
             <div class="info-item">
+              <strong>How "urban" is decided (inclusion criteria)</strong>
+              A run enters UMDB if its SRA experiment matches at least one of five keyword query profiles, searched across all NCBI fields. A sample-level eligibility screen then checks, for every run, that the material is an environmental sample (not host, clinical or laboratory material) and that there is evidence of urban origin. It labels each run <span class="mono">confirmed_urban</span>, <span class="mono">probable_urban</span>, <span class="mono">uncertain</span>, <span class="mono">non_urban</span> or <span class="mono">non_environmental</span>, and records the evidence. Confirmed requires sample-level urban evidence (explicit urban setting or named urban infrastructure); a city name alone gives at most probable. Nothing is deleted: use the explorer's <em>Urban eligibility</em> filter or the <span class="mono">eligibility.status</span> field. The rules are not yet benchmarked against expert labels.
+              <a href="https://github.com/aglucaci/UMDB/blob/main/INCLUSION_CRITERIA.md">Full inclusion criteria, exact queries, and filtering recipes</a>.
+            </div>
+            <div class="info-item">
               <strong>Primary execution commands</strong>
-              The harvester is driven through <span class="mono">python3 -m scripts.UMDB_harvester.cli</span> with the main commands <span class="mono">crawl</span>, <span class="mono">daily</span>, <span class="mono">backfill-year</span>, and <span class="mono">curate-ai</span>.
+              The harvester is driven through <span class="mono">python3 -m scripts.umdb_harvester</span> with the main commands <span class="mono">crawl</span>, <span class="mono">daily</span>, <span class="mono">backfill-year</span>, and <span class="mono">curate-ai</span>.
             </div>
             <div class="info-item">
               <strong>Run-level accumulation</strong>

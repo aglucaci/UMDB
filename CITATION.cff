@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: >-
+  If you use UMDB, please cite it as below and state the date or commit of the
+  release you used, since the catalog is updated continuously.
+title: "UMDB: Urban Microbiome Database"
+abstract: >-
+  An openly accessible, continuously updated index of public urban environmental
+  sequencing metadata (NCBI SRA runs with BioSample and BioProject context),
+  with harmonized geographic and assay annotations and AI-assisted metadata review.
+type: software
+license: CC-BY-NC-SA-4.0
+authors:
+  - family-names: Lucaci
+    given-names: Alexander G.
+repository-code: "https://github.com/aglucaci/UMDB"
+url: "https://aglucaci.github.io/UMDB/"
+keywords:
+  - urban microbiome
+  - metagenomics
+  - built environment
+  - wastewater surveillance
+  - metadata harmonization
+  - NCBI SRA

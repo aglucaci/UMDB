@@ -572,6 +572,19 @@
                   </div>
                 </div>
 
+                <div style="margin-top:10px">
+                  <label for="eligibility">Urban eligibility <a class="small" href="https://github.com/aglucaci/UMDB/blob/main/INCLUSION_CRITERIA.md" target="_blank" rel="noopener">(how?)</a></label>
+                  <select id="eligibility">
+                    <option value="">(any)</option>
+                    <option value="confirmed">Confirmed urban only</option>
+                    <option value="likely">Confirmed + probable urban</option>
+                    <option value="not_excluded">Exclude non-urban and non-environmental</option>
+                    <option value="uncertain">Uncertain only</option>
+                    <option value="non_urban">Non-urban only</option>
+                    <option value="non_environmental">Non-environmental only (host, clinical, lab)</option>
+                  </select>
+                </div>
+
                 <div class="two" style="margin-top:10px">
                   <div>
                     <label>Min year</label>
@@ -829,6 +842,7 @@
 
   const q = el("q");
   const assay = el("assay");
+  const eligibility = el("eligibility");
   const country = el("country");
   const city = el("city");
   const center = el("center");
@@ -997,6 +1011,18 @@
   function getBPTitle(rec) {
     return rec?.bioproject?.title || rec?.bioproject?.bioproject_title || rec?.bioproject?.name || "";
   }
+  // Rule-based eligibility tier assigned at export (see INCLUSION_CRITERIA.md).
+  function getEligibility(rec) {
+    return lower(rec?.eligibility?.status || "unscreened");
+  }
+  const ELIGIBILITY_SETS = {
+    confirmed: new Set(["confirmed_urban"]),
+    likely: new Set(["confirmed_urban", "probable_urban"]),
+    not_excluded: new Set(["confirmed_urban", "probable_urban", "uncertain", "unscreened"]),
+    uncertain: new Set(["uncertain"]),
+    non_urban: new Set(["non_urban"]),
+    non_environmental: new Set(["non_environmental"]),
+  };
   function getAiCuration(rec) {
     return rec?.ai_curation || {};
   }
@@ -1463,6 +1489,10 @@
     if (wantAiUrbanOnly) {
       if (!p.runs.some(r => getAiUrbanOrigin(r) === "urban")) return false;
     }
+    const eligSet = eligibility ? ELIGIBILITY_SETS[eligibility.value] : null;
+    if (eligSet) {
+      if (!p.runs.some(r => eligSet.has(getEligibility(r)))) return false;
+    }
 
     if (parsedQ.fields.length || parsedQ.terms.length) {
       const blob = projectSearchBlob(p);
@@ -1712,6 +1742,14 @@
       const aiNote = ai?.reviewed
         ? [ai.ai_fixed ? "AI-fixed" : "AI-reviewed", ai.metadata_sufficiency || "", ai.urban_origin || ""].filter(Boolean).join(" · ")
         : "";
+      const elig = rec?.eligibility?.status
+        ? [rec.eligibility.status.replace("_", " "), ...(rec.eligibility.urban_context || []).slice(0, 1).map(c => c.replace("_", " "))].join(" · ")
+        : "";
+      const eligTitle = rec?.eligibility
+        ? [...(rec.eligibility.reasons || []),
+           ...(Array.isArray(rec.eligibility.evidence) ? rec.eligibility.evidence : [])
+             .map(e => `${e.signal}: ${e.source} ${e.field} = ${e.value}`)].join("\n")
+        : "";
 
       return `
         <tr>
@@ -1724,6 +1762,7 @@
             }
             ${coordLabel ? `<div class="sub">Lat/Lon: <span class="mono">${escapeHtml(coordLabel)}</span></div>` : ``}
             ${aiNote ? `<div class="sub">${escapeHtml(aiNote)}</div>` : ``}
+            ${elig ? `<div class="sub" title="${escapeHtml(eligTitle)}">Eligibility: ${escapeHtml(elig)}</div>` : ``}
           </td>
           <td><span class="chip ${assay === "Unknown" ? "warn" : "good"}">${escapeHtml(assay)}</span></td>
           <td>${escapeHtml(ctry)}</td>
@@ -1993,6 +2032,7 @@
     if (aiFixedOnly) aiFixedOnly.checked = false;
     if (aiInsufficientOnly) aiInsufficientOnly.checked = false;
     if (aiUrbanOnly) aiUrbanOnly.checked = false;
+    if (eligibility) eligibility.value = "";
     if (requireGeo) requireGeo.checked = true;
     if (excludeUnknown) excludeUnknown.checked = true;
     perPageSel.value = "100";
@@ -2044,6 +2084,7 @@
         center: center.value,
         min_year: minYear.value,
         max_year: maxYear.value,
+        eligibility: eligibility ? eligibility.value : "",
         ai_filters: {
           reviewed_only: !!(aiReviewedOnly && aiReviewedOnly.checked),
           fixed_only: !!(aiFixedOnly && aiFixedOnly.checked),
@@ -2183,6 +2224,7 @@ echo "[UMDB] completed FASTQ export into $OUTDIR/fastq"
         center: center.value,
         min_year: minYear.value,
         max_year: maxYear.value,
+        eligibility: eligibility ? eligibility.value : "",
         ai_filters: {
           reviewed_only: !!(aiReviewedOnly && aiReviewedOnly.checked),
           fixed_only: !!(aiFixedOnly && aiFixedOnly.checked),
@@ -2245,6 +2287,7 @@ echo "[UMDB] completed FASTQ export into $OUTDIR/fastq"
   [aiReviewedOnly, aiFixedOnly, aiInsufficientOnly, aiUrbanOnly].forEach((box) => {
     if (box) box.addEventListener("change", applyFilters);
   });
+  if (eligibility) eligibility.addEventListener("change", applyFilters);
   if (requireGeo) requireGeo.addEventListener("change", applyFilters);
   if (excludeUnknown) excludeUnknown.addEventListener("change", applyFilters);
 

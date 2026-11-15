@@ -1,2 +1,12 @@
 __pycache__/
 *.py[cod]
+
+# Local settings (secrets)
+.env
+
+# Harvest logs and backfill progress markers
+logs/
+.claude/
+
+# macOS Finder metadata
+.DS_Store
