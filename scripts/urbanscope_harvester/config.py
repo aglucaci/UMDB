@@ -82,6 +82,13 @@ DEFAULT_QUERY = (
 
 """
 
+# Bump whenever any profile string changes; recorded in harvest reports so a
+# release can state exactly which discovery queries produced it.
+#   2026.11 - stop excluding soil/sediment/freshwater/river/lake (urban soils and
+#             waterways are in scope; eligibility is decided by sampling context)
+#             and "plant" (which silently dropped "wastewater treatment plant").
+QUERY_PROFILES_VERSION = "2026.11"
+
 QUERY_PROFILES = {
     "urban_shotgun": (
         '('
@@ -115,8 +122,8 @@ QUERY_PROFILES = {
           'NOT '
           '('
             '"single-cell" OR scRNA OR "whole exome" OR WES OR '
-            'soil OR sediment OR marine OR ocean OR freshwater OR river OR lake OR '
-            'forest OR agricultur* OR farm OR plant OR rhizosphere'
+            'marine OR ocean OR '
+            'forest OR agricultur* OR farm OR rhizosphere'
           ')'
         ')'
     ),
@@ -144,8 +151,8 @@ QUERY_PROFILES = {
           'NOT '
           '('
             '"single-cell" OR scRNA OR "whole exome" OR WES OR '
-            'soil OR sediment OR marine OR ocean OR freshwater OR river OR lake OR '
-            'forest OR agricultur* OR farm OR plant OR rhizosphere'
+            'marine OR ocean OR '
+            'forest OR agricultur* OR farm OR rhizosphere'
           ')'
         ')'
     ),

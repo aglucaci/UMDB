@@ -105,13 +105,137 @@ def biosample_display_card(bsd: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+US_STATES = {
+    "AL": "Alabama", "AK": "Alaska", "AZ": "Arizona", "AR": "Arkansas", "CA": "California",
+    "CO": "Colorado", "CT": "Connecticut", "DE": "Delaware", "FL": "Florida", "GA": "Georgia",
+    "HI": "Hawaii", "ID": "Idaho", "IL": "Illinois", "IN": "Indiana", "IA": "Iowa",
+    "KS": "Kansas", "KY": "Kentucky", "LA": "Louisiana", "ME": "Maine", "MD": "Maryland",
+    "MA": "Massachusetts", "MI": "Michigan", "MN": "Minnesota", "MS": "Mississippi", "MO": "Missouri",
+    "MT": "Montana", "NE": "Nebraska", "NV": "Nevada", "NH": "New Hampshire", "NJ": "New Jersey",
+    "NM": "New Mexico", "NY": "New York", "NC": "North Carolina", "ND": "North Dakota", "OH": "Ohio",
+    "OK": "Oklahoma", "OR": "Oregon", "PA": "Pennsylvania", "RI": "Rhode Island", "SC": "South Carolina",
+    "SD": "South Dakota", "TN": "Tennessee", "TX": "Texas", "UT": "Utah", "VT": "Vermont",
+    "VA": "Virginia", "WA": "Washington", "WV": "West Virginia", "WI": "Wisconsin", "WY": "Wyoming",
+    "DC": "District of Columbia",
+}
+US_STATE_NAMES = {v.lower() for v in US_STATES.values()}
+
+# Admin units below country level that are never a city.
+ADMIN_SUFFIX_RE = re.compile(
+    r"\b(province|state|county|prefecture|region|district|oblast|territory|governorate|"
+    r"canton|department|municipality of|autonomous region)\b",
+    re.I,
+)
+CANADIAN_PROVINCES = {
+    "alberta", "british columbia", "manitoba", "new brunswick", "newfoundland and labrador",
+    "nova scotia", "ontario", "prince edward island", "quebec", "saskatchewan",
+}
+CHINESE_PROVINCES = {
+    "anhui", "fujian", "gansu", "guangdong", "guangxi", "guizhou", "hainan", "hebei",
+    "heilongjiang", "henan", "hubei", "hunan", "jiangsu", "jiangxi", "jilin", "liaoning",
+    "inner mongolia", "ningxia", "qinghai", "shaanxi", "shandong", "shanxi", "sichuan",
+    "xinjiang", "tibet", "yunnan", "zhejiang",
+}
+CONTINENTS = {"africa", "asia", "europe", "north america", "south america", "oceania", "antarctica"}
+PLACEHOLDERS = {
+    "", "city", "cities", "multiple cities", "multiple", "various", "unknown", "missing",
+    "not applicable", "not collected", "not provided", "na", "n/a", "none", "null",
+    "restricted access", "not available",
+}
+MISSING_COUNTRY = {"missing", "not collected", "not provided", "not applicable", "unknown", "na", "n/a", "none"}
+
+
+def _classify_geo_token(tok: str) -> str:
+    """Return one of: placeholder, continent, us_state_abbrev, admin, locality."""
+    low = tok.strip().lower().rstrip(".")
+    if low in PLACEHOLDERS:
+        return "placeholder"
+    if low in CONTINENTS:
+        return "continent"
+    if tok.strip().upper() in US_STATES and len(tok.strip()) == 2:
+        return "us_state_abbrev"
+    if low in US_STATE_NAMES or low in CANADIAN_PROVINCES or low in CHINESE_PROVINCES or ADMIN_SUFFIX_RE.search(tok):
+        return "admin"
+    return "locality"
+
+
+def parse_geo_loc_name(raw_geo: str) -> Dict[str, Any]:
+    """Parse an INSDC geo_loc_name ("Country: free text") without guessing.
+
+    The text after the colon is free-form and submitters order it either way
+    ("NYC, NY" or "New York, Manhattan"), so tokens are classified rather than
+    picked by position. A city is only reported when a token looks like a
+    locality; states, provinces, counties and placeholders never become cities.
+    Results are text-level only and are NOT validated against a gazetteer.
+    """
+    out = {"country": "", "region": "", "city": "", "locality_tokens": [], "city_status": "missing", "flags": []}
+    raw_geo = (raw_geo or "").strip()
+    if not raw_geo:
+        return out
+
+    if ":" in raw_geo:
+        country, rest = raw_geo.split(":", 1)
+    else:
+        bits = [b.strip() for b in raw_geo.split(",") if b.strip()]
+        country, rest = (bits[0], ", ".join(bits[1:])) if bits else ("", "")
+        out["flags"].append("no_colon_delimiter")
+
+    country = country.strip()
+    if _norm(country) in MISSING_COUNTRY:
+        out["flags"].append("country_placeholder")
+        country = ""
+    out["country"] = country
+
+    tokens = [t.strip() for t in re.split(r"[,;]", rest) if t.strip()]
+    kinds = [_classify_geo_token(t) for t in tokens]
+
+    abbrev_states = {US_STATES[t.strip().upper()].lower() for t, k in zip(tokens, kinds) if k == "us_state_abbrev"}
+    regions: List[str] = []
+    localities: List[str] = []
+    for tok, kind in zip(tokens, kinds):
+        if kind == "us_state_abbrev":
+            regions.append(US_STATES[tok.strip().upper()])
+        elif kind == "admin":
+            # "New York, NY" / "Washington, DC": a state name next to its own
+            # abbreviation is the city of the same name.
+            if tok.lower() in abbrev_states and not localities:
+                localities.append(tok)
+                out["flags"].append("city_same_name_as_state")
+            else:
+                regions.append(tok)
+        elif kind == "locality":
+            localities.append(tok)
+        else:
+            out["flags"].append(f"{kind}_token")
+
+    out["region"] = regions[0] if regions else ""
+    out["locality_tokens"] = localities
+    if len(localities) == 1:
+        out["city"] = localities[0]
+        out["city_status"] = "parsed"
+    elif len(localities) > 1:
+        # Ambiguous order; keep the first locality (INSDC convention is
+        # general -> specific, but the most common submitter pattern is
+        # "City, State" which has already removed the state token).
+        out["city"] = localities[0]
+        out["city_status"] = "ambiguous"
+        out["flags"].append("multiple_locality_tokens")
+    elif regions:
+        out["city_status"] = "region_only"
+    elif tokens:
+        out["city_status"] = "placeholder"
+    return out
+
+
 def infer_geo(biosample_details: Dict[str, Any], fallbacks: List[str]) -> Dict[str, Any]:
     attrs = (biosample_details or {}).get("attributes", {}) if isinstance(biosample_details, dict) else {}
     raw_geo = ""
+    raw_geo_field = ""
 
-    for k in ["geo_loc_name", "geographic location", "geographic_location", "country", "location"]:
+    for k in ["geo_loc_name", "geographic location", "geographic_location", "geographic location (country and/or sea)", "country", "location"]:
         if k in attrs and attrs[k]:
             raw_geo = str(attrs[k]).strip()
+            raw_geo_field = k
             break
 
     lat = lon = ""
@@ -121,29 +245,22 @@ def infer_geo(biosample_details: Dict[str, Any], fallbacks: List[str]) -> Dict[s
             latlon = str(attrs[k]).strip()
             break
     if latlon:
-        m = re.search(r"(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)", latlon)
+        m = re.search(r"(-?\d+(?:\.\d+)?)\s*([NS])?\s*[, ]\s*(-?\d+(?:\.\d+)?)\s*([EW])?", latlon, re.I)
         if m:
-            lat, lon = m.group(1), m.group(2)
+            lat_v, ns, lon_v, ew = m.group(1), (m.group(2) or "").upper(), m.group(3), (m.group(4) or "").upper()
+            if ns == "S" and not lat_v.startswith("-"):
+                lat_v = "-" + lat_v
+            if ew == "W" and not lon_v.startswith("-"):
+                lon_v = "-" + lon_v
+            try:
+                if -90 <= float(lat_v) <= 90 and -180 <= float(lon_v) <= 180:
+                    lat, lon = lat_v, lon_v
+            except ValueError:
+                pass
 
-    country = city = region = ""
-    if raw_geo:
-        parts = [p.strip() for p in raw_geo.split(":")]
-        if len(parts) >= 2:
-            country = parts[0]
-            rest = ":".join(parts[1:])
-            bits = [b.strip() for b in rest.split(",") if b.strip()]
-            if bits:
-                city = bits[-1]
-                if len(bits) >= 2:
-                    region = bits[-2]
-        else:
-            bits = [b.strip() for b in raw_geo.split(",") if b.strip()]
-            if bits:
-                country = bits[0]
-                if len(bits) >= 2:
-                    city = bits[-1]
-                if len(bits) >= 3:
-                    region = bits[-2]
+    parsed = parse_geo_loc_name(raw_geo)
+    country = parsed["country"]
+    country_source = "biosample" if country else ""
 
     c_norm = _norm(country)
     if c_norm in COUNTRY_HINTS:
@@ -154,16 +271,24 @@ def infer_geo(biosample_details: Dict[str, Any], fallbacks: List[str]) -> Dict[s
     if not country and fallbacks:
         blob = _norm(" | ".join([x for x in fallbacks if x]))
         for k, v in COUNTRY_HINTS.items():
-            if k in blob:
+            if re.search(rf"\b{re.escape(k)}\b", blob):
                 country = v
+                country_source = "text_fallback"
                 break
 
     return {
         "country": country,
-        "region": region,
-        "city": city,
+        "region": parsed["region"],
+        "city": parsed["city"],
         "lat": lat,
         "lon": lon,
         "raw": raw_geo,
+        "raw_field": raw_geo_field,
+        "country_source": country_source,
+        "city_status": parsed["city_status"],
+        "locality_tokens": parsed["locality_tokens"],
+        "parse_flags": parsed["flags"],
+        "resolution": "text_parsed_unvalidated",
+        "collection_date": str(attrs.get("collection_date") or attrs.get("collection date") or "").strip(),
         "biosample_accession": (biosample_details or {}).get("accession", ""),
     }

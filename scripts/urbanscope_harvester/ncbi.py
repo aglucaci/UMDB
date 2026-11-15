@@ -86,7 +86,45 @@ def efetch_runinfo_text(uid: str) -> Tuple[str, str]:
     text = http_get(url).decode(errors="replace")
     return text, url
 
-def esummary_sra(uids: List[str]) -> Tuple[Dict[str, Dict[str, Any]], str]:
+ESUMMARY_BATCH_SIZE = 200
+
+
+def parse_sra_expxml(expxml: str) -> Dict[str, str]:
+    """Pull title/study/experiment fields out of the escaped ExpXml blob.
+
+    SRA esummary has no top-level Title item; the experiment title lives in
+    ExpXml as an XML fragment with several root elements.
+    """
+    if not expxml or not isinstance(expxml, str):
+        return {}
+    try:
+        root = ET.fromstring(f"<root>{expxml}</root>")
+    except ET.ParseError:
+        return {}
+    study = root.find("Study")
+    exp = root.find("Experiment")
+    org = root.find("Organism")
+    return {
+        "title": (root.findtext("Summary/Title") or "").strip(),
+        "study_accession": (study.attrib.get("acc", "") if study is not None else "").strip(),
+        "study_name": (study.attrib.get("name", "") if study is not None else "").strip(),
+        "experiment_accession": (exp.attrib.get("acc", "") if exp is not None else "").strip(),
+        "organism": (org.attrib.get("ScientificName", "") if org is not None else "").strip(),
+    }
+
+
+def esummary_sra(uids: List[str], batch_size: int = ESUMMARY_BATCH_SIZE) -> Tuple[Dict[str, Dict[str, Any]], str]:
+    """Summarize every UID, in batches (previous callers truncated to 500)."""
+    out: Dict[str, Dict[str, Any]] = {}
+    first_url = ""
+    for i in range(0, len(uids), batch_size):
+        batch_out, url = _esummary_sra_batch(uids[i:i + batch_size])
+        out.update(batch_out)
+        first_url = first_url or url
+    return out, first_url
+
+
+def _esummary_sra_batch(uids: List[str]) -> Tuple[Dict[str, Dict[str, Any]], str]:
     if not uids:
         return {}, ""
     root, url = esummary("sra", uids)
@@ -107,7 +145,8 @@ def esummary_sra(uids: List[str]) -> Tuple[Dict[str, Dict[str, Any]], str]:
             else:
                 items[name] = (it.text or "").strip()
 
-        title = (items.get("Title") or "").strip()
+        exp = parse_sra_expxml(items.get("ExpXml", "") if isinstance(items.get("ExpXml"), str) else "")
+        title = (items.get("Title") or exp.get("title") or "").strip()
 
         bioproject_guess = ""
         for v in items.values():
@@ -123,6 +162,13 @@ def esummary_sra(uids: List[str]) -> Tuple[Dict[str, Dict[str, Any]], str]:
                         bioproject_guess = m.group(0).upper()
                         break
 
-        out[uid] = {"uid": uid, "title": title, "bioproject_guess": bioproject_guess, "items": items}
+        out[uid] = {
+            "uid": uid,
+            "title": title,
+            "study_name": exp.get("study_name", ""),
+            "experiment_accession": exp.get("experiment_accession", ""),
+            "bioproject_guess": bioproject_guess,
+            "items": items,
+        }
 
     return out, url

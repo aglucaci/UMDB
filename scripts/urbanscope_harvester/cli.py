@@ -3,7 +3,7 @@ import argparse, datetime as dt, json
 from typing import Any, Dict, List
 
 from .config import (
-    DEFAULT_QUERY, QUERY_PROFILES, DEFAULT_QUERY_PROFILE_NAMES,
+    DEFAULT_QUERY, QUERY_PROFILES, DEFAULT_QUERY_PROFILE_NAMES, QUERY_PROFILES_VERSION,
     BIOSAMPLE_CACHE, BIOPROJECT_CACHE, BIOPROJECT_UID_CACHE, AI_CURATION_CACHE, OPENAI_MODEL, OPENAI_API_KEY,
     DOCS_LATEST_DEBUG, DATA_DIR, DB_DIR
 )
@@ -142,7 +142,7 @@ def run():
                     if uid not in seen_uids:
                         seen_uids.add(uid)
                         uids.append(uid)
-            summaries, esummary_url = esummary_sra(uids[:500])
+            summaries, esummary_url = esummary_sra(uids)
 
             if args.debug:
                 write_json(paths["initial"], {
@@ -216,7 +216,7 @@ def run():
                         if uid not in seen_uids:
                             seen_uids.add(uid)
                             uids.append(uid)
-                summaries, _ = esummary_sra(uids[:500])
+                summaries, _ = esummary_sra(uids)
 
                 added_srr, report = ingest_uids_to_srr(
                     tag=ds, uids=uids, summaries=summaries,
@@ -264,7 +264,7 @@ def run():
                 if not ids:
                     break
 
-                summaries, _ = esummary_sra(ids[:500])
+                summaries, _ = esummary_sra(ids)
                 tag = f"crawl_{page:06d}"
 
                 print("[INFO] calling def ingest_uids_to_srr, count total=", count_total, "total seen=", total_seen)
@@ -365,6 +365,8 @@ def run():
         write_latest_srr_safe(latest_added[:5000])
         write_json(DOCS_LATEST_DEBUG, {
             "generated_utc": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
+            "query_profiles_version": QUERY_PROFILES_VERSION,
+            "query_profiles": [spec["name"] for spec in query_specs],
             "reports": reports
         })
 

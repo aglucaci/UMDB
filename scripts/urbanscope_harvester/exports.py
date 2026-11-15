@@ -179,17 +179,45 @@ def build_summary(records_iter: Iterator[Dict[str, Any]], generated_utc: str = "
         "topProjects": project_rows[:25],
     }
 
+def refresh_derived_annotations(rec: Dict[str, Any], bs_cache: Dict[str, Any]) -> Dict[str, Any]:
+    """Recompute rule-derived geo and assay fields with the current rules.
+
+    Catalog JSONL files store whatever the classifiers produced at ingest time,
+    so rule fixes would otherwise only apply to newly harvested runs. Inputs
+    are the stored SRA run row and the cached BioSample record, so this is
+    deterministic and needs no network access.
+    """
+    from .assay import classify_assay
+    from .biosample import infer_geo
+
+    rec = dict(rec)
+    row = rec.get("runinfo_row") if isinstance(rec.get("runinfo_row"), dict) else {}
+    bs_acc = _norm(row.get("BioSample") or (rec.get("geo") or {}).get("biosample_accession"))
+    bsd = bs_cache.get(bs_acc) if bs_acc else None
+    bsd = bsd if isinstance(bsd, dict) and not bsd.get("error") else {}
+    title = rec.get("title") or ""
+
+    rec["assay"] = classify_assay(row, title, bsd)
+    if bsd:
+        rec["geo"] = infer_geo(bsd, fallbacks=[
+            title, row.get("SampleName", "") or "", row.get("Sample", "") or "",
+            row.get("Study", "") or "", row.get("BioProject", "") or "",
+        ])
+    return rec
+
+
 def rebuild_srr_exports_chunked():
     prefixes = _find_year_catalog_prefixes()
     from .config import BIOPROJECT_CACHE, BIOSAMPLE_CACHE, AI_CURATION_CACHE
     ai_cache = read_json(AI_CURATION_CACHE, {})
+    bs_cache = read_json(BIOSAMPLE_CACHE, {})
 
     def all_records() -> Iterator[Dict[str, Any]]:
         for base in prefixes:
             for rec in iter_jsonl_glob(base):
+                rec = refresh_derived_annotations(rec, bs_cache)
                 srr = (rec.get("srr") or rec.get("runinfo_row", {}).get("Run") or "").strip()
                 if srr and isinstance(ai_cache.get(srr), dict):
-                    rec = dict(rec)
                     rec["ai_curation"] = ai_cache[srr]
                 yield rec
 
@@ -204,33 +232,28 @@ def rebuild_srr_exports_chunked():
         m = re.search(r"srr_catalog_(\d{4})", os.path.basename(p))
         if m:
             years.add(int(m.group(1)))
-    manifest["years"] = sorted(years)
+    # Years of the srr_catalog_<YYYY>.jsonl files (harvest year), NOT run
+    # release years; see summary.json "years" for the release-date distribution.
+    manifest["catalog_file_years"] = sorted(years)
+    manifest.pop("years", None)
 
     write_json(os.path.join(DB_DIR, "srr_records_manifest.json"), manifest)
     write_json(os.path.join(DB_DIR, "srr_index.json"), {
         "generated": utc_now(),
         "total_srr_records": manifest["total_records"],
         "parts": [os.path.basename(x["path"]) for x in manifest["parts"]],
-        "years": manifest["years"],
+        "catalog_file_years": manifest["catalog_file_years"],
     })
 
     bp_cache = read_json(BIOPROJECT_CACHE, {})
     if bp_cache:
         write_json(os.path.join(DB_DIR, "bioprojects.json"), bp_cache)
-    bs_cache = read_json(BIOSAMPLE_CACHE, {})
     if bs_cache:
         write_json(os.path.join(DB_DIR, "biosamples.json"), bs_cache)
     if ai_cache:
         write_json(os.path.join(DB_DIR, "ai_curation.json"), ai_cache)
 
-    def summary_records() -> Iterator[Dict[str, Any]]:
-        for base in prefixes:
-            for rec in iter_jsonl_glob(base):
-                srr = (rec.get("srr") or rec.get("runinfo_row", {}).get("Run") or "").strip()
-                if srr and isinstance(ai_cache.get(srr), dict):
-                    rec = dict(rec)
-                    rec["ai_curation"] = ai_cache[srr]
-                yield rec
+    summary_records = all_records
 
     write_json(
         os.path.join(DB_DIR, "summary.json"),
