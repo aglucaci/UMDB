@@ -61,6 +61,33 @@
     .m-table td.num,.m-table th.num{text-align:right;font-variant-numeric:tabular-nums}
     .m-table tbody tr{cursor:pointer}
     .m-table tbody tr:hover{background:rgba(115,167,255,.05)}
+    .qi{min-width:200px;max-width:280px}
+    .qi strong{display:block;font-size:14px}
+    .qi .row{display:flex;justify-content:space-between;gap:12px;font-size:12px;margin-top:3px}
+    .qi .row span:first-child{color:var(--muted)}
+    .qi .hint{color:var(--muted);font-size:11px;margin-top:6px}
+    .sb{position:fixed;top:0;right:0;bottom:0;width:min(460px,100%);background:#0d1726;border-left:1px solid var(--line-strong);
+        z-index:50;overflow:auto;padding:18px 20px 40px;box-shadow:-20px 0 60px rgba(0,0,0,.45);transform:translateX(100%);transition:transform .2s ease}
+    .sb.open{transform:none}
+    .sb-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+    .sb h2{margin:10px 0 2px;font-size:19px;letter-spacing:-.02em}
+    .sb h3{margin:18px 0 6px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+    .sb .sub{color:var(--muted);font-size:13px}
+    .sb ul.samples{list-style:none;margin:10px 0 0;padding:0}
+    .sb ul.samples li button{all:unset;box-sizing:border-box;display:block;width:100%;padding:9px 10px;border-radius:12px;cursor:pointer;border:1px solid transparent}
+    .sb ul.samples li button:hover,.sb ul.samples li button:focus-visible{background:rgba(115,167,255,.08);border-color:var(--line)}
+    .sb ul.samples .acc{font-family:ui-monospace,Menlo,monospace;font-size:13px}
+    .sb ul.samples .meta{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+    .sb dl{display:grid;grid-template-columns:130px 1fr;gap:6px 12px;margin:0;font-size:13px}
+    .sb dt{color:var(--muted)}
+    .sb dd{margin:0;overflow-wrap:anywhere}
+    .badge{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11px;border:1px solid var(--line);white-space:nowrap;margin-left:4px}
+    .badge.verified{color:#9be7d2;border-color:rgba(78,197,168,.5)}
+    .badge.probable{color:#bcd3ff;border-color:rgba(115,167,255,.5)}
+    .badge.ambiguous,.badge.conflicting{color:#ffd9a0;border-color:rgba(255,207,112,.45)}
+    .badge.unresolved{color:var(--muted)}
+    .sb table{min-width:0;font-size:12px}
+    .sb td,.sb th{padding:6px 8px}
   </style>
 </head>
 <body>
@@ -139,6 +166,7 @@
   </footer>
 </div>
 
+<aside class="sb" id="sidebar" role="dialog" aria-modal="false" aria-label="Samples at this site" hidden></aside>
 <script src="./assets/db.js"></script>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
@@ -321,43 +349,121 @@
     return `${Math.abs(lat).toFixed(d)}° ${lat >= 0 ? "N" : "S"}, ${Math.abs(lon).toFixed(d)}° ${lon >= 0 ? "E" : "W"}`;
   }
 
-  // Click on a site: load the studies whose samples are there and list the
-  // matching BioSamples with their exact submitted coordinates.
-  let sitePopup = null;
-  async function showSite(feature, lngLat){
+  const TIER_TEXT = { confirmed_urban: "Confirmed urban", probable_urban: "Probable urban", uncertain: "Uncertain",
+                      non_urban: "Not urban", non_environmental: "Not environmental", unscreened: "Unscreened" };
+
+  // Hover card: what is known about a site without loading anything.
+  function quickInfo(pt){
+    const G = E.geo;
+    const places = [...pt.places.entries()].sort((a, b) => b[1] - a[1]);
+    const placeText = places.length
+      ? `${G.places[places[0][0]].name}, ${G.countries[G.places[places[0][0]].country]?.name || ""}${places.length > 1 ? ` (+${places.length - 1} more)` : ""}`
+      : (pt.countries.size === 1 ? `${G.countries[[...pt.countries][0]].name} (no validated city)` : "No validated place");
+    const studies = [...pt.projects];
+    const studyText = studies.length === 1
+      ? `${studies[0]}${E.projects.get(studies[0])?.title ? ": " + E.projects.get(studies[0]).title : ""}` : `${fmt(studies.length)} studies`;
+    const tiers = [...pt.tiers.entries()].sort((a, b) => b[1] - a[1]).map(([t, n]) => `${TIER_TEXT[t] || t} ${fmt(n)}`).join(" · ");
+    return `<div class="qi"><strong>${esc(placeText)}</strong>
+      <div class="row"><span>Coordinates</span><span class="mono">${coordText([pt.lon, pt.lat])}</span></div>
+      <div class="row"><span>BioSamples</span><span>${fmt(pt.n)}</span></div>
+      <div class="row"><span>Environment</span><span>${esc((CTX[pt.ctx] || CTX[""])[0])}</span></div>
+      <div class="row"><span>Urban status</span><span>${esc(tiers)}</span></div>
+      <div class="row"><span>Study</span><span>${esc(studyText.length > 70 ? studyText.slice(0, 68) + "…" : studyText)}</span></div>
+      <div class="hint">Click for the samples and their details</div></div>`;
+  }
+
+  // Side panel: the samples at a site, then one sample's full record.
+  const sb = () => $("sidebar");
+  let siteToken = 0, siteRows = [], sitePoint = null;
+  function closeSidebar(){ sb().classList.remove("open"); setTimeout(() => { sb().hidden = true; }, 200); siteToken += 1; }
+  function openSidebar(html){ sb().hidden = false; sb().innerHTML = html; requestAnimationFrame(() => sb().classList.add("open")); }
+  const sbHead = (back) => `<div class="sb-head">${back ? `<button type="button" class="btn" data-sb="back">← All samples here</button>` : "<span></span>"}
+      <button type="button" class="btn" data-sb="close" aria-label="Close panel">Close</button></div>`;
+
+  async function showSite(feature){
     const pt = (result.points || [])[feature.properties.pi];
     if (!pt) return;
-    if (sitePopup) sitePopup.remove();
-    sitePopup = new maplibregl.Popup({ maxWidth: "420px" }).setLngLat(lngLat)
-      .setHTML(`<strong>${coordText([pt.lon, pt.lat])}</strong> (rounded to 0.01°)<br>${fmt(pt.n)} BioSamples · loading…`).addTo(map);
-    const projects = [...pt.projects].slice(0, 12);
-    const rows = [];
+    const token = ++siteToken;
+    sitePoint = pt; siteRows = [];
+    const studies = [...pt.projects];
+    const load = studies.slice(0, 12);
+    const head = `${sbHead(false)}<h2>${coordText([pt.lon, pt.lat])}</h2>
+      <div class="sub">${fmt(pt.n)} BioSamples · ${esc((CTX[pt.ctx] || CTX[""])[0])} · ${fmt(studies.length)} ${studies.length === 1 ? "study" : "studies"}</div>`;
+    openSidebar(`${head}<p class="note" style="margin-top:12px">Loading samples…</p>`);
     const same = (v, w) => v != null && Math.round(v * 100) / 100 === w;
-    for (const acc of projects){
+    for (const acc of load){
       try {
-        const { samples, runs } = await U.fetchProject(acc);
-        const assays = new Map();
-        runs.forEach((r) => { const k = r._sample.accession; if (!assays.has(k)) assays.set(k, []); assays.get(k).push(r.assay.assay_class); });
-        for (const smp of samples){
-          if (!smp.accession || !same(smp.lat, pt.lat) || !same(smp.lon, pt.lon)) continue;
-          if ((smp.urban_context || "") !== pt.ctx) continue;
-          if (!E.sampleMatches(filters, smp, assays.get(smp.accession))) continue;
-          rows.push({ acc: smp.accession, project: acc, lat: smp.lat, lon: smp.lon, place: [smp.city, smp.country].filter(Boolean).join(", "),
-                      status: smp.location_status || "unresolved", date: smp.collection_date || "" });
+        const data = await U.fetchProject(acc);
+        if (token !== siteToken) return;
+        const runsBy = new Map();
+        data.runs.forEach((r) => { const k = r._sample.accession; if (!runsBy.has(k)) runsBy.set(k, []); runsBy.get(k).push(r); });
+        for (const smp of data.samples){
+          if (!smp.accession || !same(smp.lat, pt.lat) || !same(smp.lon, pt.lon) || (smp.urban_context || "") !== pt.ctx) continue;
+          const runs = runsBy.get(smp.accession) || [];
+          if (!E.sampleMatches(filters, smp, runs.map((r) => r.assay.assay_class))) continue;
+          siteRows.push({ smp, runs, project: data.project });
         }
       } catch (err) { /* skip a study that fails to load */ }
     }
-    if (!sitePopup.isOpen()) return;
-    const shown = rows.slice(0, 25);
-    sitePopup.setHTML(`<strong>${coordText([pt.lon, pt.lat])}</strong> (rounded to 0.01°)<br>${fmt(pt.n)} BioSamples${pt.projects.size > projects.length ? `, from ${fmt(pt.projects.size)} studies (first ${projects.length} loaded)` : ""}
-      <div style="max-height:240px;overflow:auto;margin-top:6px"><table style="min-width:0;font-size:12px">
-      <thead><tr><th style="padding:4px 6px">BioSample</th><th style="padding:4px 6px">Latitude, longitude</th><th style="padding:4px 6px">Place</th></tr></thead>
-      <tbody>${shown.map((r) => `<tr><td style="padding:4px 6px" class="mono"><a href="https://www.ncbi.nlm.nih.gov/biosample/${encodeURIComponent(r.acc)}" target="_blank" rel="noopener">${esc(r.acc)}</a></td>
-        <td style="padding:4px 6px" class="mono">${esc(String(r.lat))}, ${esc(String(r.lon))}</td>
-        <td style="padding:4px 6px">${esc(r.place || "—")}</td></tr>`).join("")}</tbody></table></div>
-      ${rows.length > shown.length ? `<div class="note">Showing 25 of ${fmt(rows.length)}.</div>` : ""}
-      ${!rows.length ? `<div class="note">No samples could be listed for this point.</div>` : ""}
-      <div class="note" style="margin-top:4px">Coordinates as submitted to NCBI BioSample (decimal degrees).</div>`);
+    if (token !== siteToken) return;
+    renderSiteList(head, studies.length > load.length ? `Samples from the first ${load.length} of ${fmt(studies.length)} studies.` : "");
+  }
+
+  function renderSiteList(head, note){
+    const rows = siteRows.slice(0, 300);
+    openSidebar(`${head || sb().dataset.head}
+      ${rows.length ? `<ul class="samples">${rows.map((r, i) => `<li><button type="button" data-sample="${i}">
+        <span class="acc">${esc(r.smp.accession)}</span><span class="badge ${esc(r.smp.location_status || "unresolved")}">${esc(r.smp.location_status || "unresolved")}</span>
+        <span class="meta">${esc(r.smp.title || r.smp.isolation_source || "")}</span>
+        <span class="meta">${esc([r.smp.collection_date, TIER_TEXT[r.smp.urban_status] || r.smp.urban_status, `${r.runs.length} run${r.runs.length === 1 ? "" : "s"}`].filter(Boolean).join(" · "))}</span>
+      </button></li>`).join("")}</ul>` : `<p class="note" style="margin-top:12px">No samples could be listed for this point.</p>`}
+      ${siteRows.length > rows.length ? `<p class="note">Showing 300 of ${fmt(siteRows.length)}.</p>` : ""}
+      ${note ? `<p class="note">${esc(note)}</p>` : ""}`);
+    if (head) sb().dataset.head = head;
+    sb().dataset.note = note || "";
+  }
+
+  function showSample(i){
+    const { smp, runs, project } = siteRows[i] || {};
+    if (!smp) return;
+    const place = [smp.city, smp.region, smp.country].filter(Boolean).join(", ");
+    const val = (v) => v == null || v === "" ? "—" : esc(String(v));
+    const explorer = U.filtersToURL({ ...U.emptyFilters(), tier: [], project: project.accession }, "./explorer.html");
+    openSidebar(`${sbHead(true)}
+      <h2 class="mono">${esc(smp.accession)}</h2>
+      <div class="sub">${esc(smp.title || "")}</div>
+      <p style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+        <a class="btn" href="https://www.ncbi.nlm.nih.gov/biosample/${encodeURIComponent(smp.accession)}" target="_blank" rel="noopener">NCBI BioSample</a>
+        <a class="btn" href="${esc(explorer)}">Study in Explorer</a></p>
+      <h3>Location</h3>
+      <dl>
+        <dt>Accepted location</dt><dd>${place ? esc(place) : "No validated location"} <span class="badge ${esc(smp.location_status || "unresolved")}">${esc(smp.location_status || "unresolved")}</span></dd>
+        <dt>How it was found</dt><dd>${val(smp.location_method)}${smp.location_note ? ` · ${esc(smp.location_note)}` : ""}</dd>
+        <dt>Submitted location</dt><dd>${val(smp.geo_loc_raw)}</dd>
+        <dt>Latitude, longitude</dt><dd class="mono">${smp.lat != null ? `${esc(String(smp.lat))}, ${esc(String(smp.lon))}` : "—"}</dd>
+        ${smp.place_id != null ? `<dt>GeoNames place</dt><dd><a href="https://www.geonames.org/${encodeURIComponent(smp.place_id)}" target="_blank" rel="noopener">${esc(String(smp.place_id))}</a></dd>` : ""}
+      </dl>
+      <h3>Sample</h3>
+      <dl>
+        <dt>Collected</dt><dd>${val(smp.collection_date)}</dd>
+        <dt>Urban status</dt><dd>${val(TIER_TEXT[smp.urban_status] || smp.urban_status)}${smp.eligibility_reason ? `<br><span class="note">${esc(smp.eligibility_reason)}</span>` : ""}</dd>
+        <dt>Environment</dt><dd>${val((CTX[smp.urban_context || ""] || [smp.urban_context])[0])}</dd>
+        <dt>Isolation source</dt><dd>${val(smp.isolation_source)}</dd>
+        <dt>Broad / local scale</dt><dd>${val([smp.env_broad_scale, smp.env_local_scale].filter(Boolean).join(" / "))}</dd>
+        <dt>Medium</dt><dd>${val(smp.env_medium)}</dd>
+        ${smp.host ? `<dt>Host</dt><dd>${esc(smp.host)}</dd>` : ""}
+      </dl>
+      <h3>Study</h3>
+      <dl>
+        <dt>BioProject</dt><dd><a href="https://www.ncbi.nlm.nih.gov/bioproject/${encodeURIComponent(project.accession)}" target="_blank" rel="noopener" class="mono">${esc(project.accession || "—")}</a></dd>
+        <dt>Title</dt><dd>${val(project.title)}</dd>
+        <dt>Centre</dt><dd>${val(project.center_name)}</dd>
+      </dl>
+      <h3>Runs (${fmt(runs.length)})</h3>
+      <div class="table-shell"><table><thead><tr><th>Run</th><th>Assay</th><th>Platform</th><th>Released</th></tr></thead><tbody>
+        ${runs.map((r) => `<tr><td class="mono"><a href="${esc(r.ncbi.srr_url)}" target="_blank" rel="noopener">${esc(r.srr)}</a></td>
+          <td>${esc(r.assay.assay_class)}</td><td>${esc(r.runinfo_row.Model || r.runinfo_row.Platform)}</td>
+          <td>${esc((r._run.release_date || "").slice(0, 10))}</td></tr>`).join("")}</tbody></table></div>`);
   }
 
   function bboxOf(feature){
@@ -439,11 +545,11 @@
       });
       hover("small-countries", (f) => `<strong>${esc(f.properties.name)}</strong><br>${fmt(f.properties.n)} BioSamples`);
       hover("sites-clusters", (f) => `${fmt(f.properties.n)} BioSamples<br><span class="note">Click to zoom in</span>`);
-      hover("sites-single", (f) => `${coordText(f.geometry.coordinates)}<br>${fmt(f.properties.n)} BioSamples<br><span class="note">Click to list them</span>`);
-      hover("env-points", (f) => `${esc((CTX[f.properties.ctx] || CTX[""])[0])}<br>${coordText(f.geometry.coordinates)}<br>${fmt(f.properties.n)} BioSamples<br><span class="note">Click to list them</span>`);
+      hover("sites-single", (f) => quickInfo(result.points[f.properties.pi]));
+      hover("env-points", (f) => quickInfo(result.points[f.properties.pi]));
       hover("place", (f) => `<strong>${esc(f.properties.name)}</strong><br>${coordText(f.geometry.coordinates, 4)}<br>Validated place (GeoNames)`);
-      map.on("click", "sites-single", (e) => { popup.remove(); showSite(e.features[0], e.lngLat); });
-      map.on("click", "env-points", (e) => { popup.remove(); showSite(e.features[0], e.lngLat); });
+      map.on("click", "sites-single", (e) => { popup.remove(); showSite(e.features[0]); });
+      map.on("click", "env-points", (e) => { popup.remove(); showSite(e.features[0]); });
 
       map.on("click", "sites-clusters", async (e) => {
         const f = e.features[0];
@@ -510,6 +616,14 @@
     $("table-body").addEventListener("click", pick);
     $("table-body").addEventListener("keydown", (e) => { if (e.key === "Enter") pick(e); });
     document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => { mode = b.dataset.mode; update(); }));
+    $("sidebar").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-sb],[data-sample]");
+      if (!b) return;
+      if (b.dataset.sb === "close") closeSidebar();
+      else if (b.dataset.sb === "back") renderSiteList(null, $("sidebar").dataset.note);
+      else if (b.dataset.sample !== undefined) showSample(+b.dataset.sample);
+    });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("sidebar").hidden) closeSidebar(); });
   }
 
   Promise.all([U.openIndex(), fetch("./assets/world-110m.json").then((r) => r.json())]).then(([engine, topo]) => {

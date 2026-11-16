@@ -331,9 +331,13 @@
           if (out.points && row[s.lat] != null){
             const key = `${row[s.lat]},${row[s.lon]},${row[s.ctx]}`;
             const pt = out.points.get(key);
-            if (pt) pt.n += n; else out.points.set(key, { lat: row[s.lat], lon: row[s.lon], ctx: contexts[row[s.ctx]] || "", n, projects: new Set() });
+            if (pt) pt.n += n; else out.points.set(key, { lat: row[s.lat], lon: row[s.lon], ctx: contexts[row[s.ctx]] || "", n,
+                                                          projects: new Set(), places: new Map(), countries: new Set(), tiers: new Map() });
             const target = pt || out.points.get(key);
             for (const p of SD.projsets[row[s.proj]]) target.projects.add(projectAcc[p]);
+            if (row[s.place] != null) target.places.set(row[s.place], (target.places.get(row[s.place]) || 0) + n);
+            if (row[s.country] != null) target.countries.add(row[s.country]);
+            target.tiers.set(tiers[row[s.tier]], (target.tiers.get(tiers[row[s.tier]]) || 0) + n);
           }
         }
         if (one(m, F.country) && row[s.country] != null) bump(facets.country, row[s.country], "samples", n);
