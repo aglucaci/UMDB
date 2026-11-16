@@ -109,7 +109,7 @@ umdb catalog push              # upload data/ to catalog-latest
 umdb catalog push --snapshot   # also keep a dated catalog-YYYY.MM.DD release
 ```
 
-Both workflows pull the catalog before harvesting and push it afterwards. A push is refused when the published bundle is not the one this checkout last pulled or pushed (someone else harvested meanwhile): run `umdb catalog pull --merge`, which keeps local records and adds the published ones (the newest record per run still wins; `umdb compact` drops superseded rows), then push. `pull` refuses to replace local changes unless you pass `--merge` or `--force`. Pushing needs `gh` authenticated with write access to the repository.
+Both workflows pull the catalog before harvesting and push it afterwards; if `catalog-latest` is missing they stop before harvesting, so a run can never publish from an empty `data/`. A push is refused when the published bundle is not the one this checkout last pulled or pushed (someone else harvested meanwhile): run `umdb catalog pull --merge`, which keeps local records and adds the published ones (the newest record per run still wins; `umdb compact` drops superseded rows), then push. `pull` refuses to replace local changes unless you pass `--merge` or `--force`. Pushing needs `gh` authenticated with write access to the repository.
 
 **First upload.** After the deep backfill finishes: `umdb compact`, `umdb catalog push --snapshot`, then remove the catalog from the index with `git rm -r --cached data/srr_catalog_*.jsonl data/cache/*.json data/seen_*.txt` and commit. Older commits still contain catalog versions, so to shrink the repository itself, rewrite history before pushing (see the notes in the changelog).
 

@@ -90,11 +90,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if gh release view catalog-latest >/dev/null 2>&1; then
-            python3 -m scripts.umdb_harvester catalog pull --force
-          else
-            echo "No catalog-latest release yet; starting from the files in data/ (if any)."
+          # Never harvest from an empty data/: a run without the catalog would
+          # upload a tiny catalog-latest and publish a near-empty website.
+          if ! gh release view catalog-latest >/dev/null 2>&1; then
+            echo "::error::catalog-latest release not found (or GitHub API unavailable). Refusing to harvest from an empty catalog; run 'umdb catalog push' from a checkout that has data/."
+            exit 1
           fi
+          python3 -m scripts.umdb_harvester catalog pull --force
 
       - name: Run UMDB crawler
         env:
