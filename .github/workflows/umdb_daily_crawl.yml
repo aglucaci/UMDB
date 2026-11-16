@@ -85,6 +85,17 @@ jobs:
             pip install -r requirements.txt
           fi
 
+      - name: Restore the harvested catalog (GitHub Release assets)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view catalog-latest >/dev/null 2>&1; then
+            python3 -m scripts.umdb_harvester catalog pull --force
+          else
+            echo "No catalog-latest release yet; starting from the files in data/ (if any)."
+          fi
+
       - name: Run UMDB crawler
         env:
           NCBI_API_KEY: ${{ secrets.NCBI_API_KEY }}
@@ -125,7 +136,7 @@ jobs:
             fi
 
             if [ "$MODE" = "crawl" ]; then
-              python3 -m scripts.umdb_harvester.cli crawl \
+              python3 -m scripts.umdb_harvester crawl \
                 --sort date \
                 --page-size "$PAGE_SIZE" \
                 --max-total "$MAX_TOTAL" \
@@ -139,14 +150,14 @@ jobs:
                 echo "workflow_dispatch input 'year' is required for backfill-year" >&2
                 exit 1
               fi
-              python3 -m scripts.umdb_harvester.cli backfill-year \
+              python3 -m scripts.umdb_harvester backfill-year \
                 --year "$YEAR" \
                 --fetch-bioproject \
                 --fetch-biosample \
                 "${AI_ARGS[@]}" \
                 "${PROFILE_ARGS[@]}"
             else
-              python3 -m scripts.umdb_harvester.cli daily \
+              python3 -m scripts.umdb_harvester daily \
                 --recent-days "$RECENT_DAYS" \
                 --max-per-day 500 \
                 --fetch-bioproject \
@@ -155,7 +166,7 @@ jobs:
                 "${PROFILE_ARGS[@]}"
             fi
           else
-            python3 -m scripts.umdb_harvester.cli crawl \
+            python3 -m scripts.umdb_harvester crawl \
               --sort date \
               --page-size 300 \
               --stop-after-new-srr 25 \
@@ -163,12 +174,18 @@ jobs:
               --fetch-biosample
           fi
 
-      - name: Commit updated data
+      - name: Upload the harvested catalog (GitHub Release assets)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -m scripts.umdb_harvester catalog push
+
+      - name: Commit updated website data
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          git add data docs || true
+          # The catalog itself lives in Release assets (git-ignored); only docs/ is committed.
+          git add docs || true
 
           git commit -m "UMDB daily crawl $(date -u +'%Y-%m-%d')" || echo "No changes"
           git push

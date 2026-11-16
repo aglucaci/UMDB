@@ -20,7 +20,8 @@
 #                      the old one (old data is overwritten at compaction)
 #   --compact          after each year, rewrite data/srr_catalog_*.jsonl keeping only the
 #                      newest record per run (permanent; earlier versions stay in git)
-#   --max-per-day N    cap UIDs per profile per day (default 0 = no cap, page through all)
+#   --max-per-day N    cap UIDs per profile per day (default 0 = no cap, page through all;
+#                      with no cap each search spans a month, with a cap a day)
 #   --profile NAME     restrict to a query profile (repeatable; default: the seven
 #                      environment profiles; `umdb queries` lists them all)
 #   --oldest-first     process years in ascending order (default: newest first)
@@ -224,7 +225,7 @@ for year in "${years[@]}"; do
   completed=$((completed + 1))
 
   if [ $COMMIT -eq 1 ]; then
-    git add data docs
+    git add docs     
     if git diff --cached --quiet; then
       say "[$year] nothing to commit"
     else
@@ -235,4 +236,5 @@ done
 
 head_ "Deep backfill finished in $(dur $(( $(date +%s) - t_all )))"
 say "${C_OK}$completed completed${C_RST}, $skipped skipped, $([ ${#failed[@]} -gt 0 ] && echo "${C_ERR}${#failed[@]} failed (${failed[*]})${C_RST}" || echo "0 failed"); ${C_NUM}$total_runs${C_RST} runs written"
+say "${C_DIM}The catalog in data/ is not in git: upload it with 'umdb catalog push' (add --snapshot for a dated copy).${C_RST}"
 [ ${#failed[@]} -eq 0 ]

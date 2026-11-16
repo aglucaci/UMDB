@@ -6,18 +6,80 @@ import time
 
 from .utils import inc, utc_now, append_lines, append_jsonl_one, log, warn, paint, num, fmt_duration, slim_record
 from .config import SEEN_SRA_UIDS, SEEN_SRR_RUNS, BIOPROJECT_RE
-from .ncbi import efetch_runinfo_text
-from .biosample import get_biosample_details, infer_geo
+from .ncbi import efetch_runinfo_text, runinfo_url, parallel_map, RUNINFO_BATCH_SIZE
+from .biosample import get_biosample_details, infer_geo, fetch_biosamples
 from .assay import classify_assay
-from .bioproject import get_bioproject_details
+from .bioproject import get_bioproject_details, fetch_bioprojects
+
+def _runinfo_csv(text: str) -> List[Dict[str, str]]:
+    # A multi-ID response may repeat the header between IDs.
+    return [r for r in csv.DictReader(text.splitlines()) if (r.get("Run") or "").strip() not in ("", "Run")]
+
 
 def parse_runinfo_rows(uid: str, max_rows: int = 200000) -> Tuple[List[Dict[str, str]], Dict[str, Any]]:
-    text, url = efetch_runinfo_text(uid)
-    rows = list(csv.DictReader(text.splitlines()))
+    text, _ = efetch_runinfo_text(uid)
+    rows = _runinfo_csv(text)
     if max_rows and len(rows) > max_rows:
         rows = rows[:max_rows]
     cols = list(rows[0].keys()) if rows else []
-    return rows, {"url": url, "columns": cols, "rows": len(rows)}
+    return rows, {"url": runinfo_url(uid), "columns": cols, "rows": len(rows)}
+
+
+def fetch_runinfo_for_uids(
+    uids: List[str], summaries: Dict[str, Dict[str, Any]], max_rows: int = 200000,
+    batch_size: int = RUNINFO_BATCH_SIZE,
+) -> Tuple[Dict[str, List[Dict[str, str]]], Dict[str, str]]:
+    """RunInfo rows per experiment UID, 200 experiments per request, in parallel.
+
+    Rows are matched to UIDs through the experiment accession from esummary.
+    UIDs without one, and every UID of a batch that fails, are fetched one by
+    one. Returns ({uid: rows}, {uid: error}) for UIDs that still failed.
+    """
+    by_uid: Dict[str, List[Dict[str, str]]] = {u: [] for u in uids}
+    errors: Dict[str, str] = {}
+    acc_to_uid = {}
+    single: List[str] = []
+    for u in uids:
+        acc = ((summaries.get(u) or {}).get("experiment_accession") or "").strip()
+        if acc:
+            acc_to_uid[acc] = u
+        else:
+            single.append(u)
+    batched = [u for u in uids if u not in set(single)]
+    batches = [batched[i:i + batch_size] for i in range(0, len(batched), batch_size)]
+
+    def fetch_batch(batch: List[str]):
+        try:
+            text, _ = efetch_runinfo_text(",".join(batch))
+            return batch, _runinfo_csv(text), None
+        except Exception as e:
+            return batch, [], e
+
+    for batch, rows, err in parallel_map(fetch_batch, batches):
+        if err is not None:
+            warn(f"RunInfo batch of {len(batch)} failed ({err}); fetching them one by one")
+            single.extend(batch)
+            continue
+        for r in rows:
+            u = acc_to_uid.get((r.get("Experiment") or "").strip())
+            if u is not None and u in batch:
+                by_uid[u].append(r)
+
+    def fetch_one(u: str):
+        try:
+            return u, parse_runinfo_rows(u, max_rows=max_rows)[0], None
+        except Exception as e:
+            return u, [], e
+
+    for u, rows, err in parallel_map(fetch_one, single):
+        by_uid[u] = rows
+        if err is not None:
+            errors[u] = str(err)
+    if max_rows:
+        for u, rows in by_uid.items():
+            if len(rows) > max_rows:
+                by_uid[u] = rows[:max_rows]
+    return by_uid, errors
 
 def debug_paths(tag: str) -> Dict[str, str]:
     from .config import DEBUG_DIR
@@ -52,8 +114,16 @@ def build_srr_records_for_sra_uid(
     decision_log_path: str,
     runinfo_max_rows: int,
     refresh: bool = False,
+    runinfo_rows: "List[Dict[str, str]] | None" = None,
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
-    rows, runinfo_dbg = parse_runinfo_rows(sra_uid, max_rows=runinfo_max_rows)
+    """Run records for one experiment. With runinfo_rows (prefetched in a
+    batch) and the BioSample/BioProject caches already filled, this makes no
+    network requests."""
+    if runinfo_rows is None:
+        rows, runinfo_dbg = parse_runinfo_rows(sra_uid, max_rows=runinfo_max_rows)
+    else:
+        rows = runinfo_rows
+        runinfo_dbg = {"url": runinfo_url(sra_uid), "columns": list(rows[0].keys()) if rows else [], "rows": len(rows)}
     title = (sra_summary.get("title") or "").strip()
     out: List[Dict[str, Any]] = []
     for r in rows:
@@ -166,7 +236,6 @@ def ingest_uids_to_srr(
     elif uids:
         log(f"  All {num(len(uids))} experiment(s) already in the catalog; nothing to ingest "
             f"{paint('(use --refresh to re-fetch)', 'dim')}")
-    t_start = time.time()
 
     if debug:
         write_json(paths["initial"], {
@@ -180,9 +249,50 @@ def ingest_uids_to_srr(
     sra_mark_seen: List[str] = []
     srr_mark_seen: List[str] = []
 
+    # Network work happens in three batched stages; building the records
+    # afterwards reads only the prefetched rows and the caches.
+    runinfo_by_uid: Dict[str, List[Dict[str, str]]] = {}
+    runinfo_errors: Dict[str, str] = {}
+    if new_uids:
+        t = time.time()
+        runinfo_by_uid, runinfo_errors = fetch_runinfo_for_uids(new_uids, summaries, max_rows=runinfo_max_rows)
+        n_rows = sum(len(v) for v in runinfo_by_uid.values())
+        log(f"    RunInfo: {num(n_rows)} run(s) for {num(len(new_uids))} experiment(s) in {fmt_duration(time.time() - t)}"
+            + (f", {paint(f'{len(runinfo_errors)} failed', 'err')}" if runinfo_errors else ""))
+        all_rows = [r for rows in runinfo_by_uid.values() for r in rows]
+
+        if fetch_biosample:
+            t = time.time()
+            accs = list(dict.fromkeys((r.get("BioSample") or "").strip() for r in all_rows))
+            need = [a for a in accs if a and (_force_once(a, refresh, _REFRESHED_BIOSAMPLES) or a not in biosample_cache)]
+            if need:
+                fetch_biosamples(need, biosample_cache)
+            log(f"    BioSamples: {num(len(need))} {'re-fetched' if refresh else 'fetched'}, "
+                f"{num(len([a for a in accs if a]) - len(need))} from cache in {fmt_duration(time.time() - t)}")
+
+        if fetch_bioproject:
+            t = time.time()
+            prjs = []
+            for uid in new_uids:
+                guess = ((summaries.get(uid) or {}).get("bioproject_guess") or "").strip().upper()
+                for r in runinfo_by_uid.get(uid, []):
+                    prjs.append((r.get("BioProject") or "").strip().upper() or guess)
+            prjs = [p for p in dict.fromkeys(prjs) if p and BIOPROJECT_RE.match(p)]
+            need = [p for p in prjs if _force_once(p, refresh, _REFRESHED_BIOPROJECTS) or p not in bp_cache]
+
+            try:
+                fetch_bioprojects(need, bp_cache, bp_uid_cache)
+            except Exception as e:
+                warn(f"BioProject fetch failed: {e}")
+            if need or prjs:
+                log(f"    BioProjects: {num(len(need))} {'re-fetched' if refresh else 'fetched'}, "
+                    f"{num(len(prjs) - len(need))} from cache in {fmt_duration(time.time() - t)}")
+
     for i, uid in enumerate(new_uids, 1):
         ssum = summaries.get(uid, {"uid": uid, "title": "", "bioproject_guess": "", "items": {}})
         try:
+            if uid in runinfo_errors:
+                raise RuntimeError(f"RunInfo fetch failed: {runinfo_errors[uid]}")
             srr_rows, _ = build_srr_records_for_sra_uid(
                 sra_uid=uid,
                 sra_summary=ssum,
@@ -194,7 +304,8 @@ def ingest_uids_to_srr(
                 debug=debug,
                 decision_log_path=paths["decision"],
                 runinfo_max_rows=runinfo_max_rows,
-                refresh=refresh,
+                refresh=False,  # BioSamples/BioProjects were already refreshed above
+                runinfo_rows=runinfo_by_uid.get(uid, []),
             )
 
             emitted = 0
@@ -228,11 +339,6 @@ def ingest_uids_to_srr(
             if debug:
                 append_jsonl_one(paths["decision"], {"uid": uid, "decision": "error", "error": str(e)})
 
-        if i % 50 == 0 and i < len(new_uids):
-            elapsed = time.time() - t_start
-            eta = elapsed / i * (len(new_uids) - i)
-            log(f"    progress {num(i)}/{num(len(new_uids))} experiments, "
-                f"{num(counters.get('srr_emitted', 0))} runs written, ETA {fmt_duration(eta)}")
 
     if sra_mark_seen:
         append_lines(SEEN_SRA_UIDS, sra_mark_seen)

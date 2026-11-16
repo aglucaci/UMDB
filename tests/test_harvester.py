@@ -1,4 +1,5 @@
 """Offline unit tests for the UMDB harvester. Run: python -m unittest discover tests"""
+import json
 import os
 import sys
 import unittest
@@ -331,6 +332,7 @@ class RefreshTests(unittest.TestCase):
         from umdb_harvester import ingest
         fake_rows = [{"srr": "SRR9", "sra_uid": "1"}]
         with mock.patch.object(ingest, "build_srr_records_for_sra_uid", return_value=(fake_rows, {})), \
+             mock.patch.object(ingest, "fetch_runinfo_for_uids", return_value=({"1": []}, {})), \
              mock.patch.object(ingest, "append_lines") as append_lines:
             seen_sra, seen_srr = {"1"}, {"SRR9"}
             added, report = ingest.ingest_uids_to_srr(
@@ -345,6 +347,295 @@ class RefreshTests(unittest.TestCase):
             self.assertEqual([r["srr"] for r in added], ["SRR9"])
             self.assertEqual(report["counters"].get("srr_refreshed"), 1)
             append_lines.assert_not_called()
+
+
+RUNINFO_HEADER = "Run,Experiment,BioSample,BioProject,LibraryStrategy,LibrarySource\n"
+
+
+def _runinfo_for(ids):
+    # experiment uid N -> SRXN with runs SRRN1/SRRN2 and sample SAMN<N>; NCBI may
+    # repeat the header between IDs in a multi-ID response.
+    out = RUNINFO_HEADER
+    for i in ids:
+        out += f"SRR{i}1,SRX{i},SAMN{i},PRJNA9,WGS,METAGENOMIC\nSRR{i}2,SRX{i},SAMN{i},PRJNA9,WGS,METAGENOMIC\n"
+        out += RUNINFO_HEADER
+    return out
+
+
+def _biosample_xml(accs):
+    body = "".join(
+        f'<BioSample accession="{a}"><Ids><Id db="BioSample">{a}</Id></Ids>'
+        f"<Description><Title>Influent wastewater {a}</Title></Description>"
+        f'<Attributes><Attribute attribute_name="geo_loc_name">USA: Boston</Attribute>'
+        f'<Attribute attribute_name="isolation_source">wastewater treatment plant influent</Attribute></Attributes>'
+        f"</BioSample>" for a in accs)
+    return f"<BioSampleSet>{body}</BioSampleSet>"
+
+
+class BatchFetchTests(unittest.TestCase):
+    def fake_ncbi(self, calls, fail_batches=False, drop=()):
+        import urllib.parse
+
+        def fake_get(url):
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+            if "term" in q:  # esearch for accessions efetch did not return
+                accs = [t.split("[")[0] for t in q["term"][0].split(" OR ")]
+                calls.append(("esearch", len(accs)))
+                found = "".join(f"<Id>{9000 + int(a[5:])}</Id>" for a in accs if a.startswith("SAMEA"))
+                return f"<eSearchResult><Count>0</Count><IdList>{found}</IdList></eSearchResult>".encode()
+            ids = q["id"][0].split(",")
+            calls.append((q["db"][0], len(ids)))
+            if q["db"][0] == "sra":
+                if fail_batches and len(ids) > 1:
+                    raise RuntimeError("HTTP 500")
+                return _runinfo_for(ids).encode()
+            if all(i.isdigit() for i in ids):  # fetch by UID: SAMEA records
+                return _biosample_xml([f"SAMEA{int(i) - 9000}" for i in ids]).encode()
+            return _biosample_xml([a for a in ids if a not in drop and not a.startswith("SAMEA")]).encode()
+        return fake_get
+
+    def test_runinfo_batched_and_matched_by_experiment(self):
+        from umdb_harvester import ingest
+        calls = []
+        uids = [str(i) for i in range(1, 451)]
+        summaries = {u: {"experiment_accession": f"SRX{u}"} for u in uids[:-1]}  # last has no accession
+        with mock.patch.object(ncbi, "http_get", side_effect=self.fake_ncbi(calls)):
+            rows, errors = ingest.fetch_runinfo_for_uids(uids, summaries)
+        self.assertEqual(errors, {})
+        self.assertEqual(sorted(n for _, n in calls), [1, 49, 200, 200])  # 3 batches + 1 single
+        self.assertEqual([r["Run"] for r in rows["7"]], ["SRR71", "SRR72"])
+        self.assertEqual(len(rows["450"]), 2)
+        self.assertEqual(sum(len(v) for v in rows.values()), 900)  # repeated headers dropped
+
+    def test_failed_runinfo_batch_falls_back_to_single_requests(self):
+        from umdb_harvester import ingest
+        calls = []
+        uids = ["1", "2", "3"]
+        summaries = {u: {"experiment_accession": f"SRX{u}"} for u in uids}
+        with mock.patch.object(ncbi, "http_get", side_effect=self.fake_ncbi(calls, fail_batches=True)):
+            rows, errors = ingest.fetch_runinfo_for_uids(uids, summaries)
+        self.assertEqual(errors, {})
+        self.assertEqual({u: len(r) for u, r in rows.items()}, {"1": 2, "2": 2, "3": 2})
+
+    def test_biosamples_batched_with_single_fallback(self):
+        from umdb_harvester import biosample
+        calls, cache = [], {}
+        accs = [f"SAMN{i}" for i in range(250)]
+        fake = self.fake_ncbi(calls, drop={"SAMN5"})
+        with mock.patch.object(ncbi, "http_get", side_effect=fake), \
+             mock.patch.object(biosample, "http_get", side_effect=fake):
+            biosample.fetch_biosamples(accs, cache)
+        self.assertEqual(sorted(calls), [("biosample", 50), ("biosample", 200), ("esearch", 1)])
+        self.assertEqual(len(cache), 250)
+        self.assertEqual(cache["SAMN3"]["attributes"]["geo_loc_name"], "USA: Boston")
+        self.assertEqual(cache["SAMN5"]["attributes"], {})  # NCBI has nothing: cached empty
+
+    def test_samea_accessions_resolved_through_uids(self):
+        from umdb_harvester import biosample
+        calls, cache = [], {}
+        accs = ["SAMN1", "SAMEA7", "SAMEA8"]
+        fake = self.fake_ncbi(calls)
+        with mock.patch.object(ncbi, "http_get", side_effect=fake), \
+             mock.patch.object(biosample, "http_get", side_effect=fake):
+            biosample.fetch_biosamples(accs, cache)
+        self.assertEqual(calls, [("biosample", 3), ("esearch", 2), ("biosample", 2)])
+        self.assertEqual(cache["SAMEA8"]["attributes"]["geo_loc_name"], "USA: Boston")
+        self.assertEqual(cache["SAMEA8"]["accession"], "SAMEA8")
+
+    def test_ingest_makes_few_requests_and_fills_records(self):
+        from umdb_harvester import ingest, biosample
+        calls = []
+        uids = [str(i) for i in range(1, 301)]
+        summaries = {u: {"uid": u, "title": "influent", "experiment_accession": f"SRX{u}"} for u in uids}
+        fake = self.fake_ncbi(calls)
+        with mock.patch.object(ncbi, "http_get", side_effect=fake), \
+             mock.patch.object(biosample, "http_get", side_effect=fake), \
+             mock.patch.object(ingest, "append_lines"):
+            added, report = ingest.ingest_uids_to_srr(
+                tag="t", uids=uids, summaries=summaries, biosample_cache={}, bp_cache={}, bp_uid_cache={},
+                seen_sra=set(), seen_srr=set(), fetch_biosample=True, fetch_bioproject=False,
+                debug=False, runinfo_max_rows=0, refresh=False)
+        self.assertEqual(len(calls), 4)  # 2 RunInfo + 2 BioSample batches for 300 experiments
+        self.assertEqual(len(added), 600)
+        self.assertEqual(report["counters"]["sra_uids_processed_ok"], 300)
+        rec = added[0]
+        self.assertEqual(rec["geo"]["country"], "United States")
+        self.assertNotIn("api_key", rec["debug"]["runinfo_url"] + rec["debug"]["biosample_url"])
+
+    def test_bioprojects_batched_and_matched_by_accession(self):
+        import urllib.parse
+        from umdb_harvester import bioproject
+        calls = []
+
+        def fake_get(url):
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+            if "term" in q:
+                accs = [t.split("[")[0] for t in q["term"][0].split(" OR ")]
+                calls.append(("esearch", len(accs)))
+                ids = "".join(f"<Id>{a[5:]}</Id>" for a in accs if a != "PRJNA404")
+                return f"<eSearchResult><Count>1</Count><IdList>{ids}</IdList></eSearchResult>".encode()
+            ids = q["id"][0].split(",")
+            calls.append(("esummary", len(ids)))
+            docs = "".join(f'<DocumentSummary uid="{i}"><Project_Acc>PRJNA{i}</Project_Acc>'
+                           f"<Project_Title>Sewage {i}</Project_Title></DocumentSummary>" for i in ids)
+            return f"<eSummaryResult><DocumentSummarySet>{docs}</DocumentSummarySet></eSummaryResult>".encode()
+
+        cache, uids = {}, {"PRJNA7": "7"}
+        accs = ["PRJNA7"] + [f"PRJNA{i}" for i in range(100, 160)] + ["PRJNA404"]
+        with mock.patch.object(ncbi, "http_get", side_effect=fake_get):
+            bioproject.fetch_bioprojects(accs, cache, uids)
+        # 61 lookups -> 2 searches; 61 UIDs -> 1 summary; PRJNA404 -> single esearch
+        self.assertEqual(calls, [("esearch", 50), ("esearch", 11), ("esummary", 61), ("esearch", 1)])
+        self.assertEqual(cache["PRJNA120"]["title"], "Sewage 120")
+        self.assertEqual(uids["PRJNA120"], "120")
+        self.assertEqual(cache["PRJNA404"]["error"], "uid_not_found")
+
+    def test_rate_recovers_after_quiet_period(self):
+        with mock.patch.object(ncbi, "NCBI_RPS", 4.0), mock.patch.object(ncbi, "NCBI_RPS_TARGET", 8.0), \
+             mock.patch.object(ncbi, "_LAST_PENALTY", [0.0]), mock.patch.object(ncbi, "_LAST_RECOVER", [0.0]):
+            self.assertIsNone(ncbi._maybe_recover(30.0))            # too soon after the 429
+            self.assertAlmostEqual(ncbi._maybe_recover(61.0), 4.4)  # first step
+            self.assertIsNone(ncbi._maybe_recover(65.0))            # wait between steps
+            t = 61.0
+            while ncbi.NCBI_RPS < 8.0:
+                t += 10
+                ncbi._maybe_recover(t)
+            self.assertEqual(ncbi.NCBI_RPS, 8.0)
+
+    def test_parallel_map_keeps_order(self):
+        self.assertEqual(ncbi.parallel_map(lambda x: x * 2, range(50), workers=8), [x * 2 for x in range(50)])
+
+
+class SecretTests(unittest.TestCase):
+    def test_scrub_removes_key_and_email(self):
+        from umdb_harvester.utils import scrub_secrets
+        url = "https://e/efetch.fcgi?db=sra&id=1&api_key=abc123&tool=umdb&email=me%40x.org"
+        self.assertEqual(scrub_secrets(url), "https://e/efetch.fcgi?db=sra&id=1&tool=umdb")
+        self.assertEqual(scrub_secrets("https://e/x?api_key=abc&db=sra"), "https://e/x?db=sra")
+        self.assertEqual(scrub_secrets('{"u": "https://e/x?db=1&api_key=k"}'), '{"u": "https://e/x?db=1"}')
+
+    def test_writers_and_fetchers_never_store_the_key(self):
+        import json
+        import tempfile
+        from umdb_harvester.utils import write_json, append_jsonl, scrub_files
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "a.json")
+            write_json(p, {"u": "https://e/x?db=1&api_key=SECRET"})
+            append_jsonl(os.path.join(d, "b.jsonl"), [{"u": "https://e/x?db=1&api_key=SECRET"}])
+            with open(os.path.join(d, "old.jsonl"), "w") as fh:
+                fh.write(json.dumps({"u": "https://e/x?db=1&api_key=SECRET&email=a%40b"}) + "\n")
+            changed = scrub_files([d])
+            blob = "".join(open(os.path.join(d, f)).read() for f in os.listdir(d))
+        self.assertNotIn("SECRET", blob)
+        self.assertEqual(list(changed.values()), [1])
+        with mock.patch.object(ncbi, "NCBI_API_KEY", "SECRET"), \
+             mock.patch.object(ncbi, "http_get", return_value=b"Run\n"):
+            _, url = ncbi.efetch_runinfo_text("1")
+        self.assertNotIn("SECRET", url)
+
+
+class DateWindowTests(unittest.TestCase):
+    def test_windows_cover_the_year_to_today(self):
+        import datetime as dt
+        from umdb_harvester.cli import date_windows
+        today = dt.date(2026, 3, 10)
+        months = date_windows(2026, "month", today)
+        self.assertEqual(months, [(dt.date(2026, 1, 1), dt.date(2026, 1, 31)),
+                                  (dt.date(2026, 2, 1), dt.date(2026, 2, 28)),
+                                  (dt.date(2026, 3, 1), dt.date(2026, 3, 10))])
+        self.assertEqual(len(date_windows(2026, "day", today)), 69)
+        weeks = date_windows(2025, "week", today)
+        self.assertEqual(weeks[0], (dt.date(2025, 1, 1), dt.date(2025, 1, 7)))
+        self.assertEqual(weeks[-1][1], dt.date(2025, 12, 31))
+        self.assertEqual(sum((b - a).days + 1 for a, b in weeks), 365)
+        self.assertEqual(date_windows(2027, "month", today), [])
+
+
+class CatalogBundleTests(unittest.TestCase):
+    """Pack/unpack/merge of the catalog bundle stored in Release assets (offline)."""
+
+    def setUp(self):
+        import tempfile
+        self.tmp = tempfile.TemporaryDirectory()
+        self.cwd = os.getcwd()
+        os.chdir(self.tmp.name)
+        os.makedirs("data/cache")
+        self.write("data/srr_catalog_2025.jsonl", '{"srr": "SRR1", "n": 1}\n{"srr": "SRR2", "n": 1}\n')
+        self.write("data/cache/biosample.json", '{"SAMN1": {"attributes": {"a": "1"}}}')
+        self.write("data/seen_srr_runs.txt", "SRR1\nSRR2\n")
+
+    def tearDown(self):
+        os.chdir(self.cwd)
+        self.tmp.cleanup()
+
+    def write(self, path, text):
+        with open(path, "w") as fh:
+            fh.write(text)
+
+    def read(self, path):
+        with open(path) as fh:
+            return fh.read()
+
+    def test_pack_and_restore_round_trip(self):
+        from umdb_harvester import catalog
+        manifest = catalog.pack("out")
+        self.assertEqual(sorted(e["path"] for e in manifest["files"]),
+                         ["data/cache/biosample.json", "data/seen_srr_runs.txt", "data/srr_catalog_2025.jsonl"])
+        original = self.read("data/srr_catalog_2025.jsonl")
+        self.write("data/srr_catalog_2025.jsonl", "garbage\n")
+        self.write("data/srr_catalog_2019.jsonl", '{"srr": "OLD"}\n')  # not in the bundle: removed on restore
+        catalog.unpack("out/umdb-catalog.tar.gz", manifest)
+        self.assertEqual(self.read("data/srr_catalog_2025.jsonl"), original)
+        self.assertFalse(os.path.exists("data/srr_catalog_2019.jsonl"))
+
+    def test_merge_keeps_local_records_and_adds_published_ones(self):
+        from umdb_harvester import catalog
+        manifest = catalog.pack("out")
+        # Local harvest since then: one new run, one new cache entry, one more seen run.
+        self.write("data/srr_catalog_2025.jsonl", '{"srr": "SRR1", "n": 1}\n{"srr": "SRR3", "n": 2}\n')
+        self.write("data/cache/biosample.json", '{"SAMN9": {"attributes": {}}}')
+        self.write("data/seen_srr_runs.txt", "SRR1\nSRR3\n")
+        catalog.unpack("out/umdb-catalog.tar.gz", manifest, merge=True)
+        runs = [json.loads(x)["srr"] for x in self.read("data/srr_catalog_2025.jsonl").splitlines()]
+        self.assertEqual(sorted(runs), ["SRR1", "SRR2", "SRR3"])
+        self.assertEqual(sorted(json.loads(self.read("data/cache/biosample.json"))), ["SAMN1", "SAMN9"])
+        self.assertEqual(sorted(self.read("data/seen_srr_runs.txt").split()), ["SRR1", "SRR2", "SRR3"])
+
+    def test_tampered_bundle_is_rejected(self):
+        from umdb_harvester import catalog
+        manifest = catalog.pack("out")
+        manifest["bundle_sha256"] = "0" * 64
+        with self.assertRaises(RuntimeError):
+            catalog.unpack("out/umdb-catalog.tar.gz", manifest)
+
+
+class SiteTests(unittest.TestCase):
+    def test_site_from_database(self):
+        import tempfile
+        from umdb_harvester import database, site, exports
+        with tempfile.TemporaryDirectory() as d:
+            DatabaseTests._catalog(None, d)
+            dbp, out = os.path.join(d, "umdb.sqlite"), os.path.join(d, "site")
+            with mock.patch.object(exports, "DATA_DIR", d), \
+                 mock.patch.object(database, "BIOSAMPLE_CACHE", os.path.join(d, "cache", "biosample.json")), \
+                 mock.patch.object(database, "BIOPROJECT_CACHE", os.path.join(d, "cache", "bioproject.json")), \
+                 mock.patch.object(database, "AI_CURATION_CACHE", os.path.join(d, "cache", "ai.json")):
+                database.build_database(dbp)
+            os.makedirs(out)
+            with open(os.path.join(out, "srr_records_part000.json"), "w") as fh:
+                fh.write("[]")
+            manifest = site.build_site(dbp, out)
+            cube = json.load(open(os.path.join(out, "cube.json")))
+            ix = {k: i for i, k in enumerate(cube["cols"])}
+            self.assertEqual(sum(r[ix["runs"]] for r in cube["rows"]), manifest["counts"]["runs"])
+            projects = json.load(open(os.path.join(out, "projects.json")))
+            acc = projects["rows"][0][0]
+            shard = json.load(open(os.path.join(out, "p", site.shard_name(acc))))
+            self.assertEqual(len(shard["runs"]), projects["rows"][0][5])
+            self.assertFalse(os.path.exists(os.path.join(out, "srr_records_part000.json")))  # legacy removed
+            mtime = os.path.getmtime(os.path.join(out, "p", site.shard_name(acc)))
+            site.build_site(dbp, out)  # unchanged content is not rewritten
+            self.assertEqual(os.path.getmtime(os.path.join(out, "p", site.shard_name(acc))), mtime)
 
 
 class SlimRecordTests(unittest.TestCase):

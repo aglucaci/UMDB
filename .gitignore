@@ -20,3 +20,9 @@ logs/
 data/umdb.sqlite
 data/umdb.sqlite.*
 dist/
+
+# Harvested catalog: stored in GitHub Release assets (umdb catalog push/pull), not git
+data/srr_catalog_*.jsonl
+data/cache/*.json
+data/seen_*.txt
+data/.catalog-state.json

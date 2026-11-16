@@ -6,19 +6,19 @@ How UMDB stores, queries and publishes its data, and why. Field definitions are 
 NCBI SRA · BioSample · BioProject
         │  umdb crawl / daily / backfill-year / deepest
         ▼
-data/srr_catalog_*.jsonl  +  data/cache/*.json        ← source of truth, in git
-  (slim run records, append-only;                       (ingestion log + NCBI caches)
-   newest record per run wins)
+data/srr_catalog_*.jsonl  +  data/cache/*.json        ← source of truth, git-ignored;
+  (slim run records, append-only;                         stored in the GitHub release
+   newest record per run wins)                            catalog-latest (umdb catalog push/pull)
         │  umdb db build        (automatic after every harvest)
         ▼
 data/umdb.sqlite                                       ← query database, derived, git-ignored
   normalized tables · indexes · FTS5 search · views
         │                               │
-        │  umdb release                 │  umdb export
+        │  umdb release                 │  umdb export (automatic after every harvest)
         ▼                               ▼
-dist/releases/<version>/               docs/db/*.json
-  Parquet + TSV + schema +               website data (GitHub Pages)
-  manifest + checksums
+dist/releases/<version>/               docs/db/  summary · cube · projects (≈0.4 MB gz)
+  Parquet + TSV + schema +                       p/<ACC>.json per project, on demand
+  manifest + checksums                 website data, in git (GitHub Pages)
   → GitHub Releases / Zenodo (DOI)
 ```
 
@@ -26,12 +26,18 @@ dist/releases/<version>/               docs/db/*.json
 
 | Layer | Format | Location | Role |
 | --- | --- | --- | --- |
-| Source of truth | JSON Lines + JSON caches | `data/` (git) | Append-only ingestion log of slim run records, plus raw BioSample/BioProject responses. Reviewable diffs, full history, works in GitHub Actions without extra storage |
+| Source of truth | JSON Lines + JSON caches | `data/` (git-ignored), bundled in the `catalog-latest` release | Append-only ingestion log of slim run records, plus raw BioSample/BioProject responses. One 18x-compressed bundle with checksums; pull and push from any checkout or workflow |
 | Query database | SQLite (`umdb.sqlite`) | `data/` (git-ignored) | Normalized, indexed, full-text searchable. Rebuilt in about 30 s, deterministically, with the current geography, assay and eligibility rules |
 | Research releases | Parquet (Zstandard) + gzipped TSV | `dist/releases/<version>/` (not in git) | Compact, typed, versioned snapshots with checksums, for DuckDB, R, Python or spreadsheets. About 11 MB for the whole catalog |
-| Website | JSON | `docs/db/` (git, GitHub Pages) | What the explorer loads today |
+| Website | Compact JSON | `docs/db/` (git, GitHub Pages) | Aggregated index for filters, charts and the map, plus one file per project loaded on demand |
 
-**Why SQLite is derived, not stored.** A binary file that changes on every harvest makes a poor git object: each change adds the whole file to history, and git cannot diff or merge it. Keeping the slim JSONL as the record means every change is reviewable and the database can always be rebuilt identically. If the catalog outgrows git, the JSONL log can move to Release assets without changing the database or release code.
+**Why SQLite is derived, not stored.** A binary file that changes on every harvest makes a poor git object: each change adds the whole file to history, and git cannot diff or merge it. Keeping the slim JSONL as the record means the database can always be rebuilt identically.
+
+**Why the catalog is in Release assets, not git.** After the 2026 deep backfill the JSONL catalog passed 1 GB, and every harvest rewrites large parts of it, so each commit added hundreds of MB to history. As one gzipped bundle it is about 18 times smaller, and replacing a release asset adds nothing to the repository. `umdb catalog push` refuses to overwrite a bundle uploaded by someone else since your last pull; `pull --merge` combines them (append-only log, newest record per run wins).
+
+## Website data
+
+The site loads `summary.json`, `cube.json` and `projects.json` (about 0.4 MB compressed for 246,000 runs, against more than 1 GB of run records before) and fetches `p/<ACC>.json` when a project is opened or exported. `cube.json` aggregates runs by project, release year, country, city, assay, eligibility tier, context, AI review and coordinates rounded to 0.1°: 11,746 rows for 245,903 runs. The explorer filters projects on it; analytics and the map expand it into one lightweight object per run so their counts are exact (BioSample totals come from `summary.json`). Built by `site.py` from the database; unchanged files are left untouched. Field reference: [DATA_DICTIONARY.md](DATA_DICTIONARY.md#published-files-docs).
 
 ## SQLite schema (version 1.0.0)
 
@@ -114,7 +120,6 @@ Publish a release by attaching the folder to a GitHub Release, or deposit it in 
 
 ## Not yet built
 
-- **Website on compact indexes:** the explorer still downloads every run (243 MB). Planned: a small project index plus per-sample detail files loaded on demand, or DuckDB-Wasm over the Parquet release.
 - **Discovery provenance:** which query profile found each experiment, and when (a `discovery_hits` table).
 - **Validated locations:** ISO 3166 country codes and GeoNames IDs (a `locations` table).
 - **Release history table** inside the database.

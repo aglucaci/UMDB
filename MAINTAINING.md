@@ -5,15 +5,17 @@ Operational guide for whoever keeps the database running: workflows, secrets, re
 ## How a data update flows
 
 ```
-NCBI esearch (5 query profiles)
-  → esummary (titles, study names; batches of 200)
-  → efetch runinfo (one row per run)
-  → BioSample / BioProject enrichment (cached in data/cache/)
-  → rule-based geo + assay annotation
+umdb catalog pull (restore data/ from the catalog-latest release)
+  → NCBI esearch (7 query profiles in parallel, a month per search)
+  → esummary (titles, study names; 200 per request)
+  → efetch RunInfo (200 experiments per request)
+  → BioSample / BioProject enrichment (batched; cached in data/cache/)
+  → rule-based geo + assay + eligibility annotation
   → optional AI review (cached in data/cache/ai_curation.json)
   → append to data/srr_catalog_<YEAR>.jsonl
-  → rebuild docs/db/ (re-derives rule annotations, merges AI cache)
-  → commit → GitHub Pages publishes docs/
+  → rebuild data/umdb.sqlite, then docs/db/ (compact index + per-project files)
+  → commit docs/ → GitHub Pages publishes it
+  → umdb catalog push (upload data/ to catalog-latest)
 ```
 
 A commit to `main` that touches `docs/` **is** a database release. The site has no backend.
@@ -27,7 +29,6 @@ A commit to `main` that touches `docs/` **is** a database release. The site has 
 
 Manual runs of the daily crawl can choose `crawl`, `daily` (recent N days) or `backfill-year`, along with query profiles, page size and optional AI curation.
 
-> **Known issue:** both workflows invoke `python3 -m scripts.umdb_harvester.cli`, which exits immediately without running (`cli.py` has no `__main__` block). Until they call `python3 -m scripts.umdb_harvester`, the scheduled crawl succeeds without harvesting anything. The catalog has not grown from a scheduled run since February 2026.
 
 ### Repository secrets
 
@@ -68,9 +69,11 @@ umdb backfill                      # 2007 .. this year, newest first
 umdb backfill 2018 2024 --commit
 ```
 
+**Speed.** Each search covers a calendar month (with no per-day cap) and all profiles are searched at once. Records are fetched in bulk: RunInfo and BioSamples 200 per request, several requests in parallel, under one shared limit of 8 requests/s with an API key (2.8 without), slowed automatically if NCBI answers 429. In testing, a day of 1,268 experiments took 17 s instead of 11.5 min. Tune with `UMDB_NCBI_RPS` and `UMDB_NCBI_WORKERS` in `.env`; lower `UMDB_NCBI_RPS` if two harvests share one key, since NCBI's limit is per key.
+
 Other options: `--max-per-day N` (cap instead of paging everything), `--profile NAME`, `--oldest-first`, `--ai`, `--redo`. Run `umdb backfill --help` for the list.
 
-Progress streams to the terminal: per-day hits, runs written, an ETA for the current year and for the remaining years. Add `-v` for every NCBI request, or `-q` for year summaries only. Logs and markers are in `logs/backfill/` (git-ignored; logs are plain text): `<year>.done` for normal runs, `<year>.refresh.done` for refresh runs. Delete a marker, or pass `--redo`, to run a year again. Each year makes hundreds of thousands of NCBI requests, and a refresh re-requests everything already held, so expect many hours per year even with an API key.
+Progress streams to the terminal: per-window hits, timings for the RunInfo, BioSample and BioProject stages, runs written, an ETA for the current year and for the remaining years. Add `-v` for every NCBI request, or `-q` for year summaries only. Logs and markers are in `logs/backfill/` (git-ignored; logs are plain text): `<year>.done` for normal runs, `<year>.refresh.done` for refresh runs. Delete a marker, or pass `--redo`, to run a year again. A refresh re-requests everything already held; with batching a year of about 60,000 experiments needs on the order of a thousand requests.
 
 Exports always publish only the newest record per run, so the site is correct even before compaction.
 
@@ -94,6 +97,22 @@ Already-seen runs are skipped (`data/seen_srr_runs.txt`), so newly in-scope stud
 
 Update the repository secret and your local `.env`. If a key was exposed, follow [SECURITY.md](SECURITY.md).
 
+## The catalog lives in Release assets
+
+The harvested catalog (`data/srr_catalog_*.jsonl`, `data/cache/*.json`, `data/seen_*.txt`) is git-ignored. It grows by hundreds of MB per deep backfill and changes on every run, which would make the repository grow without bound. It is stored instead as one compressed bundle (`umdb-catalog.tar.gz`, about 18 times smaller; 1.2 GB packs to 65 MB) with a SHA-256 manifest, in the GitHub release `catalog-latest`.
+
+```bash
+umdb catalog status            # local files, last pull/push, what is published
+umdb catalog pull              # restore data/ from catalog-latest (verifies checksums)
+umdb deepest --commit          # harvest; commits only docs/ (the website data)
+umdb catalog push              # upload data/ to catalog-latest
+umdb catalog push --snapshot   # also keep a dated catalog-YYYY.MM.DD release
+```
+
+Both workflows pull the catalog before harvesting and push it afterwards. A push is refused when the published bundle is not the one this checkout last pulled or pushed (someone else harvested meanwhile): run `umdb catalog pull --merge`, which keeps local records and adds the published ones (the newest record per run still wins; `umdb compact` drops superseded rows), then push. `pull` refuses to replace local changes unless you pass `--merge` or `--force`. Pushing needs `gh` authenticated with write access to the repository.
+
+**First upload.** After the deep backfill finishes: `umdb compact`, `umdb catalog push --snapshot`, then remove the catalog from the index with `git rm -r --cached data/srr_catalog_*.jsonl data/cache/*.json data/seen_*.txt` and commit. Older commits still contain catalog versions, so to shrink the repository itself, rewrite history before pushing (see the notes in the changelog).
+
 ## State files and what not to delete
 
 | File | Purpose | If deleted |
@@ -102,16 +121,17 @@ Update the repository secret and your local `.env`. If a key was exposed, follow
 | `data/srr_catalog_*.jsonl` (and `_partNNN`) | The canonical run catalog | **Data loss.** Recover from git history |
 | `data/cache/biosample.json`, `bioproject*.json` | NCBI response cache; also input to offline re-annotation | Re-fetched on demand (slow); offline re-annotation degrades |
 | `data/cache/ai_curation.json` | AI review results | AI reviews must be re-run (costs money) |
-| `docs/db/*` | Published website data | Regenerated by the next export |
+| `docs/db/*` | Published website data | Regenerated by `umdb export` from `data/umdb.sqlite` |
+| `catalog-latest` release | Off-machine copy of everything in `data/` above | Push again from a checkout that has the catalog |
 | `data/umdb.sqlite` | Query database (git-ignored) | Rebuilt by `umdb db build` in about 30 s |
 
 Seen runs are skipped by default, so corrections NCBI submitters make to already-ingested records are only picked up by a refresh (`umdb deepest`, or `--refresh` on `crawl`, `daily` and `backfill-year`). `umdb compact` then drops the superseded rows.
 
 ## Size limits
 
-- GitHub rejects files over 100 MB and warns over 50 MB. Exports are chunked at 50 MB (`MAX_OUTPUT_BYTES`); catalogs are split into `_partNNN.jsonl`.
-- `docs/db/biosamples.json` (about 38 MB) is the file closest to the limit as the catalog grows.
-- The repository is several hundred MB. Use `git clone --depth 1` when history is not needed.
+- GitHub rejects files over 100 MB and warns over 50 MB; Pages sites should stay under 1 GB. The catalog is not in git (Release assets allow 2 GB per file). Catalog files are still split into 50 MB `_partNNN.jsonl` parts.
+- The website loads about 0.4 MB compressed at start (`summary.json`, `cube.json`, `projects.json`). Per-project files (`docs/db/p/`) total about 0.5 KB per run (116 MB for 246,000 runs); the largest project file is about 5 MB.
+- Older history contains catalog and run-record files. Use `git clone --depth 1` when history is not needed.
 
 ## Troubleshooting
 

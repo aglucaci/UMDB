@@ -13,10 +13,38 @@ import time
 from .utils import ensure_dirs, load_set, read_json, write_json, append_jsonl, iter_jsonl_glob
 from .utils import log, header, warn, paint, num, fmt_duration, VERBOSITY, TIER_STYLE
 from . import ncbi as ncbi_mod
-from .ncbi import esearch_recent, esearch_day, esearch_history, esummary_sra
+from .ncbi import esearch_recent, esearch_range, esearch_history, esummary_sra, parallel_map
 from .ingest import ingest_uids_to_srr, debug_paths
-from .exports import rebuild_srr_exports_chunked, write_latest_srr_safe
+from .exports import write_latest_srr_safe
 from .ai_curation import curate_records
+
+def _window_kind(args) -> str:
+    w = getattr(args, "window", "day")
+    if w == "auto":
+        return "month" if args.max_per_day <= 0 else "day"
+    return w
+
+
+def date_windows(year: int, kind: str, today: "dt.date | None" = None) -> List[tuple]:
+    """(start, end) release-date windows covering a year up to today, newest
+    days included; kind is day, week or month."""
+    today = today or dt.date.today()
+    start, last = dt.date(year, 1, 1), min(dt.date(year, 12, 31), today)
+    out = []
+    a = start
+    while a <= last:
+        if kind == "month":
+            nxt = dt.date(a.year + (a.month == 12), a.month % 12 + 1, 1)
+            b = nxt - dt.timedelta(1)
+        elif kind == "week":
+            b = a + dt.timedelta(6)
+        else:
+            b = a
+        b = min(b, last)
+        out.append((a, b))
+        a = b + dt.timedelta(1)
+    return out
+
 
 def print_report_summary(report: Dict[str, Any]):
     tag = report.get("tag", "run")
@@ -83,6 +111,9 @@ def build_argparser() -> argparse.ArgumentParser:
     b.add_argument("--query-profile", action="append", choices=sorted(QUERY_PROFILES.keys()))
     b.add_argument("--max-per-day", type=int, default=500,
                    help="cap on UIDs per profile per day; 0 = no cap (page through every hit)")
+    b.add_argument("--window", choices=["auto", "day", "week", "month"], default="auto",
+                   help="release-date span per search: auto = month with no cap, day with a cap. "
+                        "Wider windows need far fewer searches; results are identical")
     b.add_argument("--debug", action="store_true")
     b.add_argument("--fetch-biosample", action="store_true")
     b.add_argument("--fetch-bioproject", action="store_true")
@@ -107,6 +138,15 @@ def build_argparser() -> argparse.ArgumentParser:
     add_ai_args(c)
 
     sub.add_parser("compact", help="rewrite data/srr_catalog_*.jsonl keeping only the newest record per run")
+    sub.add_parser("repair-bioprojects", help="re-fetch cached BioProjects stored under the wrong accession")
+    sub.add_parser("scrub-secrets", help="remove api_key=/email= from stored URLs in data/, docs/ and logs/")
+    cat = sub.add_parser("catalog", help="move the harvested catalog to/from GitHub Release assets")
+    cat.add_argument("action", choices=["push", "pull", "status", "pack"])
+    cat.add_argument("--tag", default="catalog-latest", help="release to pull from (default catalog-latest)")
+    cat.add_argument("--merge", action="store_true", help="pull: keep local records and add published ones")
+    cat.add_argument("--force", action="store_true", help="pull: replace local changes; push: overwrite a newer upload")
+    cat.add_argument("--snapshot", action="store_true", help="push: also create a dated catalog-YYYY.MM.DD release")
+    sub.add_parser("export", help="rebuild data/umdb.sqlite and the website data in docs/db (offline)")
     sub.add_parser("db-build", help="(re)build data/umdb.sqlite from the catalog and caches")
     sub.add_parser("db-info", help="show database build metadata and sample tiers")
     rel = sub.add_parser("release", help="write a versioned Parquet/TSV release from data/umdb.sqlite")
@@ -133,10 +173,62 @@ def resolve_query_specs(args) -> List[Dict[str, str]]:
 
     return [{"name": "custom", "query": query}]
 
+def publish_site():
+    """Rebuild data/umdb.sqlite from the catalog, then the website data (docs/db)."""
+    from .database import build_database
+    from .site import build_site
+    header("Rebuilding the SQLite database (data/umdb.sqlite)")
+    build_database()
+    header("Rebuilding the website data (docs/db)")
+    build_site()
+
+
 def run():
     args = build_argparser().parse_args()
     ensure_dirs()
 
+    if args.cmd == "repair-bioprojects":
+        from .bioproject import repair_bioproject_cache
+        header("umdb repair: BioProject cache")
+        bp_cache = read_json(BIOPROJECT_CACHE, {})
+        uid_cache = read_json(BIOPROJECT_UID_CACHE, {})
+        fixed = repair_bioproject_cache(bp_cache, uid_cache)
+        still = [k for k in fixed if (bp_cache.get(k) or {}).get("accession", "").upper() != k.upper()]
+        write_json(BIOPROJECT_CACHE, bp_cache)
+        write_json(BIOPROJECT_UID_CACHE, uid_cache)
+        log(f"{paint(f'{len(fixed) - len(still):,} BioProject(s) repaired', 'good')}"
+            + (f", {paint(f'{len(still)} still mismatched', 'warn')}" if still else "")
+            + "; run `umdb export` and `umdb db build` to apply them to published records")
+        log(ncbi_mod.stats_line())
+        return
+    if args.cmd == "scrub-secrets":
+        from .utils import scrub_files
+        header("umdb scrub-secrets")
+        changed = scrub_files()
+        for path, n in sorted(changed.items()):
+            log(f"  {path}: {num(n)} line(s) cleaned")
+        log(paint(f"Cleaned {len(changed)} file(s)", "good") if changed else "No credentials found in stored files")
+        return
+    if args.cmd == "export":
+        publish_site()
+        return
+    if args.cmd == "catalog":
+        from . import catalog
+        header(f"umdb catalog {args.action}")
+        try:
+            if args.action == "push":
+                catalog.push(snapshot=args.snapshot, force=args.force)
+            elif args.action == "pull":
+                catalog.pull(tag=args.tag, merge=args.merge, force=args.force)
+            elif args.action == "pack":
+                catalog.pack()
+            else:
+                catalog.status()
+        except (RuntimeError, FileNotFoundError) as exc:
+            from .utils import error
+            error(str(exc))
+            raise SystemExit(1)
+        return
     if args.cmd == "db-build":
         from .database import build_database
         header("umdb db build")
@@ -191,6 +283,13 @@ def run():
     bp_uid_cache = read_json(BIOPROJECT_UID_CACHE, {})
     ai_cache = read_json(AI_CURATION_CACHE, {})
 
+    def save_caches():
+        log("Saving caches (BioSample, BioProject, AI)", level=2)
+        write_json(BIOSAMPLE_CACHE, biosample_cache)
+        write_json(BIOPROJECT_CACHE, bp_cache)
+        write_json(BIOPROJECT_UID_CACHE, bp_uid_cache)
+        write_json(AI_CURATION_CACHE, ai_cache)
+
     latest_added: List[Dict[str, Any]] = []
     reports: List[Dict[str, Any]] = []
     query_specs = resolve_query_specs(args)
@@ -206,6 +305,7 @@ def run():
         if args.cmd == "backfill-year":
             settings.append(f"year {num(str(args.year))}")
             settings.append("per-day cap " + (paint("none (all hits)", "num") if args.max_per_day <= 0 else num(args.max_per_day)))
+            settings.append(f"window {paint(_window_kind(args), 'num')}")
         elif args.cmd == "daily":
             settings.append(f"last {num(args.recent_days)} days, up to {num(args.max_per_day)} per profile")
         elif args.cmd == "crawl":
@@ -214,6 +314,7 @@ def run():
                 settings.append(f"max {num(args.max_total)} UIDs")
             if args.stop_after_new_srr:
                 settings.append(f"stop after {num(args.stop_after_new_srr)} new runs")
+        settings.append(f"NCBI {ncbi_mod.NCBI_RPS:g} req/s, {ncbi_mod.NCBI_WORKERS} parallel")
         settings.append(paint("REFRESH: re-fetching records already held", "warn") if args.refresh else "new records only")
         settings.append("BioSample " + ("on" if args.fetch_biosample else paint("off", "warn")))
         settings.append("BioProject " + ("on" if args.fetch_bioproject else paint("off", "warn")))
@@ -232,8 +333,9 @@ def run():
             uids: List[str] = []
             query_reports: List[Dict[str, Any]] = []
             seen_uids = set()
-            for spec in query_specs:
-                found_uids, esearch_url = esearch_recent("sra", spec["query"], args.recent_days, args.max_per_day)
+            found_all = parallel_map(
+                lambda spec: esearch_recent("sra", spec["query"], args.recent_days, args.max_per_day), query_specs)
+            for spec, (found_uids, esearch_url) in zip(query_specs, found_all):
                 log(f"  {paint(spec['name'], 'key')}: {num(len(found_uids))} experiment(s)")
                 if len(found_uids) >= args.max_per_day:
                     warn(f"{spec['name']} hit --max-per-day={args.max_per_day}; older matches were not retrieved")
@@ -308,34 +410,40 @@ def run():
 
         elif args.cmd == "backfill-year":
             year = args.year
-            start = dt.date(year, 1, 1)
-            today = dt.date.today()
-            last = min(dt.date(year, 12, 31), today)
-            days_total = (last - start).days + 1 if last >= start else 0
+            windows = date_windows(year, _window_kind(args), dt.date.today())
+            days_total = sum((b - a).days + 1 for a, b in windows)
             year_runs = year_refreshed = year_experiments = 0
             t_year = time.time()
-            if days_total <= 0:
+            if not windows:
                 warn(f"{year} is in the future; nothing to search")
-            for n in range(days_total):
-                day = start + dt.timedelta(n)
-                ds = day.isoformat()
+            days_done = 0
+            for n, (w_start, w_end) in enumerate(windows):
+                ds = w_start.isoformat()
+                w_days = (w_end - w_start).days + 1
+                cap = args.max_per_day * w_days if args.max_per_day > 0 else 0
+                label = (f"{ds} day {days_done + 1}/{days_total}" if w_days == 1 else
+                         f"{ds} .. {w_end.isoformat()} (window {n + 1}/{len(windows)})")
+                if w_days > 1:
+                    ds = f"{ds}_{w_end.isoformat()}"
                 t_day = time.time()
                 uids: List[str] = []
                 seen_uids = set()
                 hits = []
-                for spec in query_specs:
-                    found_uids, _ = esearch_day("sra", spec["query"], ds, args.max_per_day)
+                found_all = parallel_map(
+                    lambda spec: esearch_range("sra", spec["query"], w_start.isoformat(), w_end.isoformat(), cap),
+                    query_specs)
+                for spec, (found_uids, _) in zip(query_specs, found_all):
                     if found_uids:
                         hits.append(f"{spec['name']} {num(len(found_uids))}")
-                    if args.max_per_day > 0 and len(found_uids) >= args.max_per_day:
+                    if cap > 0 and len(found_uids) >= cap:
                         warn(f"{ds} profile={spec['name']} hit --max-per-day={args.max_per_day}; "
-                             "later records for this day were not retrieved")
+                             "later records for this window were not retrieved")
                     for uid in found_uids:
                         if uid not in seen_uids:
                             seen_uids.add(uid)
                             uids.append(uid)
                 year_experiments += len(uids)
-                log(f"{paint(ds, 'bold')} day {n + 1}/{days_total}: "
+                log(f"{paint(label, 'bold')}: "
                     + (f"{num(len(uids))} experiment(s)  " + paint("(" + ", ".join(hits) + ")", "dim") if uids
                        else paint("no matching experiments", "dim")))
                 summaries, _ = esummary_sra(uids)
@@ -367,8 +475,8 @@ def run():
                 written, refreshed = c.get("srr_emitted", 0), c.get("srr_refreshed", 0)
                 year_runs += written
                 year_refreshed += refreshed
-                done = n + 1
-                eta = (time.time() - t_year) / done * (days_total - done)
+                days_done += w_days
+                eta = (time.time() - t_year) / days_done * (days_total - days_done)
                 if uids:
                     errors = c.get("sra_uid_errors", 0)
                     log(f"  -> {paint(f'{written:,} runs written', 'good' if written else 'dim')}"
@@ -379,7 +487,7 @@ def run():
                                 f"{ncbi_mod.STATS['requests']:,} requests", "dim"))
 
             header(f"{year} complete")
-            log(f"{num(days_total)} days searched, {num(year_experiments)} experiment hits, "
+            log(f"{num(days_total)} days searched in {num(len(windows))} window(s), {num(year_experiments)} experiment hits, "
                 f"{paint(f'{year_runs:,} runs written', 'good')}"
                 + (f" ({num(year_refreshed)} refreshes of existing runs)" if year_refreshed else "")
                 + f" in {fmt_duration(time.time() - t_year)}")
@@ -396,10 +504,9 @@ def run():
                 ids: List[str] = []
                 count_total = 0
                 seen_page_ids = set()
-                for spec in query_specs:
-                    found_ids, found_total, _ = esearch_history(
-                        "sra", spec["query"], retstart=retstart, retmax=args.page_size, sort=args.sort
-                    )
+                found_all = parallel_map(lambda spec: esearch_history(
+                    "sra", spec["query"], retstart=retstart, retmax=args.page_size, sort=args.sort), query_specs)
+                for found_ids, found_total, _ in found_all:
                     count_total = max(count_total, found_total)
                     for uid in found_ids:
                         if uid not in seen_page_ids:
@@ -527,12 +634,13 @@ def run():
             "reports": reports
         })
 
-        header("Rebuilding the published database (docs/db)")
-        rebuild_srr_exports_chunked()
-        if not getattr(args, "no_db", False) and args.cmd != "curate-ai":
-            from .database import build_database
-            header("Rebuilding the SQLite database (data/umdb.sqlite)")
-            build_database()
+        # Save this run's BioSample/BioProject fetches first: the database and
+        # site re-apply the rules from the caches on disk.
+        save_caches()
+        if getattr(args, "no_db", False):
+            warn("--no-db: skipped rebuilding data/umdb.sqlite and the website data (run `umdb export` later)")
+        else:
+            publish_site()
 
         totals: Dict[str, int] = {}
         for rep in reports:
@@ -552,8 +660,4 @@ def run():
         warn("Interrupted. Caches are saved; completed batches are kept and the run can be resumed.")
         raise
     finally:
-        log("Saving caches (BioSample, BioProject, AI)", level=2)
-        write_json(BIOSAMPLE_CACHE, biosample_cache)
-        write_json(BIOPROJECT_CACHE, bp_cache)
-        write_json(BIOPROJECT_UID_CACHE, bp_uid_cache)
-        write_json(AI_CURATION_CACHE, ai_cache)
+        save_caches()

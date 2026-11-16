@@ -41,12 +41,15 @@ umdb serve                                # preview at http://localhost:8000
 | Command | Does |
 | --- | --- |
 | `umdb crawl` / `daily` / `backfill-year` / `curate-ai` | Harvester commands (also `umdb run <command>`); add `--help` for options |
-| `umdb deepest [START END]` | Deepest possible search, year by year from 2007: every profile, every hit per day, re-fetches existing records and overwrites superseded data |
+| `umdb deepest [START END]` | Deepest possible search, year by year from 2007: every profile, every hit, re-fetches existing records and overwrites superseded data |
 | `umdb backfill [START END]` | Resumable year-by-year search for new records only (`--dry-run`, `--commit`, `--profile`, `--refresh`, …) |
 | `umdb compact` | Rewrite `data/` keeping only the newest record per run |
+| `umdb scrub` | Remove `api_key=` / `email=` from stored NCBI URLs in `data/`, `docs/` and `logs/` |
 | `umdb db build` / `info` / `shell` / `query "SQL"` | Build and query the SQLite database `data/umdb.sqlite` (normalized, indexed, full-text search) |
 | `umdb release [--version V]` | Write a versioned Parquet + TSV release with schema, manifest and checksums (`pip install -r requirements-release.txt`) |
-| `umdb export` | Rebuild `docs/db/` from `data/` offline (re-applies geo, assay and eligibility rules) |
+| `umdb export` | Rebuild `data/umdb.sqlite` and the website data in `docs/db/` offline (re-applies geo, assay and eligibility rules) |
+| `umdb catalog pull` / `push` | Restore or upload the harvested catalog (`data/`), which lives in GitHub Release assets, not git |
+| `umdb repair` | Re-fetch BioProjects cached under the wrong accession |
 | `umdb serve [port]` | Preview the website |
 | `umdb status` | Release size, eligibility tiers, settings check |
 | `umdb queries` | Print the exact discovery queries |
@@ -150,14 +153,15 @@ The repository is organized around three main areas: harvesting code, intermedia
 
 ```text
 UMDB/
-├── data/
+├── data/                       (git-ignored; restore with `umdb catalog pull`)
 │   ├── cache/
 │   │   ├── bioproject.json
 │   │   ├── bioproject_uid.json
 │   │   └── biosample.json
 │   ├── seen_sra_uids.txt
 │   ├── seen_srr_runs.txt
-│   └── srr_catalog_2026*.jsonl
+│   ├── srr_catalog_<YEAR>*.jsonl
+│   └── umdb.sqlite
 ├── docs/
 │   ├── index.html
 │   ├── about.html
@@ -170,12 +174,11 @@ UMDB/
 │   │   ├── db.js
 │   │   └── site.css
 │   └── db/
-│       ├── srr_records_manifest.json
-│       ├── srr_records_part000.json
-│       ├── ...
-│       ├── srr_index.json
-│       ├── bioprojects.json
-│       └── biosamples.json
+│       ├── summary.json
+│       ├── cube.json
+│       ├── projects.json
+│       ├── manifest.json
+│       └── p/<BioProject>.json
 ├── logo/
 ├── scripts/
 │   └── umdb_harvester/
@@ -209,7 +212,7 @@ The Python package under `scripts/umdb_harvester/` is the operational core of UM
 - `config.py` centralizes path and output settings.
 - `utils.py` provides common helpers for JSON, timestamps, and iteration.
 
-Together, these modules take public metadata and turn it into the chunked release files under `docs/db/`.
+Together, these modules take public metadata and turn it into the catalog in `data/`, the SQLite database, the website data under `docs/db/` and the Parquet releases.
 
 ## What Lives In `data/`
 
@@ -219,7 +222,7 @@ The `data/` directory is the working data store for harvesting and enrichment.
 - `srr_catalog_*.jsonl` files store accumulated run-level records.
 - `cache/` stores locally reused metadata lookups such as BioProject and BioSample responses.
 
-This directory is important because it represents the stateful layer of the pipeline. It is where UMDB remembers what it has seen and where it stages enriched metadata before export.
+This directory is important because it represents the stateful layer of the pipeline. It is where UMDB remembers what it has seen and where it stages enriched metadata before export. It is not in git: `umdb catalog pull` restores it from the `catalog-latest` GitHub release and `umdb catalog push` uploads it (see [MAINTAINING.md](MAINTAINING.md#the-catalog-lives-in-release-assets)).
 
 ## What Lives In `docs/`
 
@@ -234,31 +237,16 @@ Anything under `docs/` should be treated as published output, not just internal 
 
 ## Database Model
 
-UMDB currently publishes a manifest-plus-parts layout for SRR-level records.
+The website loads a compact index instead of every run record:
 
-### Manifest
+- `docs/db/summary.json`: headline counts and top lists.
+- `docs/db/cube.json`: runs aggregated by BioProject, release year, country, city, assay, eligibility tier, urban context and rounded coordinates. Every filter, chart and the map work from it.
+- `docs/db/projects.json`: one row per BioProject.
+- `docs/db/p/<BioProject>.json`: that project's BioSamples and runs, fetched when it is opened or exported.
 
-`docs/db/srr_records_manifest.json` describes:
-
-- when the release was generated
-- how many total records exist
-- which part files belong to the release
-- which harvest-file years are present (`catalog_file_years`)
-
-### Part Files
-
-`docs/db/srr_records_partXXX.json` files contain arrays of SRR-level records. A typical record can include:
-
-- `srr` for the run accession
-- `runinfo_row` for SRA RunInfo fields
-- `bioproject` for project-level metadata
-- `geo` for parsed geographic context
-- `assay` for high-level assay classification
-- `ncbi` for source URLs
+Together the first three are about 0.4 MB compressed. They are built from `data/umdb.sqlite` by `umdb export` (and after every harvest). Field reference: [DATA_DICTIONARY.md](DATA_DICTIONARY.md#published-files-docs); design: [ARCHITECTURE.md](ARCHITECTURE.md#website-data). Full tables are published as versioned Parquet releases.
 
 What is fetched from NCBI, data volumes, formats and every field are documented in [DATA_DICTIONARY.md](DATA_DICTIONARY.md#what-umdb-pulls-from-ncbi).
-
-The website loads these files directly in the browser and aggregates them into BioProject-level summaries for exploration.
 
 ## Why The Site Aggregates By BioProject
 

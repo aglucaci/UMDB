@@ -73,11 +73,15 @@ Harvesting (each finishes by rebuilding docs/db):
 
 Deep harvest:
   umdb deepest [years] [opts]    deepest possible search, year by year, 2007 .. now:
-                                 every profile, every hit per day, re-fetches existing
+                                 every profile, every hit, re-fetches existing
                                  records and overwrites old data (= backfill --deepest)
   umdb backfill [years] [opts]   resumable year-by-year search for new records
                                  (e.g. "umdb backfill 2018 2024 --commit"; --help for options)
   umdb compact                   drop superseded records from data/ (newest per run wins)
+  umdb repair                    re-fetch BioProjects cached under the wrong accession
+  umdb catalog push|pull|status  store the harvested catalog in GitHub Release assets
+                                 (pull --merge keeps local records; push --snapshot dates it)
+  umdb scrub                     remove api_key/email from stored NCBI URLs (data/, docs/, logs/)
 
 Database and releases:
   umdb db build                  (re)build data/umdb.sqlite from data/ (offline, ~30 s)
@@ -132,6 +136,12 @@ case "$cmd" in
   deepest)
     exec "$REPO_ROOT/scripts/deep_backfill.sh" --deepest "$@"
     ;;
+  repair|repair-bioprojects)
+    harvester repair-bioprojects "$@"
+    ;;
+  scrub|scrub-secrets)
+    harvester scrub-secrets "$@"
+    ;;
   compact)
     yes=0; rest=()
     for a in "$@"; do
@@ -146,8 +156,7 @@ case "$cmd" in
     harvester compact ${rest[@]+"${rest[@]}"}
     ;;
   export|rebuild)
-    PYTHONPATH="$REPO_ROOT/scripts" exec "$PY" -c \
-      "from umdb_harvester.exports import rebuild_srr_exports_chunked as r; r(); print('docs/db rebuilt')"
+    harvester export "$@"
     ;;
   db)
     sub="${1:-info}"; [ $# -gt 0 ] && shift
@@ -166,6 +175,9 @@ case "$cmd" in
     ;;
   release)
     harvester release "$@"
+    ;;
+  catalog)
+    harvester catalog "${@:-status}"
     ;;
   serve|preview)
     port="${1:-8000}"

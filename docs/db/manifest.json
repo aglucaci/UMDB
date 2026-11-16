@@ -1,0 +1,33 @@
+{
+  "site_schema_version": "2.0.0",
+  "database_schema_version": "1.0.0",
+  "generated_utc": "2026-11-16T07:23:58+00:00",
+  "database_built_utc": "2026-11-16T07:23:40+00:00",
+  "query_profiles_version": "2026.11.2",
+  "eligibility_rules_version": "2026.11.6",
+  "counts": {
+    "runs": 477166,
+    "projects": 11367,
+    "biosamples": 406177,
+    "cube_rows": 23728
+  },
+  "files": {
+    "summary.json": {
+      "bytes": 336721
+    },
+    "cube.json": {
+      "bytes": 1446563
+    },
+    "projects.json": {
+      "bytes": 2036814
+    },
+    "srr_records_manifest.json": {
+      "bytes": 123
+    }
+  },
+  "project_shards": {
+    "dir": "p/",
+    "count": 11367,
+    "bytes": 232755827
+  }
+}

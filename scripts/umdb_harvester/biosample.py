@@ -3,9 +3,11 @@ import re
 import xml.etree.ElementTree as ET
 from typing import Any, Dict, List
 
-from .ncbi import http_get, _eutils_params
+import urllib.parse
+
+from .ncbi import http_get, _eutils_params, parallel_map, esearch_any
 from .config import EUTILS
-from .utils import _norm
+from .utils import _norm, public_url, log, warn
 
 COUNTRY_HINTS = {
     "usa": "United States",
@@ -18,15 +20,26 @@ COUNTRY_HINTS = {
     "uae": "United Arab Emirates",
 }
 
+def biosample_url(accession: str) -> str:
+    """Credential-free efetch URL for one BioSample (provenance)."""
+    return EUTILS + "efetch.fcgi?" + urllib.parse.urlencode({"db": "biosample", "id": accession, "retmode": "xml"})
+
+
 def efetch_biosample_xml(accession_or_uid: str):
+    """BioSample XML for one accession, or several comma-separated in one request."""
     params = _eutils_params({"db": "biosample", "id": accession_or_uid, "retmode": "xml"})
-    url = EUTILS + "efetch.fcgi?" + __import__("urllib.parse").parse.urlencode(params)
+    url = EUTILS + "efetch.fcgi?" + urllib.parse.urlencode(params)
     xmltxt = http_get(url).decode(errors="replace")
-    return xmltxt, url
+    return xmltxt, public_url(url)
+
 
 def parse_biosample_attributes_from_xml(xmltxt: str) -> Dict[str, Any]:
-    out: Dict[str, Any] = {"attributes": {}}
     root = ET.fromstring(xmltxt.encode("utf-8", errors="ignore"))
+    return parse_biosample_element(root)
+
+
+def parse_biosample_element(root: ET.Element) -> Dict[str, Any]:
+    out: Dict[str, Any] = {"attributes": {}}
     for attr in root.findall(".//Attribute"):
         key = (attr.attrib.get("attribute_name") or attr.attrib.get("harmonized_name") or "").strip()
         val = (attr.text or "").strip()
@@ -51,12 +64,80 @@ def get_biosample_details(biosample_accession: str, biosample_cache: Dict[str, A
         xmltxt, url = efetch_biosample_xml(biosample_accession)
         parsed = parse_biosample_attributes_from_xml(xmltxt)
         parsed["accession"] = biosample_accession
-        parsed["efetch_url"] = url
+        parsed["efetch_url"] = biosample_url(biosample_accession)
         biosample_cache[biosample_accession] = parsed
         return parsed
     except Exception as e:
         biosample_cache[biosample_accession] = {"accession": biosample_accession, "error": str(e)}
         return biosample_cache[biosample_accession]
+
+
+BIOSAMPLE_BATCH_SIZE = 200
+SEARCH_BATCH_SIZE = 50  # accessions per esearch OR-query (keeps the URL short)
+
+
+def fetch_biosamples(accessions: List[str], biosample_cache: Dict[str, Any],
+                     batch_size: int = BIOSAMPLE_BATCH_SIZE) -> int:
+    """Fetch many BioSamples into the cache: one request per 200, batches in parallel.
+
+    efetch accepts SAMN/SAMD accessions directly but returns nothing for EBI
+    SAMEA accessions; those (and anything else missing) are resolved to UIDs
+    with a batched esearch and fetched by UID. Accessions NCBI cannot find are
+    cached with empty attributes, as a single fetch would. Returns the number
+    of accessions handled.
+    """
+    accs = list(dict.fromkeys(a.strip() for a in accessions if a and a.strip()))
+    if not accs:
+        return 0
+    batches = [accs[i:i + batch_size] for i in range(0, len(accs), batch_size)]
+
+    def fetch(batch: List[str], wanted_all=None) -> Dict[str, Dict[str, Any]]:
+        try:
+            xmltxt, _ = efetch_biosample_xml(",".join(batch))
+            root = ET.fromstring(xmltxt.encode("utf-8", errors="ignore"))
+        except Exception as e:
+            warn(f"BioSample batch of {len(batch)} failed ({e}); fetching them one by one")
+            return {}
+        got: Dict[str, Dict[str, Any]] = {}
+        wanted = wanted_all or set(batch)
+        for el in root.iter("BioSample"):
+            acc = (el.attrib.get("accession") or "").strip()
+            if acc not in wanted:  # also match secondary IDs such as SRS/ERS
+                ids = {(i.text or "").strip() for i in el.iter("Id")}
+                acc = next((a for a in ids if a in wanted), "")
+            if acc:
+                parsed = parse_biosample_element(el)
+                parsed["accession"] = acc
+                parsed["efetch_url"] = biosample_url(acc)
+                got[acc] = parsed
+        return got
+
+    returned: set = set()
+    for got in parallel_map(fetch, batches):
+        biosample_cache.update(got)
+        returned.update(got)
+    missing = [a for a in accs if a not in returned]
+    if missing:
+        log(f"      {len(missing)} BioSample(s) not returned by accession; resolving UIDs", level=2)
+        lookups = [missing[i:i + SEARCH_BATCH_SIZE] for i in range(0, len(missing), SEARCH_BATCH_SIZE)]
+
+        def search(batch: List[str]) -> List[str]:
+            try:
+                return esearch_any("biosample", " OR ".join(f"{a}[accn]" for a in batch), retmax=len(batch) * 2)[0]
+            except Exception as e:
+                warn(f"BioSample UID lookup for {len(batch)} accession(s) failed: {e}")
+                return []
+
+        uids = list(dict.fromkeys(u for part in parallel_map(search, lookups) for u in part))
+        wanted = set(missing)
+        uid_batches = [uids[i:i + batch_size] for i in range(0, len(uids), batch_size)]
+        for got in parallel_map(lambda b: fetch(b, wanted), uid_batches):
+            biosample_cache.update(got)
+            returned.update(got)
+        for a in missing:
+            if a not in returned:
+                biosample_cache[a] = {"attributes": {}, "accession": a, "efetch_url": biosample_url(a)}
+    return len(accs)
 
 def biosample_display_card(bsd: Dict[str, Any]) -> Dict[str, Any]:
     """

@@ -23,12 +23,25 @@ def bioproject_accession_to_uid(accession: str, uid_cache: Dict[str, str]) -> Op
         return uid_cache[accession] or None
     ids, _ = esearch_any("bioproject", f"{accession}[Accession]", retmax=5)
     uid = ids[0] if ids else None
+    if len(ids) > 1:
+        # The search also returns projects that merely link to this accession
+        # (e.g. a PRJDB record citing a PRJNA one): pick the exact match.
+        root, _ = esummary("bioproject", ids)
+        for d in root.iter("DocumentSummary"):
+            if (d.findtext("Project_Acc") or "").strip().upper() == accession:
+                uid = (d.get("uid") or "").strip() or uid
+                break
     uid_cache[accession] = uid or ""
     return uid
 
 
 def parse_bioproject_esummary(uid: str) -> Dict[str, Any]:
     root, _ = esummary("bioproject", [uid])
+    return parse_bioproject_root(root, uid)
+
+
+def parse_bioproject_root(root, uid: str) -> Dict[str, Any]:
+    """Parse one project's esummary (any of NCBI's three formats)."""
 
     # -------------------------------
     # FORMAT 1: Rich DocumentSummary
@@ -176,3 +189,82 @@ def get_bioproject_details(accession: str, bp_cache: Dict[str, Any], uid_cache: 
     details["accession"] = details.get("accession") or accession
     bp_cache[accession] = details
     return details
+
+
+SEARCH_BATCH_SIZE = 50    # accessions per esearch OR-query (keeps the URL short)
+SUMMARY_BATCH_SIZE = 200  # UIDs per esummary request
+
+
+def fetch_bioprojects(accessions, bp_cache: Dict[str, Any], uid_cache: Dict[str, str]) -> int:
+    """Fetch many BioProjects into the cache in a few requests.
+
+    UIDs come from the UID cache or a batched esearch; summaries are fetched
+    200 per esummary call and matched back by accession. Anything not matched
+    falls back to the single-project path. Returns the number handled.
+    """
+    from .ncbi import parallel_map
+    from .utils import warn
+    accs = [a for a in dict.fromkeys((x or "").strip().upper() for x in accessions) if a and BIOPROJECT_RE.match(a)]
+    if not accs:
+        return 0
+    lookup = [a for a in accs if not uid_cache.get(a)]
+    batches = [lookup[i:i + SEARCH_BATCH_SIZE] for i in range(0, len(lookup), SEARCH_BATCH_SIZE)]
+
+    def search(batch):
+        try:
+            return esearch_any("bioproject", " OR ".join(f"{a}[Accession]" for a in batch), retmax=len(batch) * 2)[0]
+        except Exception as e:
+            warn(f"BioProject UID lookup for {len(batch)} accession(s) failed: {e}")
+            return []
+
+    uids = [uid_cache[a] for a in accs if uid_cache.get(a)]
+    for part in parallel_map(search, batches):
+        uids.extend(part)
+    uids = list(dict.fromkeys(uids))
+    wanted = set(accs)
+
+    def summarize(batch):
+        try:
+            root, _ = esummary("bioproject", batch)
+        except Exception as e:
+            warn(f"BioProject summary batch of {len(batch)} failed: {e}")
+            return []
+        out = []
+        docs = list(root.iter("DocumentSummary")) or list(root.iter("DocSum"))
+        for d in docs:
+            uid = (d.get("uid") or d.findtext("Id") or "").strip()
+            wrapper = ET.Element("root")
+            wrapper.append(d)
+            details = parse_bioproject_root(wrapper, uid)
+            if details.get("accession"):
+                out.append(details)
+        return out
+
+    done = set()
+    summary_batches = [uids[i:i + SUMMARY_BATCH_SIZE] for i in range(0, len(uids), SUMMARY_BATCH_SIZE)]
+    for part in parallel_map(summarize, summary_batches):
+        for details in part:
+            acc = details["accession"].upper()
+            if acc in wanted:
+                bp_cache[acc] = details
+                uid_cache[acc] = details.get("uid", "")
+                done.add(acc)
+    for a in accs:
+        if a not in done:
+            try:
+                get_bioproject_details(a, bp_cache, uid_cache, force=True)
+            except Exception as e:
+                warn(f"BioProject {a} failed: {e}")
+    return len(accs)
+
+
+def repair_bioproject_cache(bp_cache: Dict[str, Any], uid_cache: Dict[str, str]) -> list:
+    """Re-fetch cached projects stored under the wrong accession (the old
+    single lookup took the first search hit). Returns the repaired accessions."""
+    bad = [k for k, v in bp_cache.items()
+           if isinstance(v, dict) and v.get("accession") and v["accession"].upper() != k.upper()]
+    for k in bad:
+        uid_cache.pop(k, None)
+    if bad:
+        fetch_bioprojects(bad, bp_cache, uid_cache)
+    return bad

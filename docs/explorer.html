@@ -650,12 +650,8 @@
               </button>
               <div class="collapseBody" id="actionsBody">
                 <div class="two">
-                  <div>
-                    <label>Load mode</label>
-                    <select id="mode">
-                      <option value="stream">Stream parts</option>
-                      <option value="all">Load all parts</option>
-                    </select>
+                  <div hidden>
+                    <select id="mode"><option value="stream">Index</option></select>
                   </div>
                   <div>
                     <label>Projects per page</label>
@@ -793,7 +789,8 @@
 
   // --------- State ----------
   let manifest = null;
-  let allRuns = [];          // SRR-level records
+  let allRuns = [];          // one weighted record per cube row (see assets/db.js)
+  let projectIndex = new Map();
   let allProjects = [];      // BioProject-level aggregates
   let matchedProjects = [];
   let page = 1;
@@ -1119,23 +1116,8 @@
     return { lat: "", lon: "", label: s };
   }
   async function ensureBioSampleCache() {
-    if (biosampleCache) return biosampleCache;
-    if (!biosampleCachePromise) {
-      biosampleCachePromise = fetch("./db/biosamples.json")
-        .then((res) => {
-          if (!res.ok) throw new Error(`Failed to load BioSample cache (${res.status})`);
-          return res.json();
-        })
-        .then((json) => {
-          biosampleCache = json || {};
-          return biosampleCache;
-        })
-        .catch((err) => {
-          biosampleCachePromise = null;
-          throw err;
-        });
-    }
-    return biosampleCachePromise;
+    // Project files (db/p/<ACC>.json) already carry each sample's coordinates.
+    return {};
   }
   function getBioSampleFallbackDetails(rec, lookup) {
     const biosample = norm(getBioSample(rec));
@@ -1372,11 +1354,20 @@
     for (const [bp, obj] of map.entries()) {
       const yrs = obj.runs.map(safeYearFromRec).filter(y => y != null);
       const assays = uniq(obj.runs.map(getAssayClass));
-      const countries = obj.runs.map(getCountry).map(norm).filter(Boolean);
-      const cities = obj.runs.map(getCity).map(norm).filter(Boolean);
-      const centers = obj.runs.map(getCenter).map(norm).filter(Boolean);
-
-      const biosamples = uniq(obj.runs.map(getBioSample).map(norm).filter(Boolean));
+      // Cube rows stand for _w runs each: count values by weight.
+      const weightedTop = (fn, k) => {
+        const m = new Map();
+        for (const r of obj.runs) {
+          const v = norm(fn(r));
+          if (v) m.set(v, (m.get(v) || 0) + (r._w || 1));
+        }
+        return Array.from(m.entries()).sort((a, b) => b[1] - a[1]).slice(0, k);
+      };
+      const info = projectIndex.get(bp);
+      const runCount = obj.runs.reduce((n, r) => n + (r._w || 1), 0);
+      const biosamples = obj.runs[0]?._synthetic && info
+        ? Array(info.samples)
+        : uniq(obj.runs.map(getBioSample).map(norm).filter(Boolean));
       const minY = yrs.length ? Math.min(...yrs) : null;
       const maxY = yrs.length ? Math.max(...yrs) : null;
 
@@ -1384,14 +1375,14 @@
         bioproject: bp,
         title: obj.title,
         bioproject_url: obj.bioproject_url,
-        samples: obj.runs.length,
+        samples: runCount,
         biosamples: biosamples.length,
         assays,
         min_year: minY,
         max_year: maxY,
-        countries_top: topCounts(countries, 3),
-        cities_top: topCounts(cities, 3),
-        centers_top: topCounts(centers, 2),
+        countries_top: weightedTop(getCountry, 3),
+        cities_top: weightedTop(getCity, 3),
+        centers_top: weightedTop(getCenter, 2),
         runs: obj.runs,
       });
     }
@@ -1572,7 +1563,7 @@
     pageInfo.textContent = `Page ${page} / ${pages}`;
     if (matchedProjectsLarge) matchedProjectsLarge.textContent = total.toLocaleString();
     if (shownProjectsLarge) shownProjectsLarge.textContent = slice.length.toLocaleString();
-    if (matchedRunsLarge) matchedRunsLarge.textContent = matchedProjects.flatMap(p => p.runs).length.toLocaleString();
+    if (matchedRunsLarge) matchedRunsLarge.textContent = matchedProjects.reduce((n, p) => n + p.samples, 0).toLocaleString();
 
     prev.disabled = page <= 1;
     next.disabled = page >= pages;
@@ -1696,6 +1687,15 @@
     const p = allProjects.find(x => x.bioproject === bioprojectAcc) || matchedProjects.find(x => x.bioproject === bioprojectAcc);
     const body = expanderEl.querySelector(".miniBody");
     if (!p || !body) return;
+    if (p.runs[0]?._synthetic) {
+      body.innerHTML = `<tr><td colspan="11" class="muted">Loading runs for ${escapeHtml(bioprojectAcc)}…</td></tr>`;
+      try {
+        p.runs = (await window.UMDB.fetchProject(bioprojectAcc)).runs;
+      } catch (e) {
+        body.innerHTML = `<tr><td colspan="11" class="err">Could not load ${escapeHtml(bioprojectAcc)}: ${escapeHtml(e.message)}</td></tr>`;
+        return;
+      }
+    }
 
     // Sort runs by ReleaseDate desc (approx: year desc then SRR)
     const runs = p.runs.slice().sort((a,b) => {
@@ -1806,218 +1806,45 @@
     return manifest;
   }
 
-  async function loadParts({loadAll}) {
-    if (!manifest?.parts?.length) return;
-
-    // Cancel any previous loading
-    if (aborter) aborter.abort();
-    aborter = new AbortController();
-
-    btnStop.disabled = false;
-    setMsg(loadAll ? "Loading all part files…" : "Streaming part files (you can stop anytime)…", "muted");
-
-    const totalParts = manifest.parts.length;
-    let loadedParts = 0;
-    let loadedRecords = 0;
-
-    for (const part of manifest.parts) {
-      if (aborter.signal.aborted) break;
-
-      const url = normalizePartPath(part.path);
-      pLoad.textContent = `Loaded ${loadedParts}/${totalParts} parts - ${loadedRecords.toLocaleString()} records`;
-      setProgress(loadedParts, totalParts);
-
-      let data = null;
-      try {
-        const r = await fetch(url, {signal: aborter.signal, cache:"default"});
-        if (!r.ok) throw new Error(`Fetch failed: ${r.status} ${r.statusText}`);
-        data = await r.json();
-      } catch (e) {
-        setMsg(`Error loading <span class="mono">${escapeHtml(url)}</span>: <span class="err">${escapeHtml(e.message)}</span>`, "err");
-        break;
-      }
-
-      if (Array.isArray(data)) {
-        allRuns.push(...data);
-        loadedRecords += data.length;
-        loadedParts += 1;
-      } else {
-        loadedParts += 1;
-      }
-
-      // Update live in stream mode
-      if (!loadAll) {
-        applyFilters();
-      }
-    }
-
-    setProgress(totalParts, totalParts);
-      pLoad.textContent = `Loaded ${loadedParts}/${totalParts} parts - ${loadedRecords.toLocaleString()} records`;
+  // The whole catalog arrives as the aggregated cube plus the project index
+  // (well under 1 MB compressed); runs are fetched per project when expanded.
+  async function loadParts() {
     btnStop.disabled = true;
-
-    if (!aborter.signal.aborted) {
-      setMsg(`<span class="ok">Ready.</span> Loaded ${loadedRecords.toLocaleString()} SRR records.`, "ok");
-    } else {
-      setMsg(`<span class="warn">Stopped.</span> Loaded ${loadedRecords.toLocaleString()} SRR records so far.`, "muted");
-    }
-
+    if (loadBanner) loadBanner.hidden = false;
+    setMsg("Loading the catalog index…", "muted");
+    setProgress(0, 1);
+    const [groups, index] = await Promise.all([window.UMDB.fetchGroups(), window.UMDB.fetchProjectsIndex()]);
+    projectIndex = index;
+    allRuns = groups;
+    const total = groups.reduce((n, g) => n + g._w, 0);
+    setProgress(1, 1);
+    pLoad.textContent = `Loaded ${index.size.toLocaleString()} BioProjects · ${total.toLocaleString()} runs`;
+    if (loadBanner) window.setTimeout(() => { loadBanner.hidden = true; }, 600);
     applyFilters();
+    setMsg(`<span class="ok">Ready.</span> ${index.size.toLocaleString()} BioProjects, ${total.toLocaleString()} runs. Open a project to load its runs.`, "ok");
   }
 
-  async function loadParts({loadAll}) {
-    if (!manifest?.parts?.length) return;
-
-    if (aborter) aborter.abort();
-    aborter = new AbortController();
-    loadSession += 1;
-
-    const sessionId = loadSession;
-    const totalParts = manifest.parts.length;
-    let loadedParts = 0;
-    let loadedRecords = 0;
-    let nextPartIndex = 0;
-
-    const refreshLoadUI = () => {
-      pLoad.textContent = `Loaded ${loadedParts}/${totalParts} parts - ${loadedRecords.toLocaleString()} records`;
-      setProgress(loadedParts, totalParts);
-    };
-
-    const finishLoad = (status) => {
-      if (sessionId !== loadSession) return;
-
-      btnStop.disabled = true;
-      refreshLoadUI();
-
-      if (status === "stopped") {
-        setMsg(`<span class="warn">Stopped.</span> Loaded ${loadedRecords.toLocaleString()} SRR records so far.`, "muted");
-      } else if (status === "ready") {
-        setMsg(`<span class="ok">Ready.</span> Loaded ${loadedRecords.toLocaleString()} SRR records.`, "ok");
-      }
-
-      if (loadBanner) {
-        if (status === "ready") {
-          window.setTimeout(() => {
-            if (loadBanner) loadBanner.hidden = true;
-          }, 800);
-        } else {
-          loadBanner.hidden = false;
+  // Exports need real run accessions: fetch the matched projects' files.
+  async function loadMatchedRuns() {
+    const pending = matchedProjects.filter(p => p.runs[0]?._synthetic);
+    if (pending.length > 300 && !window.confirm(
+      `This export needs run lists for ${pending.length.toLocaleString()} BioProjects (one file each). Continue?`)) {
+      throw new Error("Export cancelled");
+    }
+    let done = 0;
+    const queue = pending.slice();
+    const worker = async () => {
+      while (queue.length) {
+        const p = queue.shift();
+        p.runs = (await window.UMDB.fetchProject(p.bioproject)).runs;
+        done += 1;
+        if (done % 10 === 0 || done === pending.length) {
+          setMsg(`Loading run lists: ${done.toLocaleString()}/${pending.length.toLocaleString()} BioProjects…`, "muted");
         }
       }
-
-      applyFilters();
     };
-
-    const loadBatch = async (batchSize) => {
-      let loadedAny = false;
-
-      while (nextPartIndex < totalParts && batchSize > 0) {
-        if (aborter.signal.aborted || sessionId !== loadSession) {
-          return {status: "stopped", loadedAny};
-        }
-
-        const part = manifest.parts[nextPartIndex];
-        const url = normalizePartPath(part.path);
-
-        try {
-          const r = await fetch(url, {signal: aborter.signal, cache:"default"});
-          if (!r.ok) throw new Error(`Fetch failed: ${r.status} ${r.statusText}`);
-          const data = await r.json();
-
-          if (Array.isArray(data)) {
-            allRuns.push(...data);
-            loadedRecords += data.length;
-          }
-
-          loadedParts += 1;
-          nextPartIndex += 1;
-          batchSize -= 1;
-          loadedAny = true;
-          refreshLoadUI();
-        } catch (e) {
-          if (aborter.signal.aborted || sessionId !== loadSession) {
-            return {status: "stopped", loadedAny};
-          }
-          setMsg(`Error loading <span class="mono">${escapeHtml(url)}</span>: <span class="err">${escapeHtml(e.message)}</span>`, "err");
-          btnStop.disabled = true;
-          return {status: "error", loadedAny};
-        }
-      }
-
-      if (aborter.signal.aborted || sessionId !== loadSession) return {status: "stopped", loadedAny};
-      if (nextPartIndex >= totalParts) return {status: "ready", loadedAny};
-      return {status: "partial", loadedAny};
-    };
-
-    const continueStreaming = async () => {
-      const result = await loadBatch(2);
-      if (sessionId !== loadSession) return;
-
-      if (result.loadedAny) {
-        applyFilters();
-      }
-
-      if (result.status === "partial") {
-        setMsg(
-          `Interactive. Loaded ${loadedRecords.toLocaleString()} SRR records so far; remaining parts are still loading in the background.`,
-          "muted"
-        );
-        window.setTimeout(continueStreaming, 0);
-        return;
-      }
-
-      if (result.status === "ready") {
-        finishLoad("ready");
-        return;
-      }
-
-      if (result.status === "stopped") {
-        finishLoad("stopped");
-      }
-    };
-
-    btnStop.disabled = false;
-    if (loadBanner) loadBanner.hidden = false;
-    refreshLoadUI();
-
-    if (loadAll) {
-      setMsg("Loading all part files...", "muted");
-
-      while (true) {
-        const result = await loadBatch(4);
-        if (result.status === "partial") continue;
-        if (result.status === "ready") {
-          finishLoad("ready");
-        } else if (result.status === "stopped") {
-          finishLoad("stopped");
-        }
-        return;
-      }
-    }
-
-    setMsg("Loading first chunk for Explorer...", "muted");
-    const firstChunk = await loadBatch(1);
-    if (sessionId !== loadSession) return;
-
-    if (firstChunk.loadedAny) {
-      applyFilters();
-    }
-
-    if (firstChunk.status === "ready") {
-      finishLoad("ready");
-      return;
-    }
-
-    if (firstChunk.status === "stopped") {
-      finishLoad("stopped");
-      return;
-    }
-
-    if (firstChunk.status === "error") {
-      return;
-    }
-
-    setMsg("Interactive. First chunk loaded; remaining parts are continuing in the background.", "ok");
-    window.setTimeout(continueStreaming, 0);
+    await Promise.all(Array.from({length: Math.min(6, queue.length)}, worker));
+    return matchedProjects.flatMap(p => p.runs);
   }
 
   function resetUI() {
@@ -2054,12 +1881,8 @@
       .slice(0, 48) || "search";
   }
 
-  function matchedRuns() {
-    return matchedProjects.flatMap(p => p.runs);
-  }
-
-  function buildBundlePayload() {
-    const runs = matchedRuns();
+  async function buildBundlePayload() {
+    const runs = await loadMatchedRuns();
     const accessions = uniq(runs.map(getSRR).map(norm).filter(Boolean)).sort((a,b) => a.localeCompare(b));
     const projects = matchedProjects.map(p => ({
       bioproject: p.bioproject,
@@ -2130,22 +1953,22 @@
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
 
-  function exportMatchedBundle() {
-    const payload = buildBundlePayload();
+  async function exportMatchedBundle() {
+    const payload = await buildBundlePayload();
     const label = slugify(q.value || country.value || city.value || assay.value || "matched_runs");
     downloadTextFile(`UMDB_bundle_${label}.json`, JSON.stringify(payload, null, 2), "application/json");
     setMsg(`<span class="ok">Bundle exported.</span> Saved ${payload.counts.unique_srr_accessions.toLocaleString()} SRR accessions from the current search.`, "ok");
   }
 
-  function exportSrrList() {
-    const payload = buildBundlePayload();
+  async function exportSrrList() {
+    const payload = await buildBundlePayload();
     const label = slugify(q.value || country.value || city.value || assay.value || "matched_runs");
     downloadTextFile(`UMDB_srr_${label}.txt`, payload.srr_accessions.join("\n") + "\n");
     setMsg(`<span class="ok">SRR list exported.</span> Saved ${payload.counts.unique_srr_accessions.toLocaleString()} accessions for the current search.`, "ok");
   }
 
-  function buildFastqScript() {
-    const payload = buildBundlePayload();
+  async function buildFastqScript() {
+    const payload = await buildBundlePayload();
     const label = slugify(q.value || country.value || city.value || assay.value || "matched_runs");
     const accessions = payload.srr_accessions;
     const accessionBlock = accessions.map(acc => `  "${acc}"`).join(" \\\n");
@@ -2187,10 +2010,10 @@ echo "[UMDB] completed FASTQ export into $OUTDIR/fastq"
 `;
   }
 
-  function exportFastqScript() {
-    const payload = buildBundlePayload();
+  async function exportFastqScript() {
+    const payload = await buildBundlePayload();
     const label = slugify(q.value || country.value || city.value || assay.value || "matched_runs");
-    downloadTextFile(`UMDB_fastq_bundle_${label}.sh`, buildFastqScript(), "text/x-shellscript");
+    downloadTextFile(`UMDB_fastq_bundle_${label}.sh`, await buildFastqScript(), "text/x-shellscript");
     setMsg(`<span class="ok">FASTQ script exported.</span> Script includes ${payload.counts.unique_srr_accessions.toLocaleString()} SRR runs from the current search.`, "ok");
   }
 
@@ -2208,7 +2031,8 @@ echo "[UMDB] completed FASTQ export into $OUTDIR/fastq"
       countries_top: p.countries_top,
       cities_top: p.cities_top,
       centers_top: p.centers_top,
-      runs: p.runs, // keep full records for now; you can strip later if size is an issue
+      // Run records are included once a project has been opened (loaded from db/p/).
+      runs: p.runs[0]?._synthetic ? undefined : p.runs,
     }));
 
     const blob = new Blob([JSON.stringify({
@@ -2247,9 +2071,10 @@ echo "[UMDB] completed FASTQ export into $OUTDIR/fastq"
   btnReset.addEventListener("click", resetUI);
   btnStop.addEventListener("click", () => { if (aborter) aborter.abort(); btnStop.disabled = true; });
   btnExport.addEventListener("click", exportCurrentPage);
-  btnBundle.addEventListener("click", exportMatchedBundle);
-  btnFastqScript.addEventListener("click", exportFastqScript);
-  btnSrrList.addEventListener("click", exportSrrList);
+  const reportExportError = (e) => setMsg(`<span class="err">${escapeHtml(e.message)}</span>`, "err");
+  btnBundle.addEventListener("click", () => exportMatchedBundle().catch(reportExportError));
+  btnFastqScript.addEventListener("click", () => exportFastqScript().catch(reportExportError));
+  btnSrrList.addEventListener("click", () => exportSrrList().catch(reportExportError));
   if (modeToggle) {
     modeToggle.addEventListener("click", () => {
       const current = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
@@ -2306,23 +2131,8 @@ echo "[UMDB] completed FASTQ export into $OUTDIR/fastq"
       pGenerated.textContent = `Generated: ${formatTimestamp(mf.generated_utc || mf.generated || "")}`;
       pTotals.textContent = `Total SRR records: ${(mf.total_records ?? mf.total_srr_records ?? "—").toLocaleString?.() ?? (mf.total_records ?? mf.total_srr_records ?? "—")}`;
 
-      // Load data
-      const loadAll = mode.value === "all";
-      await loadParts({loadAll});
-
-      // Apply URL params if present
+      await loadParts();
       if (q.value) applyFilters();
-
-      // If user flips mode later, re-load on demand
-      mode.addEventListener("change", async () => {
-        // If switching from stream->all, do a full reload for best stats.
-        const wantAll = mode.value === "all";
-        allRuns = [];
-        tbody.innerHTML = `<tr><td colspan="9" class="muted">Reloading…</td></tr>`;
-        await loadParts({loadAll: wantAll});
-      });
-
-      setMsg(`<span class="ok">Ready.</span> BioProject aggregation is live.`, "ok");
     } catch (e) {
       setMsg(`<span class="err">${escapeHtml(e.message)}</span>`, "err");
       tbody.innerHTML = `<tr><td colspan="9" class="err">Failed to initialize: ${escapeHtml(e.message)}</td></tr>`;

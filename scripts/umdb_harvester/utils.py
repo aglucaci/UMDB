@@ -145,11 +145,58 @@ def read_json(path: str, default):
     except Exception:
         return default
 
+# --- Credentials never reach disk -------------------------------------------
+# E-utilities URLs carry api_key and email. Anything UMDB persists (catalog,
+# caches, website JSON, debug files) passes through scrub_secrets, so a URL
+# recorded for provenance is stored without them.
+_SECRET_FIRST = re.compile(r"\?(?:api_key|email)=[^&\"'\s\\<>]*&?")
+_SECRET_LATER = re.compile(r"&(?:api_key|email)=[^&\"'\s\\<>]*")
+
+
+def scrub_secrets(text: str) -> str:
+    """Remove api_key= and email= query parameters from any text."""
+    if "api_key=" not in text and "email=" not in text:
+        return text
+    return _SECRET_LATER.sub("", _SECRET_FIRST.sub("?", text))
+
+
+public_url = scrub_secrets
+
+
+def scrub_files(roots=("data", "docs", "logs")) -> Dict[str, int]:
+    """Remove api_key=/email= query parameters from every .json/.jsonl/.ndjson
+    file under roots, in place (atomic per file). Returns {path: lines changed}."""
+    changed: Dict[str, int] = {}
+    for root in roots:
+        for dirpath, _, files in os.walk(root):
+            for name in files:
+                if not name.endswith((".json", ".jsonl", ".ndjson")):
+                    continue
+                path = os.path.join(dirpath, name)
+                with open(path, encoding="utf-8", errors="surrogateescape") as fh:
+                    text = fh.read()
+                if "api_key=" not in text and "email=" not in text:
+                    continue
+                n = 0
+                out = []
+                for line in text.splitlines(keepends=True):
+                    new = scrub_secrets(line)
+                    n += new != line
+                    out.append(new)
+                if n:
+                    tmp = path + ".scrub.tmp"
+                    with open(tmp, "w", encoding="utf-8", errors="surrogateescape") as fh:
+                        fh.write("".join(out))
+                    os.replace(tmp, path)
+                    changed[path] = n
+    return changed
+
+
 def write_json(path: str, obj: Any):
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(obj, f, ensure_ascii=False, indent=2)
+        f.write(scrub_secrets(json.dumps(obj, ensure_ascii=False, indent=2)))
     os.replace(tmp, path)
 
 def _norm(s: str) -> str:
@@ -203,7 +250,7 @@ def append_jsonl(path: str, records: List[Dict[str, Any]], max_bytes: int = MAX_
     f = open(cur_path, "a", encoding="utf-8")
     try:
         for r in records:
-            line = json.dumps(r, ensure_ascii=False) + "\n"
+            line = scrub_secrets(json.dumps(r, ensure_ascii=False)) + "\n"
             if file_size(cur_path) + len(line.encode("utf-8")) > max_bytes:
                 f.close()
                 cur_path = rotating_path(path, max_bytes=max_bytes)
@@ -270,7 +317,7 @@ def write_json_array_chunked(
 
     try:
         for rec in records_iter:
-            blob = json.dumps(rec, ensure_ascii=False, indent=2)
+            blob = scrub_secrets(json.dumps(rec, ensure_ascii=False, indent=2))
             entry = ("" if first else ",\n") + blob
             if cur_bytes() + len(entry.encode("utf-8")) + len("\n]\n".encode("utf-8")) > max_bytes and not first:
                 cur.write("\n]\n")

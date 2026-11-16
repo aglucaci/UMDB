@@ -40,8 +40,7 @@ UMDB then derives and adds `geo`, `assay` and `eligibility` (at export), `ncbi` 
 | BioProjects cached | 1,609 |
 | `data/srr_catalog_*.jsonl` | 230 MB |
 | `data/cache/*.json` | 39 MB |
-| `docs/db/` run parts | 481 MB as published in April 2026, which included duplicates; about 350 MB when rebuilt |
-| `docs/db/biosamples.json`, `bioprojects.json` | 38 MB, 1.5 MB |
+| `docs/db/` | Compact index about 2 MB (0.4 MB compressed) plus per-project files; replaced run parts that reached over 1 GB |
 
 A deep harvest makes roughly one run-table request per experiment plus one request per new BioSample. Expect hundreds of thousands of requests per backfilled year (see [MAINTAINING.md](MAINTAINING.md#backfill-years-deepest-search)).
 
@@ -52,9 +51,10 @@ A deep harvest makes roughly one run-table request per experiment plus one reque
 | `data/srr_catalog_<YEAR>.jsonl` | JSON Lines, UTF-8, one run record per line | Split into `_partNNN.jsonl` files under 50 MB. `<YEAR>` is the harvest year (`crawl`, `daily`) or the backfilled year. After a `--refresh` a run can appear more than once until `umdb compact`; exports always use the newest (latest `provenance.ingested_utc`) |
 | `data/cache/*.json` | One JSON object keyed by accession | BioSample, BioProject, BioProject UID and AI caches |
 | `data/seen_*.txt` | Plain text, one ID per line | De-duplication state |
-| `docs/db/srr_records_partNNN.json` | JSON array of run records | Parts under 50 MB, listed in `srr_records_manifest.json` |
+| `docs/db/cube.json`, `projects.json`, `p/<ACC>.json` | Compact JSON, dictionary-encoded columns | Website data built from `data/umdb.sqlite` (see [Published files](#published-files-docs)) |
 | `docs/db/summary.json` | JSON object | Precomputed counts for the website |
-| `docs/db/biosamples.json`, `bioprojects.json` | JSON objects keyed by accession | Copies of the caches |
+
+`data/` catalog files are **not in git**: they live in GitHub Release assets (`catalog-latest`) and are restored with `umdb catalog pull` (see [MAINTAINING.md](MAINTAINING.md#the-catalog-lives-in-release-assets)).
 
 NCBI values are stored as NCBI returns them: RunInfo numbers are strings, dates keep NCBI's formats, and BioSample attribute names keep the submitter's spelling (`geo_loc_name`, `geographic location`, …). Normalized values exist only in the derived blocks (`geo`, `assay`, `eligibility`).
 
@@ -62,11 +62,11 @@ NCBI values are stored as NCBI returns them: RunInfo numbers are strings, dates 
 
 Text that is identical for every run of a study is stored once, not per run:
 
-- The BioProject **description and raw esummary fields** live only in `data/cache/bioproject.json` and `docs/db/bioprojects.json`. Each run keeps a short `bioproject` block (accession, UID, title, center, data type, submission date) for display.
+- The BioProject **description and raw esummary fields** live only in `data/cache/bioproject.json` (and in the SQLite `projects` table and each project's `docs/db/p/<ACC>.json`). Each run keeps a short `bioproject` block (accession, UID, title, center, data type, submission date) for display.
 - The 47 RunInfo **column names** are no longer repeated in `debug`.
 - Eligibility evidence from BioProject text records the field and matched terms, not the text itself.
 
-New harvests write slim records; `umdb export` slims what it publishes, and `umdb compact` slims `data/`. On the current catalog the run files drop from 230 MB to 152 MB, and the published run parts from 481 MB (with the double-counted rows) to 243 MB in 5 files. Look up a run's full project text by `bioproject.accession` in `bioprojects.json`.
+New harvests write slim records; `umdb export` slims what it publishes, and `umdb compact` slims `data/`. On the current catalog the run files drop from 230 MB to 152 MB, and the published run parts from 481 MB (with the double-counted rows) to 243 MB in 5 files. Look up a run's full project text by `bioproject.accession` in `data/cache/bioproject.json` or the `projects` table.
 
 ---
 
@@ -78,27 +78,45 @@ New harvests write slim records; `umdb export` slims what it publishes, and `umd
 
 ## Published files (`docs/`)
 
+The website loads a compact index built from `data/umdb.sqlite` (`umdb export`, and after every harvest), not every run record. Opening a BioProject fetches that project's file. Full tables are in the Parquet releases.
+
 | File | Contents |
 | --- | --- |
-| `docs/db/srr_records_manifest.json` | Index of the current release's part files |
-| `docs/db/srr_records_partNNN.json` | JSON arrays of run records (schema below), each under 50 MB |
-| `docs/db/srr_index.json` | Compact copy of the manifest for the website |
 | `docs/db/summary.json` | Precomputed counts used by the home and analytics pages |
-| `docs/db/bioprojects.json` | BioProject metadata keyed by accession |
-| `docs/db/biosamples.json` | BioSample attributes keyed by accession |
-| `docs/db/ai_curation.json` | AI review results keyed by run accession (when present) |
+| `docs/db/cube.json` | Runs aggregated by BioProject, release year, country, city, assay, eligibility tier, urban context, AI review and coordinates rounded to 0.1° |
+| `docs/db/projects.json` | One row per BioProject |
+| `docs/db/p/<ACC>.json` | One BioProject's samples and runs (`_none.json` for runs without a BioProject) |
+| `docs/db/manifest.json` | Build time, schema/rules/query versions, counts, file sizes |
+| `docs/db/srr_records_manifest.json` | Kept for older loaders: `generated_utc`, `total_records`, empty `parts` |
 | `docs/latest_srr.json` | Runs added by the most recent harvest |
 | `docs/debug/latest_report.json` | Counters, queries and query-profile version from the most recent run |
 
-### `srr_records_manifest.json`
+Unchanged files are not rewritten, so a harvest changes only the projects it touched. Download URLs and verbatim NCBI records are left out (they are in the database and releases).
 
-| Field | Type | Description |
+### `cube.json`
+
+`cols` names the columns of each row in `rows`; `dims` holds the value lists that the dictionary-encoded columns index into.
+
+| Column | Type | Description |
 | --- | --- | --- |
-| `generated_utc` | ISO 8601 | When the export ran |
-| `total_records` | int | Runs across all parts |
-| `parts[].path` | string | Repository-relative path of a part file |
-| `parts[].records` | int | Runs in that part |
-| `catalog_file_years` | int[] | Years in the `data/srr_catalog_<YEAR>.jsonl` filenames, i.e. **harvest** years. Not run release years. Called `years` before 2026-11 |
+| `project` | int → `dims.project` | BioProject accession |
+| `year` | int or null | Run release year |
+| `country`, `city` | int → `dims.country` / `dims.city` | Rule-based location labels (`""` = unknown) |
+| `assay` | int → `dims.assay` | Assay class |
+| `tier` | int → `dims.tier` | Run-level eligibility tier |
+| `context` | int → `dims.context` | Primary urban context (`""` = none) |
+| `ai` | int → `dims.ai`, or null | AI review fields (`urban_origin`, `metadata_sufficiency`, `final_*`) |
+| `lat`, `lon` | float or null | Sample coordinates rounded to 0.1° |
+| `runs`, `samples` | int | Runs and distinct BioSamples in the group |
+| `gbases` | float | Sequenced gigabases |
+
+A BioSample whose runs fall in two groups counts in both, so sum `samples` only within a group; exact totals are in `summary.json`.
+
+### `projects.json` and `p/<ACC>.json`
+
+`projects.json`: `cols` = accession, title, center_name, data_type, submission_date, runs, samples, first_year, last_year.
+
+`p/<ACC>.json`: `project` (accession, title, description, organism, data type, centre, dates); `samples` rows with `sample_cols` (accession, title, collection date, country, region, city, lat, lon, urban_status, urban_context, eligibility_reason, isolation_source, env_broad_scale, env_local_scale, env_medium, host, location_resolution); `runs` rows with `run_cols` (accession, index into `samples`, experiment, assay and library fields, platform, instrument, release date, spots, bases, average length, size in MB, organism label, run-level tier, experiment title); `ai` keyed by run accession.
 
 ### `summary.json`
 
@@ -107,7 +125,7 @@ New harvests write slim records; `umdb export` slims what it publishes, and `umd
 | `totalRuns`, `totalBioSamples`, `totalProjects` | Distinct counts |
 | `totalCountries`, `totalCities` | Distinct non-empty labels (text labels, not validated places) |
 | `geoResolvedRuns` | Runs with both a country and a city label |
-| `downloadableRuns` | Runs with an SRA `download_path` |
+| `downloadableRuns` | Runs with an SRA accession (all catalog runs) |
 | `years` | `[{name, count}]` by **run release year** (`ReleaseDate`, falling back to `LoadDate`) |
 | `assays`, `countries`, `cities`, `centers` | `[{name, count}]` tallies of runs |
 | `eligibility` | `[{name, runs, biosamples}]` per eligibility tier (five tiers) |
@@ -235,6 +253,8 @@ Stored in `data/cache/ai_curation.json`, keyed by run, and attached at export. M
 ---
 
 ## Working files (`data/`)
+
+Git-ignored; stored as one bundle in GitHub Release assets (`umdb catalog push` / `pull`).
 
 | File | Format | Description |
 | --- | --- | --- |

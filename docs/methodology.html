@@ -54,15 +54,16 @@
         <article class="panel">
           <h3>Database overview</h3>
           <p>
-            The explorer loads a manifest and one or more part files containing SRR-level records. Those records are aggregated into one
-            row per BioProject and can be expanded to reveal underlying SRR and SRA run detail.
+            The site loads a compact index rather than every run: runs aggregated by BioProject, release year, place, assay and eligibility tier.
+            Opening a BioProject fetches that project's BioSamples and runs on demand.
           </p>
           <p style="margin-top:12px">
-            <span class="mono">Manifest</span>:
-            <span class="mono">docs/db/srr_records_manifest.json</span> stores the file list, generation timestamp, and total record count.
+            <span class="mono">Index</span>:
+            <span class="mono">docs/db/summary.json</span>, <span class="mono">docs/db/cube.json</span> and <span class="mono">docs/db/projects.json</span>
+            (well under 1 MB compressed in total).
             <br/>
-            <span class="mono">Parts</span>:
-            <span class="mono">docs/db/srr_records_partXXX.json</span> store arrays of SRR records built from RunInfo fields plus derived annotations.
+            <span class="mono">Projects</span>:
+            <span class="mono">docs/db/p/&lt;BioProject&gt;.json</span> hold each project's samples and runs. Full tables are published as Parquet releases.
           </p>
         </article>
         <article class="panel">

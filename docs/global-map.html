@@ -386,23 +386,8 @@
     }
 
     async function ensureBioSampleCache() {
-      if (biosampleCache) return biosampleCache;
-      if (!biosampleCachePromise) {
-        biosampleCachePromise = fetch("./db/biosamples.json", { cache: "default" })
-          .then((res) => {
-            if (!res.ok) throw new Error(`Unable to load BioSample cache (${res.status})`);
-            return res.json();
-          })
-          .then((json) => {
-            biosampleCache = json || {};
-            return biosampleCache;
-          })
-          .catch((err) => {
-            biosampleCachePromise = null;
-            throw err;
-          });
-      }
-      return biosampleCachePromise;
+      // Coordinates now come with the aggregated site data (db/cube.json).
+      return {};
     }
 
     function extractCoordinates(rec, bioLookup) {

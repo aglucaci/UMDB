@@ -6,7 +6,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Tag
 
 ## [Unreleased]
 
+### Security
+- NCBI E-utilities URLs stored for provenance (`debug.runinfo_url`, BioSample `efetch_url`) included the `api_key` and `email` query parameters, so the API key was written to `data/` and published in `docs/db/`. URLs are now stored without them, every JSON writer scrubs them as a safeguard, and `umdb scrub` removes them from existing files. Rotate any key used before this change.
+
 ### Added
+- Batched, concurrent NCBI fetching. RunInfo and BioSample records are fetched 200 per request, BioProjects and per-profile searches in parallel, under one shared rate limiter (`UMDB_NCBI_RPS`, default 8/s with a key, slowed automatically on HTTP 429; `UMDB_NCBI_WORKERS`, default 6). A day of 1,268 experiments went from 11 min 27 s (about 2,600 requests) to 17 s (66 requests) in testing, with identical records. EBI `SAMEA` BioSamples, which efetch cannot return by accession, are resolved to UIDs by batched search, so their metadata is now filled in; previously they were cached empty (23,113 of 26,936 cached SAMEA samples had no attributes, so their location, environment and eligibility came only from run titles).
+- `backfill-year --window day|week|month|auto`: release-date span per search. `auto` (default) searches a month at a time when there is no per-day cap, so a year takes 84 searches instead of 2,555; results are identical.
+- BioProjects are fetched in batches too: one esearch per 50 accessions and one esummary per 200 projects (150 projects: 4 requests, 2.5 s). After an HTTP 429 the request rate drops, then recovers 10% every 10 s after a minute without one.
+- Compact website data (site schema 2.0.0). Instead of every run record (over 1 GB in `docs/db/`), the site loads `summary.json`, `cube.json` (runs aggregated by project, year, place, assay, tier, context, AI review and rounded coordinates: 11,746 rows for 245,903 runs) and `projects.json`, about 0.4 MB compressed, and fetches `p/<ACC>.json` when a project is opened or exported. Explorer filters, analytics and the map work unchanged. Built from the SQLite database by `site.py` (`umdb export`, and after every harvest); unchanged files are not rewritten.
+- The harvested catalog moves to GitHub Release assets: `umdb catalog push|pull|status`. `data/srr_catalog_*.jsonl`, `data/cache/*.json` and `data/seen_*.txt` are git-ignored and uploaded as one gzipped bundle with SHA-256 checksums to the `catalog-latest` release (1.2 GB packs to 65 MB); `--snapshot` adds a dated release. A push is refused if someone else pushed since your last pull; `pull --merge` combines them. Both workflows pull before and push after.
+- `umdb repair` (`repair-bioprojects`): re-fetch cached BioProjects stored under the wrong accession; run `umdb export` and `umdb db build` afterwards.
+- `umdb scrub` (`scrub-secrets`): remove `api_key=`/`email=` from stored URLs in `data/`, `docs/` and `logs/`.
 - SQLite query database `data/umdb.sqlite` (schema 1.0.0), derived from the git JSONL catalog and caches: normalized `projects` / `samples` / `experiments` / `runs` / `project_samples` / `ai_annotations` tables with BioSample as the unit of observation, cohort and foreign-key indexes, an FTS5 full-text index, and `umdb_samples` / `umdb_runs` views. Built in about 30 s by `umdb db build`, and automatically after every harvest (`--no-db` skips it). Query with `umdb db info|shell|query`.
 - Versioned releases: `umdb release` writes Parquet tables (Zstandard, typed columns, NULL for unknown), gzipped TSV, `schema.json`, `manifest.json` and `checksums.sha256` to `dist/releases/<version>/`. The whole catalog is about 11 MB, versus 243 MB of website JSON. Optional dependency: `requirements-release.txt` (pyarrow, duckdb).
 - `ARCHITECTURE.md`: data flow, schema, example SQL and DuckDB queries, release process.
@@ -37,6 +47,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Tag
 - Discovery queries no longer exclude soil, sediment, freshwater, river, lake or "plant".
 
 ### Fixed
+- After a harvest, the export and database build read the BioSample/BioProject caches from disk before the run had saved its new entries, so newly fetched samples were annotated without their metadata until the next run. Caches are now saved first.
+- Both workflows called `python3 -m scripts.umdb_harvester.cli`, which never ran a harvest; they now call `python3 -m scripts.umdb_harvester`.
+- BioProject lookups took the first `[Accession]` search hit, which can be a different project that links to the requested one (PRJNA293225 was stored as PRJDB9202). 232 of 5,749 cached projects were affected. Lookups now match the exact accession, and exports and the database take project fields from the corrected cache.
 - NCBI requests on networks that inspect HTTPS: a certificate error now retries once with the macOS System keychain roots (still verified), `UMDB_CA_BUNDLE` adds a custom root, and persistent certificate errors stop immediately with instructions instead of retrying. `umdb backfill` / `deepest` stop when a TLS error or two consecutive failed years would make every remaining year fail.
 - **Run counts were inflated by 78%.** Exports read every `srr_catalog_<YEAR>_partNNN.jsonl` file twice (the year glob matched the part files, which were then read again through the base file). The April 2026 release reported 106,558 runs; the catalog holds **59,921 unique runs**. Run-level counts (runs, assay, country, city and year tallies) were affected; BioSample and BioProject counts were not. Exports now return one base path per year and never emit a run twice.
 - `backfill-year` and `daily` never returned any records: they searched SRA with `datetype=edat`, which SRA ignores, and `backfill-year` sent ISO `YYYY-MM-DD` dates, which return nothing. Both now use `pdat` (public release date) with `YYYY/MM/DD`. Until this fix only `crawl` had ever harvested data.
@@ -47,7 +60,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Tag
 - The country fallback no longer matches aliases inside words (e.g. "uk" in "Fukuoka").
 
 ### Known issues
-- Workflows call `python3 -m scripts.umdb_harvester.cli`, which exits without running. Scheduled crawls currently harvest nothing.
 - AI-reviewed values override rule values even when unchanged, so older reviews can re-introduce pre-fix city values.
 
 ## 2026-04-17 — AI curation snapshot

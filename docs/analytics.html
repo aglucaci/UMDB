@@ -941,6 +941,14 @@
       try {
         const { manifest, allRuns } = await window.UMDBDB.fetchAllRuns();
         const summary = window.UMDBDB.summarize(allRuns);
+        // Exact catalog totals (the aggregated index cannot de-duplicate
+        // BioSamples across groups, and carries no download paths).
+        try {
+          const exact = await window.UMDBDB.fetchSummary();
+          for (const k of ["totalRuns", "totalBioSamples", "downloadableRuns", "geoResolvedRuns"]) {
+            if (exact && exact[k] != null) summary[k] = exact[k];
+          }
+        } catch (e) { /* keep computed values */ }
         const years = summary.years.slice().sort((a, b) => Number(a.name) - Number(b.name));
         const assays = summary.assays.slice();
         const countries = nonUnknown(summary.countries);
@@ -969,7 +977,7 @@
 
         coverageBadges.innerHTML = `
           <span class="badge">Generated: ${formatTimestamp(manifest.generated_utc || manifest.generated || "")}</span>
-          <span class="badge">Part files: ${fmt((manifest.parts || []).length)}</span>
+          <span class="badge">Compact index</span>
           <span class="badge">Years represented: ${fmt(years.length)}</span>
           <span class="badge">Assay classes: ${fmt(assays.length)}</span>
           <span class="badge">Top country bucket: ${countries[0] ? countries[0].name + " (" + fmt(countries[0].count) + ")" : "N/A"}</span>
