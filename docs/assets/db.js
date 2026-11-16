@@ -19,9 +19,25 @@
   const cache = new Map();
   const shardPromises = new Map();
 
+  // Every data URL carries the build timestamp from manifest.json (always
+  // revalidated), so a new release is never mixed with cached files from the
+  // previous one, while unchanged releases still come from the browser cache.
+  let versionPromise = null;
+  function buildVersion(){
+    if (!versionPromise){
+      versionPromise = fetch(URLS.manifest, { cache: "no-cache" })
+        .then((res) => (res.ok ? res.json() : {}))
+        .then((m) => m.generated_utc || m.database_built_utc || "")
+        .catch(() => "");
+    }
+    return versionPromise;
+  }
+
   function fetchJson(url){
     if (!cache.has(url)){
-      cache.set(url, fetch(url, { cache: "default" }).then(async (res) => {
+      const versioned = url === URLS.manifest ? Promise.resolve(url)
+        : buildVersion().then((v) => (v ? `${url}${url.includes("?") ? "&" : "?"}v=${encodeURIComponent(v)}` : url));
+      cache.set(url, versioned.then((u) => fetch(u, { cache: url === URLS.manifest ? "no-cache" : "default" })).then(async (res) => {
         if (!res.ok) throw new Error(`Unable to load ${url} (${res.status})`);
         return await res.json();
       }).catch((err) => { cache.delete(url); throw err; }));

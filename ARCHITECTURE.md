@@ -53,7 +53,7 @@ Raw `geo_loc_name` text is free-form ("USA: New York, NY", "China:Hanzhou", "R10
 
 - A place is accepted only when the text names one place in the country (after any region constraint), or one of several same-named places is the capital and most populous, or five times larger than the next; otherwise the sample stays at country level.
 - Precise coordinates confirm a place within 30 km (wider for large cities) and contradict it beyond; coordinates given to whole degrees are too coarse to do either.
-- Coordinates alone assign the most populous place within 15 km (probable), never a village next to a city.
+- Coordinates alone assign a place (probable) only if the point lies within that settlement's extent, scaled by population (about 2.5 km for a village, up to 25 km for a large city), and never an administrative unit such as a county. A sample 8 km from a village keeps its country and no city.
 - A place always lies in the sample's country; the database rejects anything else.
 
 ## SQLite schema (version 1.1.0)

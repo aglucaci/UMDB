@@ -113,6 +113,11 @@
       border-color:rgba(255,207,112,.35);
       background:rgba(255,207,112,.08);
     }
+    .year-toggle{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;margin:4px 0 8px;background:rgba(255,255,255,.02)}
+    .year-toggle button{border:0;background:transparent;color:var(--muted);padding:6px 12px;border-radius:999px;font:inherit;font-size:13px;cursor:pointer}
+    .year-toggle button[aria-pressed=true]{background:rgba(115,167,255,.16);color:var(--fg)}
+    .year-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font-size:12px;color:var(--muted)}
+    .year-legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
     .axis-label{
       fill:#98a8c0;
       font-size:12px;
@@ -295,11 +300,16 @@
         <div class="panel chart-panel">
           <div class="section-header">
             <h2>Runs By Year</h2>
-            <p>Annual run counts provide a quick view of database growth over time.</p>
+            <p>Annual run counts provide a quick view of database growth over time, split by assay composition.</p>
+          </div>
+          <div class="year-toggle" role="group" aria-label="Runs by year view">
+            <button type="button" data-yearview="assay" aria-pressed="true">By assay</button>
+            <button type="button" data-yearview="total" aria-pressed="false">Total</button>
           </div>
           <div class="chart-shell">
-            <svg class="chart-svg tall" id="yearChart" viewBox="0 0 860 340" role="img" aria-label="UMDB runs by year"></svg>
+            <svg class="chart-svg tall" id="yearChart" viewBox="0 0 860 340" role="img" aria-label="UMDB runs by year and assay"></svg>
           </div>
+          <div class="year-legend" id="yearLegend"></div>
         </div>
         <div class="panel chart-panel">
           <div class="section-header">
@@ -319,7 +329,7 @@
         <div class="panel chart-panel">
           <div class="section-header">
             <h2>Top Countries</h2>
-            <p>Run-level counts for resolved country labels in the current database.</p>
+            <p>Run counts by country, validated against ISO 3166.</p>
           </div>
           <div class="chart-shell">
             <svg class="chart-svg tall" id="countryChart" viewBox="0 0 620 380" role="img" aria-label="Top countries by run count"></svg>
@@ -327,8 +337,8 @@
         </div>
         <div class="panel chart-panel">
           <div class="section-header">
-            <h2>Top Cities</h2>
-            <p>Run-level counts for resolved city labels. Useful for identifying concentrated sampling locations.</p>
+            <h2>Top Places</h2>
+            <p>Run counts by validated GeoNames place (cities and towns; a village appears only when samples were taken inside it). Samples without a validated place are not shown.</p>
           </div>
           <div class="chart-shell">
             <svg class="chart-svg tall" id="cityChart" viewBox="0 0 620 380" role="img" aria-label="Top cities by run count"></svg>
@@ -556,6 +566,62 @@
           `;
         }).join("")}
       `;
+    }
+
+    // Runs per release year, stacked by assay class. Colours follow the assay
+    // donut (classes ranked by run count); classes beyond the top eight are
+    // grouped as "Other".
+    const ASSAY_COLORS = ["#73a7ff", "#4ec5a8", "#ffcf70", "#ff8d7a", "#9f8cff", "#8bd6f1", "#c2d46f", "#f39cc4"];
+    async function renderYearAssayChart(svg, legend, mode) {
+      const cube = await window.UMDBDB.fetchCube();
+      const ix = Object.fromEntries(cube.cols.map((k, i) => [k, i]));
+      const byYear = new Map(), totals = new Map();
+      for (const row of cube.rows) {
+        const y = row[ix.year];
+        if (y == null) continue;
+        const a = cube.dims.assay[row[ix.assay]] || "Unknown";
+        const n = row[ix.runs];
+        if (!byYear.has(y)) byYear.set(y, new Map());
+        byYear.get(y).set(a, (byYear.get(y).get(a) || 0) + n);
+        totals.set(a, (totals.get(a) || 0) + n);
+      }
+      const ranked = [...totals.entries()].sort((a, b) => b[1] - a[1]).map(([a]) => a);
+      const top = ranked.slice(0, ASSAY_COLORS.length);
+      const color = (a) => top.includes(a) ? ASSAY_COLORS[top.indexOf(a)] : "#5f6f86";
+      const keys = ranked.length > top.length ? [...top, "Other"] : top;
+      const years = [...byYear.keys()].sort((a, b) => a - b);
+      const stacks = years.map((y) => {
+        const m = byYear.get(y);
+        const parts = top.map((a) => [a, m.get(a) || 0]);
+        if (keys.includes("Other")) parts.push(["Other", [...m.entries()].filter(([a]) => !top.includes(a)).reduce((t, [, n]) => t + n, 0)]);
+        return { year: y, parts, total: parts.reduce((t, [, n]) => t + n, 0) };
+      });
+      const width = 860, height = 340, left = 56, right = 20, topPad = 28, bottom = 58;
+      const usableW = width - left - right, usableH = height - topPad - bottom;
+      const max = Math.max(...stacks.map((s) => s.total), 1);
+      const gap = 10;
+      const barW = Math.max(14, (usableW - gap * Math.max(stacks.length - 1, 0)) / Math.max(stacks.length, 1));
+      const esc = window.UMDBDB.escapeHtml;
+      svg.innerHTML = `
+        <rect x="0" y="0" width="${width}" height="${height}" rx="18" fill="rgba(255,255,255,.01)"></rect>
+        <line x1="${left}" y1="${height - bottom}" x2="${width - right}" y2="${height - bottom}" stroke="rgba(148,174,214,.22)" />
+        ${stacks.map((s, i) => {
+          const x = left + i * (barW + gap);
+          let y = height - bottom;
+          const segs = mode === "total"
+            ? (() => { const h = (s.total / max) * usableH; y -= h;
+                return `<rect x="${x}" y="${y}" width="${barW}" height="${h}" rx="6" fill="url(#yearGrad)"><title>${s.year}: ${fmt(s.total)} runs</title></rect>`; })()
+            : s.parts.filter(([, n]) => n > 0).map(([a, n]) => {
+                const h = (n / max) * usableH; y -= h;
+                return `<rect x="${x}" y="${y}" width="${barW}" height="${Math.max(h - 0.6, 0)}" fill="${a === "Other" ? "#5f6f86" : color(a)}"><title>${s.year} · ${esc(a)}: ${fmt(n)} runs (${(100 * n / s.total).toFixed(1)}%)</title></rect>`;
+              }).join("");
+          const label = barW >= 34 || i % 2 === 0 ? `<text class="axis-label" x="${x + barW / 2}" y="${height - 20}" text-anchor="middle">${s.year}</text>` : "";
+          const value = barW >= 30 ? `<text x="${x + barW / 2}" y="${y - 7}" fill="#dce6f7" font-size="10" text-anchor="middle">${s.total >= 1000 ? (s.total / 1000).toFixed(s.total >= 10000 ? 0 : 1) + "k" : fmt(s.total)}</text>` : "";
+          return segs + value + label;
+        }).join("")}
+        <defs><linearGradient id="yearGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4ec5a8"/><stop offset="1" stop-color="#73a7ff"/></linearGradient></defs>`;
+      legend.innerHTML = mode === "total" ? `<span><i style="background:linear-gradient(#4ec5a8,#73a7ff)"></i>All runs</span>`
+        : keys.map((a) => `<span><i style="background:${a === "Other" ? "#5f6f86" : color(a)}"></i>${esc(a)} (${fmt(a === "Other" ? ranked.slice(top.length).reduce((t, k) => t + totals.get(k), 0) : totals.get(a))})</span>`).join("");
     }
 
     function renderHorizontalBarChart(svg, items, options = {}) {
@@ -953,6 +1019,11 @@
           for (const k of ["totalRuns", "totalBioSamples", "totalProjects", "totalCountries", "totalCities", "downloadableRuns", "geoResolvedRuns"]) {
             if (exact && exact[k] != null) summary[k] = exact[k];
           }
+          // Exact per-place and per-country run counts (by GeoNames id / ISO code,
+          // so same-named places such as the two Portlands stay separate).
+          if (exact && Array.isArray(exact.cities)) summary.cities = exact.cities.map((c) => ({ name: `${c.name}, ${c.country}`, count: c.runs })).sort((a, b) => b.count - a.count);
+          if (exact && Array.isArray(exact.countries)) summary.countries = exact.countries.map((c) => ({ name: c.name, count: c.runs }))
+            .sort((a, b) => b.count - a.count);
         } catch (e) { /* keep computed values */ }
         const years = summary.years.slice().sort((a, b) => Number(a.name) - Number(b.name));
         const assays = summary.assays.slice();
@@ -986,10 +1057,16 @@
           <span class="badge">Years represented: ${fmt(years.length)}</span>
           <span class="badge">Assay classes: ${fmt(assays.length)}</span>
           <span class="badge">Top country bucket: ${countries[0] ? countries[0].name + " (" + fmt(countries[0].count) + ")" : "N/A"}</span>
-          <span class="badge">Top city bucket: ${cities[0] ? cities[0].name + " (" + fmt(cities[0].count) + ")" : "N/A"}</span>
+          <span class="badge">Top place: ${cities[0] ? cities[0].name + " (" + fmt(cities[0].count) + ")" : "N/A"}</span>
         `;
 
-        renderVerticalBarChart(document.getElementById("yearChart"), years, { width: 860, height: 340, labelCutoff: 8 });
+        const yearSvg = document.getElementById("yearChart"), yearLegend = document.getElementById("yearLegend");
+        renderYearAssayChart(yearSvg, yearLegend, "assay").catch(() =>
+          renderVerticalBarChart(yearSvg, years, { width: 860, height: 340, labelCutoff: 8 }));
+        document.querySelectorAll("[data-yearview]").forEach((b) => b.addEventListener("click", () => {
+          document.querySelectorAll("[data-yearview]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+          renderYearAssayChart(yearSvg, yearLegend, b.dataset.yearview);
+        }));
         renderDonutChart(document.getElementById("assayChart"), assays.slice(0, 8), { width: 560, height: 340 });
         renderHorizontalBarChart(document.getElementById("countryChart"), countries.slice(0, 12), { width: 620, labelCutoff: 28 });
         renderHorizontalBarChart(document.getElementById("cityChart"), cities.slice(0, 12), { width: 620, labelCutoff: 28 });

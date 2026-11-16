@@ -41,7 +41,7 @@ BioSamples in 11,366 BioProjects, released between 2008 and 2026, from
 148 countries. 103,028 BioSamples are confirmed urban and 122,352
 probable urban. Municipal wastewater dominates (157,187 urban samples),
 followed by air and dust (30,917) and the built environment (18,773).
-216,834 BioSamples are located to a validated city or town (122,728 verified, 94,106 probable)
+206,862 BioSamples are located to a validated city or town (122,728 verified, 84,134 probable)
 and 176,347 report coordinates. Amplicon sequencing makes up the
 largest share of experiments, followed by shotgun metagenomes and
 metatranscriptomes.

@@ -833,7 +833,9 @@ def make_gazetteer(d):
               (1819729, "Hong Kong", "", 22.27832, 114.17469, "PPLC", "HK", "", 7491609),
               (6325494, "Québec", "Quebec,Quebec City", 46.81228, -71.21454, "PPLA", "CA", "10", 531902),
               (2618425, "Copenhagen", "København", 55.67594, 12.56553, "PPLC", "DK", "17", 1153615),
-              (2614030, "Søvang", "", 55.58, 12.54, "PPL", "DK", "17", 900)]
+              (2614030, "Søvang", "", 55.58, 12.54, "PPL", "DK", "17", 900),
+              (2624000, "Bælum", "", 56.83, 10.11, "PPL", "DK", "", 702),
+              (5800000, "Norfolk County", "", 42.85, -80.27, "PPL", "CA", "", 60847)]
     lines = []
     for pid, name, alts, lat, lon, code, cc, a1, pop in places:
         f = [str(pid), name, name, alts, str(lat), str(lon), "P", code, cc, "", a1, "", "", "", str(pop), "", "0", "", ""]
@@ -894,6 +896,14 @@ class GazetteerTests(unittest.TestCase):
     def test_coordinates_alone_pick_the_city_not_the_village(self):
         a, name = self.res("Denmark", "Denmark", 55.6, 12.55)
         self.assertEqual((a["status"], name, a["method"]), ("probable", "Copenhagen", "coordinates"))
+
+    def test_coordinates_alone_need_the_point_inside_the_place(self):
+        a, name = self.res("Denmark", "Denmark", 56.833, 10.25)       # 8 km from a 700-person village
+        self.assertEqual((a["status"], name, a["country_iso2"]), ("unresolved", None, "DK"))
+        a, name = self.res("Denmark", "Denmark", 56.835, 10.115)      # inside it
+        self.assertEqual((a["status"], name), ("probable", "Bælum"))
+        a, name = self.res("Canada: Ontario", "Canada", 42.85, -80.27) # a county is not a city
+        self.assertEqual(name, None)
 
     def test_coordinates_in_another_country(self):
         a, name = self.res("Canada: Quebec", "Canada", 55.676, 12.566)            # Copenhagen

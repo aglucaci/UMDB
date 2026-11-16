@@ -21,7 +21,9 @@ Place status (`status`):
                coordinates given to whole degrees are too coarse to count)
   probable     the place was chosen among homonyms by population dominance,
                or inferred from coordinates alone (the most populous place
-               within COORD_KM), or the region constraint had to be dropped
+               whose extent, scaled by population, contains the point; never
+               an administrative unit such as a county), or the region
+               constraint had to be dropped
   ambiguous    several places match and nothing decides between them
   conflicting  the text names one place unambiguously but precise
                coordinates are far from it
@@ -53,14 +55,14 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 from .config import DATA_DIR
 from .utils import log, warn, utc_now
 
-GEO_RULES_VERSION = "2026.11.1"
+GEO_RULES_VERSION = "2026.11.2"
 GEONAMES_DIR = os.path.join(DATA_DIR, "reference", "geonames")
 GEONAMES_BASE = "https://download.geonames.org/export/dump/"
 GEONAMES_FILES = ("countryInfo.txt", "admin1CodesASCII.txt", "cities500.zip")
 SOURCE_FILE = os.path.join(GEONAMES_DIR, "SOURCE.json")
 
 VERIFY_KM = 30.0      # coordinates this close to the named place confirm it (grows with population)
-COORD_KM = 15.0       # coordinates alone assign the most populous place within this distance
+COORD_KM = 25.0       # coordinates alone: search radius; a place must also *contain* the point (place_extent_km)
 BORDER_KM = 50.0      # a stated country is contradicted only if none of its places is this close
 CLUSTER_KM = 30.0     # several matched tokens this close together name one place (city + district)
 DOMINANCE = 5.0       # a homonym wins on population only if it is this many times larger
@@ -135,6 +137,19 @@ def coord_decimals(x: float) -> int:
         return 0
     frac = s.split(".", 1)[1].rstrip("0")
     return len(frac)
+
+
+# Names that are administrative units, not settlements ("Norfolk County",
+# "Wujiang District"): never inferred as a city from coordinates alone.
+ADMIN_NAME_RE = re.compile(r"\b(county|district|municipality|township|region|province|prefecture|parish|borough|"
+                           r"shire|canton|department|governorate|oblast|regional)\b", re.I)
+
+
+def place_extent_km(population: int) -> float:
+    """Rough radius of a settlement: ~2.5 km for a village, ~10 km at 50,000
+    people, at most 25 km for a large city. Coordinates outside it are not
+    taken to lie in that place."""
+    return min(COORD_KM, 1.5 + 4.0 * math.sqrt(max(population, 0) / 1e4))
 
 
 def verify_radius_km(population: int, decimals: int) -> float:
@@ -311,7 +326,9 @@ class Gazetteer:
         return best, best_d
 
     def largest_within(self, lat: float, lon: float, max_km: float, iso2: Optional[str] = None) -> Tuple[Optional[int], float]:
-        """Most populous place (optionally in one country) within max_km."""
+        """Most populous settlement (optionally in one country) whose extent
+        contains the point: within max_km and within place_extent_km of it,
+        excluding administrative-unit names."""
         best, best_pop, best_d = None, -1, 0.0
         reach = 1 + int(max_km / 111.0) + (1 if abs(lat) > 60 else 0)
         cy, cx = math.floor(lat), math.floor(lon)
@@ -321,10 +338,10 @@ class Gazetteer:
                 for i in self.grid.get((cy + dy, gx), ()):
                     if iso2 and self.p_country[i] != iso2:
                         continue
-                    if self.p_pop[i] <= best_pop:
+                    if self.p_pop[i] <= best_pop or ADMIN_NAME_RE.search(self.p_name[i]):
                         continue
                     d = haversine_km(lat, lon, self.p_lat[i], self.p_lon[i])
-                    if d <= max_km:
+                    if d <= max_km and d <= place_extent_km(self.p_pop[i]):
                         best, best_pop, best_d = i, self.p_pop[i], d
         return best, best_d
 
