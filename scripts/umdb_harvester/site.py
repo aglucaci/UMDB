@@ -246,7 +246,7 @@ def build_site(db_path: str = DB_PATH, out_dir: str = SITE_DB_DIR) -> Dict[str, 
         projset = d_projset(sorted(d_project(p) for p in si["projects"]))
         assayset = d_assayset(sorted(d_assay(x) for x in si["assays"]))
         key = (projset, si["year"], r["collection_year"], c, a1, pl, assayset, d_tier(r["s_status"] or "unscreened"),
-               d_ctx(r["urban_context"] or ""), ls, _round(r["lat"], 1), _round(r["lon"], 1))
+               d_ctx(r["urban_context"] or ""), ls, _round(r["lat"], 2), _round(r["lon"], 2))
         sample_cube[key] += 1
     sample_rows = [list(k) + [n] for k, n in sample_cube.items()]
     sample_rows.sort(key=_sort_key)

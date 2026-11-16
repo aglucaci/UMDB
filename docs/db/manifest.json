@@ -1,7 +1,7 @@
 {
   "site_schema_version": "3.0.0",
   "database_schema_version": "1.1.0",
-  "generated_utc": "2026-11-16T12:19:16+00:00",
+  "generated_utc": "2026-11-16T12:49:53+00:00",
   "database_built_utc": "2026-11-16T12:16:12+00:00",
   "query_profiles_version": "2026.11.2",
   "eligibility_rules_version": "2026.11.6",
@@ -11,7 +11,7 @@
     "runs": 477166,
     "biosamples": 406177,
     "projects": 11366,
-    "sample_cube_rows": 26785,
+    "sample_cube_rows": 34009,
     "run_cube_rows": 23797
   },
   "files": {
@@ -22,7 +22,7 @@
       "bytes": 199836
     },
     "samples.json": {
-      "bytes": 1588792
+      "bytes": 1992633
     },
     "cube.json": {
       "bytes": 1376067

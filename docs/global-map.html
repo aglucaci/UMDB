@@ -134,8 +134,8 @@
 
   <footer class="site-footer">
     Countries, regions and cities are validated against ISO 3166 and GeoNames before publication; samples whose location could not be validated count only at the level that could (country or none).
-    Site points show reported BioSample coordinates rounded to 0.1° and are not inferred from place names.
-    Country boundaries: Natural Earth (public domain) via world-atlas. <span id="geo-attrib"></span>
+    Site points show reported BioSample coordinates rounded to 0.01° (about 1 km) and are not inferred from place names.
+    Country boundaries: Natural Earth (public domain) via world-atlas. Street map when zoomed in: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors. <span id="geo-attrib"></span>
   </footer>
 </div>
 
@@ -277,17 +277,42 @@
     vis("small-countries", mode === "coverage");
     ["sites-clusters", "sites-single"].forEach((id) => vis(id, mode === "sites"));
     vis("env-points", mode === "env");
-    map.setPaintProperty("countries-fill", "fill-opacity", mode === "coverage" ? 0.95 : 0.35);
+    // Country shading fades out as the street basemap fades in (zoom 3 -> 5).
+    const base = mode === "coverage" ? 0.95 : 0.35;
+    map.setPaintProperty("countries-fill", "fill-opacity", ["interpolate", ["linear"], ["zoom"], 3, base, 5.5, mode === "coverage" ? 0.18 : 0.06]);
 
     const withXY = (result.points || []).reduce((a, p) => a + p.n, 0);
     $("map-note").textContent = mode === "coverage"
       ? `Shading counts ${fmt([...counts.values()].reduce((a, b) => a + b, 0))} BioSamples with a validated country (log scale).`
-      : `${fmt(withXY)} of ${fmt(result.samples)} matching BioSamples report coordinates; the rest are not drawn as points. Points are rounded to 0.1°.`;
+      : `${fmt(withXY)} of ${fmt(result.samples)} matching BioSamples report coordinates; the rest are not drawn as points. Points are rounded to 0.01° (about 1 km), so at street level they mark a neighborhood, not an exact site.`;
     $("legend").innerHTML = mode === "env"
       ? Object.entries(CTX).filter(([k]) => E.contexts.includes(k)).map(([, [label, color]]) => `<span><i class="dot" style="background:${color}"></i>${esc(label)}</span>`).join("")
       : mode === "coverage"
         ? `<span>Fewer</span>${SHADES.map((c) => `<i style="background:${c}"></i>`).join("")}<span>More BioSamples</span>`
         : `<span><i class="dot" style="background:#73a7ff"></i>Cluster of sites (size = BioSamples)</span><span><i class="dot" style="background:#ffcf70"></i>Validated city (selected)</span>`;
+  }
+
+  // Shapes cut at the antimeridian (Russia, Fiji) jump from +180 to -180
+  // inside a ring, which a web map draws as a band across the world. Make each
+  // ring continuous, then shift it so most of it lies within -180..180.
+  function unwrapAntimeridian(geometry){
+    const fixRing = (ring) => {
+      let offset = 0, prev = null;
+      const out = ring.map(([x, y]) => {
+        if (prev != null){
+          const d = x + offset - prev;
+          if (d > 180) offset -= 360; else if (d < -180) offset += 360;
+        }
+        prev = x + offset;
+        return [x + offset, y];
+      });
+      const mean = out.reduce((a, p) => a + p[0], 0) / out.length;
+      const shift = mean > 180 ? -360 : mean < -180 ? 360 : 0;
+      return shift ? out.map(([x, y]) => [x + shift, y]) : out;
+    };
+    if (geometry.type === "Polygon") return { ...geometry, coordinates: geometry.coordinates.map(fixRing) };
+    if (geometry.type === "MultiPolygon") return { ...geometry, coordinates: geometry.coordinates.map((poly) => poly.map(fixRing)) };
+    return geometry;
   }
 
   function bboxOf(feature){
@@ -309,7 +334,7 @@
     const G = E.geo;
     if (filters.city){
       const p = G.placeById.get(String(filters.city));
-      if (p) return map.flyTo({ center: [p.lon, p.lat], zoom: 9 });
+      if (p) return map.flyTo({ center: [p.lon, p.lat], zoom: p.population > 1e6 ? 10 : 12 });
     }
     if (filters.country){
       const c = G.countryByIso.get(filters.country);
@@ -324,8 +349,10 @@
   function initMap(){
     map = new maplibregl.Map({
       container: "map",
-      style: { version: 8, sources: {}, layers: [{ id: "bg", type: "background", paint: { "background-color": "#0b1420" } }] },
-      center: [10, 25], zoom: 1.3, minZoom: 0.8, maxZoom: 12, attributionControl: false, renderWorldCopies: false
+      // OpenStreetMap vector basemap (OpenFreeMap, no API key). At world zoom the
+      // country shading covers it; zooming in fades the shading so streets show.
+      style: "https://tiles.openfreemap.org/styles/dark",
+      center: [10, 25], zoom: 1.3, minZoom: 0.8, maxZoom: 17, attributionControl: false, renderWorldCopies: false
     });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: "Natural Earth · GeoNames · NCBI" }));
@@ -334,7 +361,8 @@
       map.addLayer({ id: "countries-fill", type: "fill", source: "countries",
         paint: { "fill-color": ["coalesce", ["feature-state", "color"], "#121e2e"], "fill-opacity": 0.95 } });
       map.addLayer({ id: "countries-line", type: "line", source: "countries",
-        paint: { "line-color": ["case", ["boolean", ["feature-state", "selected"], false], "#ffcf70", "rgba(148,174,214,.28)"],
+        paint: { "line-opacity": ["interpolate", ["linear"], ["zoom"], 4, 1, 6, 0],
+                 "line-color": ["case", ["boolean", ["feature-state", "selected"], false], "#ffcf70", "rgba(148,174,214,.28)"],
                  "line-width": ["case", ["boolean", ["feature-state", "selected"], false], 2, 0.5] } });
       map.addSource("small-countries", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addLayer({ id: "small-countries", type: "circle", source: "small-countries",
@@ -440,7 +468,9 @@
   Promise.all([U.openIndex(), fetch("./assets/world-110m.json").then((r) => r.json())]).then(([engine, topo]) => {
     E = engine;
     world = topojson.feature(topo, topo.objects.countries);
-    world.features = world.features.filter((f) => f.id != null).map((f) => ({ ...f, id: parseInt(f.id, 10) }));
+    // Antarctica's outline wraps the whole globe and has no samples; drop it.
+    world.features = world.features.filter((f) => f.id != null && String(f.id) !== "010")
+      .map((f) => ({ ...f, id: parseInt(f.id, 10), geometry: unwrapAntimeridian(f.geometry) }));
     $("geo-attrib").textContent = E.geo.attribution + ".";
     wire(); update(); initMap();
   }).catch((err) => {

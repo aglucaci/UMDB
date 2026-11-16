@@ -132,7 +132,7 @@ Unchanged files are not rewritten, so a harvest changes only the projects it tou
 | `tier` | int → `dims.tier` | Sample-level eligibility tier |
 | `context` | int → `dims.context` | Primary urban context (`""` = none) |
 | `loc` | int → `dims.loc` | Place status (verified, probable, ambiguous, conflicting, unresolved) |
-| `lat`, `lon` | float or null | Reported coordinates rounded to 0.1° (not inferred from place names) |
+| `lat`, `lon` | float or null | Reported coordinates rounded to 0.01°, about 1 km (not inferred from place names) |
 | `samples` | int | BioSamples in the row |
 
 Because project and assay are sets, a sample in two projects or with runs of two assays is still one row: `sum(samples)` over any filter is exact.
