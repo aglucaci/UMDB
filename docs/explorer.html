@@ -3,2143 +3,684 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>UMDB — BioProject Explorer</title>
-  <meta name="description" content="UMDB is a searchable urban environmental omics database with methods, analytics, downloadable records, and a global map." />
+  <title>UMDB — Dataset Explorer</title>
+  <meta name="description" content="Search and filter UMDB studies, BioSamples and sequencing runs by validated location, environment, assay and collection date, then export a reproducible cohort." />
   <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon_16.png" />
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon_32.png" />
   <link rel="icon" href="./assets/favicon.ico" />
   <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
-  <meta property="og:image" content="./assets/umdb-logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./assets/site.css" />
   <style>
-    :root{
-      --bg:#0f1621;
-      --panel:#141e2a;
-      --panel-alt:#182435;
-      --fg:#e8eef6;
-      --muted:#95a4b8;
-      --line:#29384a;
-      --line-strong:#36506a;
-      --chip:#1a2431;
-      --accent:#7aa2d0;
-      --good:#5ba37f;
-      --warn:#c3a15d;
-      --bad:#c27c77;
-      --body-grad-1:rgba(122,162,208,.08);
-      --body-grad-2:#0f1621;
-      --body-grad-3:#111a27;
-      --pill-bg:#182332;
-      --input-bg:#16212f;
-      --toolbar-bg:#172231;
-      --header-bg:#192433;
-      --linkbtn-bg:#182332;
-    }
-    :root[data-theme="light"]{
-      --bg:#f4f0e8;
-      --panel:#fffdf8;
-      --panel-alt:#f5eee1;
-      --fg:#182231;
-      --muted:#68768a;
-      --line:#d7d2c8;
-      --line-strong:#c6baa7;
-      --chip:#f1ece1;
-      --accent:#355c7d;
-      --good:#3f6b57;
-      --warn:#9a7b3c;
-      --bad:#9b5a56;
-      --body-grad-1:rgba(53,92,125,.06);
-      --body-grad-2:#f7f3eb;
-      --body-grad-3:#f1ece3;
-      --pill-bg:#f6f1e8;
-      --input-bg:#fbf8f2;
-      --toolbar-bg:#faf6ef;
-      --header-bg:#f4eee4;
-      --linkbtn-bg:#f8f3ea;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family:"IBM Plex Sans", "Avenir Next", "Segoe UI", sans-serif;
-      background:
-        radial-gradient(circle at top left, var(--body-grad-1), transparent 28%),
-        linear-gradient(180deg, var(--body-grad-2) 0%, var(--body-grad-3) 100%);
-      color:var(--fg);
-    }
-    a{color:inherit}
-    .wrap{max-width:1320px;margin:14px auto;padding:0 14px;}
-    header{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
-    h1,h2,h3{
-      font-family:"Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
-    }
-    h1{margin:0;font-size:20px;letter-spacing:.2px}
-    .muted{color:var(--muted)}
-    .topline{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:6px}
-    .pill{
-      font-size:12px;color:var(--muted);
-      border:1px solid var(--line); background:var(--pill-bg);
-      padding:4px 10px;border-radius:999px;
-    }
-    .grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:10px}
-    .explorerWorkspace{align-items:start;gap:12px}
-    .explorerSidebar{position:static}
-    .explorerSidebar,
-    .resultsCard{padding:14px;border-radius:18px}
-    .explorerSidebar{
-      position:relative;
-      overflow:hidden;
-      background:linear-gradient(180deg, var(--panel-alt) 0%, var(--panel) 100%);
-      border-width:2px;
-      border-style:solid;
-      border-color:var(--line-strong);
-      box-shadow:
-        0 18px 40px rgba(7,12,18,.2),
-        inset 0 1px 0 rgba(255,255,255,.04);
-    }
-    .explorerSidebar::before{
-      content:"";
-      position:absolute;
-      inset:0 0 auto 0;
-      height:4px;
-      background:linear-gradient(90deg, var(--accent), rgba(122,162,208,.18));
-      pointer-events:none;
-    }
-    .explorerSidebar::after{
-      content:"";
-      position:absolute;
-      inset:12px;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.04);
-      pointer-events:none;
-    }
-    .controlsGrid{
-      display:grid;
-      grid-template-columns:1.2fr .95fr .95fr;
-      gap:12px;
-      align-items:start;
-    }
-    .controlsGrid > div{
-      min-width:0;
-    }
-    .collapseCard{
-      border:1px solid rgba(118,103,83,.14);
-      border-radius:12px;
-      background:var(--toolbar-bg);
-      overflow:hidden;
-    }
-    .collapseBtn{
-      width:100%;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:12px;
-      padding:10px 12px;
-      border:0;
-      border-bottom:1px solid rgba(118,103,83,.12);
-      background:transparent;
-      color:var(--fg);
-      cursor:pointer;
-      font-size:12px;
-      font-weight:700;
-      letter-spacing:.04em;
-      text-transform:uppercase;
-    }
-    .collapseBtn span:last-child{
-      font-size:14px;
-      color:var(--muted);
-    }
-    .collapseBody{
-      padding:10px 12px 12px;
-    }
-    .collapseCard.is-collapsed .collapseBody{
-      display:none;
-    }
-    .collapseCard.is-collapsed .collapseBtn{
-      border-bottom:0;
-    }
-    .card{
-      background:var(--panel);
-      border:1px solid var(--line); border-radius:14px; padding:10px;
-      box-shadow:0 8px 20px rgba(70,56,35,.06);
-    }
-    .card h2{margin:0 0 6px 0;font-size:13px;color:var(--muted);font-weight:600;letter-spacing:.25px}
-    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-    label{font-size:11px;color:var(--muted);display:block;margin-bottom:5px}
-    input, select{
-      width:100%;
-      border-radius:10px;
-      border:1px solid var(--line);
-      background:var(--input-bg);
-      color:var(--fg);
-      padding:8px 10px;
-      outline:none;
-      font-size:13px;
-    }
-    input::placeholder{color:rgba(104,118,138,.8)}
-    .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-    .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-    button{
-      border-radius:10px;
-      border:1px solid var(--line);
-      background:var(--accent);
-      color:var(--panel);
-      padding:8px 11px;
-      cursor:pointer;
-      font-weight:600;
-      font-size:12px;
-    }
-    button.secondary{background:var(--pill-bg);color:var(--fg)}
-    button:disabled{opacity:.55;cursor:not-allowed}
-    .tableWrap{overflow:auto;border-radius:12px;border:1px solid var(--line)}
-    table{width:100%;border-collapse:collapse;min-width:1180px;background:var(--panel)}
-    th, td{padding:9px 10px;border-bottom:1px solid rgba(118,103,83,.22);vertical-align:top}
-    th{
-      position:sticky;top:0;
-      background:var(--header-bg);
-      color:var(--muted);
-      font-size:12px;
-      text-transform:uppercase;
-      letter-spacing:.6px;
-      z-index:2;
-      cursor:pointer;
-      user-select:none;
-    }
-    td{font-size:12.5px}
-    .chips{display:flex;gap:6px;flex-wrap:wrap}
-    .chip{
-      font-size:12px;
-      padding:3px 8px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background:var(--chip);
-      color:var(--fg);
-      white-space:nowrap;
-    }
-    .chip.good{border-color:rgba(63,107,87,.28); background:rgba(63,107,87,.10)}
-    .chip.warn{border-color:rgba(154,123,60,.28); background:rgba(154,123,60,.10)}
-    .chip.bad{border-color:rgba(155,90,86,.28); background:rgba(155,90,86,.10)}
-    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
-    .small{font-size:11px}
-    .title{font-weight:750}
-    .sub{color:var(--muted);font-size:11px;margin-top:3px;line-height:1.25}
-    .pager{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
-    .status{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .progressWrap{display:flex;flex-direction:column;gap:6px;min-width:min(100%, 360px);flex:1 1 320px}
-    .bar{
-      position:relative;
-      height:12px;
-      width:100%;
-      border-radius:999px;
-      background:rgba(53,92,125,.08);
-      border:1px solid var(--line);
-      overflow:hidden
-    }
-    .bar > div{
-      height:100%;
-      width:0%;
-      background:linear-gradient(90deg, rgba(53,92,125,.85), rgba(122,162,208,.95));
-      transition:width .18s ease;
-    }
-    .progressMeta{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
-    .progressPct{font-size:12px;font-weight:700;color:var(--fg)}
-    .err{color:var(--bad)}
-    .ok{color:var(--good)}
-    .footer{margin:12px 0 4px;color:var(--muted);font-size:11px}
-    .hint{color:var(--muted);font-size:11px;line-height:1.35}
-    .rightTop{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .linkbtn{
-      display:inline-flex;gap:8px;align-items:center;
-      padding:7px 9px;border-radius:10px;border:1px solid var(--line);
-      background:var(--linkbtn-bg);text-decoration:none;color:var(--fg);
-      font-size:11px;font-weight:600;
-    }
-    .modeToggle{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:8px 10px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background:var(--pill-bg);
-      color:var(--fg);
-      font-size:12px;
-      cursor:pointer;
-    }
-    .sectionBlock{
-      margin-top:12px;
-      padding-top:12px;
-      border-top:1px solid rgba(118,103,83,.14);
-    }
-    .sectionBlock:first-of-type{
-      margin-top:0;
-      padding-top:0;
-      border-top:0;
-    }
-    .sectionEyebrow{
-      font-size:11px;
-      text-transform:uppercase;
-      letter-spacing:.08em;
-      color:rgba(159,176,218,.8);
-      margin-bottom:6px;
-    }
-    .controlEyebrow{
-      display:inline-flex;
-      align-items:center;
-      padding:6px 12px;
-      border-radius:999px;
-      border:1.5px solid var(--line-strong);
-      background:linear-gradient(135deg, rgba(122,162,208,.18), rgba(90,124,168,.08));
-      color:var(--fg);
-      font-size:12px;
-      font-weight:700;
-      letter-spacing:.1em;
-      margin-bottom:10px;
-      box-shadow:0 10px 24px rgba(7,12,18,.14);
-    }
-    .filtersIntro{
-      margin-top:8px;
-      padding:10px 12px;
-      border-radius:12px;
-      border:1px solid rgba(122,162,208,.22);
-      background:linear-gradient(135deg, rgba(53,92,125,.14), rgba(154,123,60,.06));
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.03);
-    }
-    .filtersIntro h3{
-      margin:0 0 6px;
-      font-size:14px;
-    }
-    .filtersIntro p{
-      margin:0;
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.45;
-    }
-    .resultsTop{
-      display:flex;
-      justify-content:space-between;
-      gap:16px;
-      align-items:flex-start;
-      flex-wrap:wrap;
-      margin-bottom:10px;
-    }
-    .resultsTop h2{
-      margin:0 0 6px;
-      font-size:20px;
-      color:var(--fg);
-    }
-    .resultsTop p{
-      margin:0;
-      color:var(--muted);
-      font-size:13px;
-      max-width:760px;
-    }
-    .loadBanner{
-      margin-bottom:12px;
-      padding:12px 14px;
-      border-radius:14px;
-      border:1px solid rgba(122,162,208,.24);
-      background:linear-gradient(135deg, rgba(53,92,125,.18), rgba(24,36,53,.96));
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-    }
-    .loadBanner[hidden]{
-      display:none;
-    }
-    .loadBannerTop{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:12px;
-      flex-wrap:wrap;
-    }
-    .loadBannerTitle{
-      font-size:12px;
-      font-weight:700;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-      color:var(--fg);
-    }
-    .loadBannerStatus{
-      font-size:12px;
-      color:var(--muted);
-    }
-    .loadBanner .bar{
-      height:14px;
-      width:100%;
-    }
-    .loadBannerMeta{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:12px;
-      flex-wrap:wrap;
-      font-size:12px;
-      color:var(--muted);
-    }
-    .loadBannerMeta strong{
-      color:var(--fg);
-    }
-    .resultsMetrics{
-      display:grid;
-      grid-template-columns:repeat(3, minmax(0, 1fr));
-      gap:10px;
-      margin:10px 0 12px;
-    }
-    .resultMetric{
-      padding:10px 12px;
-      border-radius:14px;
-      border:1px solid rgba(118,103,83,.14);
-      background:var(--toolbar-bg);
-    }
-    .resultMetric .label{
-      display:block;
-      color:var(--muted);
-      font-size:11px;
-      text-transform:uppercase;
-      letter-spacing:.08em;
-      margin-bottom:4px;
-    }
-    .resultMetric .value{
-      display:block;
-      font-size:20px;
-      font-weight:700;
-      letter-spacing:-.03em;
-    }
-    .resultMetric .note{
-      display:block;
-      margin-top:6px;
-      color:var(--muted);
-      font-size:12px;
-    }
-    .resultsToolbar{
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      align-items:center;
-      flex-wrap:wrap;
-      padding:10px 12px;
-      border:1px solid rgba(118,103,83,.14);
-      border-radius:14px;
-      background:var(--toolbar-bg);
-      margin-bottom:10px;
-    }
-    .resultsToolbar .hintText{
-      color:var(--muted);
-      font-size:12px;
-    }
-    .inlinePills{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-    /* Expandable runs */
-    .expander{
-      display:none;
-      margin-top:8px;
-      border:1px solid var(--line);
-      border-radius:12px;
-      overflow:hidden;
-      background:rgba(0,0,0,.10);
-    }
-    .expanderHead{
-      display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;
-      padding:8px 10px;
-      border-bottom:1px solid rgba(118,103,83,.18);
-      background:var(--header-bg);
-    }
-    .expanderBody{padding:0;background:var(--panel)}
-    .miniWrap{overflow:auto}
-    .miniTable{width:100%;border-collapse:collapse;min-width:1020px}
-    .miniTable th{
-      position:sticky;top:0;
-      background:var(--header-bg);
-      z-index:1;
-      font-size:11px;
-    }
-    .miniTable th, .miniTable td{padding:7px 9px;border-bottom:1px solid rgba(118,103,83,.18)}
-    .tagbtn{
-      border-radius:999px;border:1px solid var(--line);
-      background:var(--linkbtn-bg);
-      padding:5px 9px;
-      font-size:11px;font-weight:700;
-      color:var(--fg);
-    }
-
-    /* Checkbox */
-    .checkrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
-    .checkrow input[type="checkbox"]{width:auto;transform:scale(1);accent-color:var(--accent)}
-    .checkrow label{margin:0;display:flex;gap:8px;align-items:center;cursor:pointer}
-    @media(max-width:979px){
-      .resultsMetrics{grid-template-columns:1fr}
-      .controlsGrid{grid-template-columns:1fr}
-      .wrap{padding:0 10px}
-      .resultsTop{margin-bottom:10px}
-      table{min-width:980px}
-    }
-    
-</style>
+    .site-shell{max-width:1500px}
+    .x-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+    .x-head h1{margin:0;font-size:30px;letter-spacing:-.03em}
+    .x-head p{margin:4px 0 0;color:var(--muted);max-width:760px}
+    .x-layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px;align-items:start}
+    .x-layout > *{min-width:0}
+    .x-results{max-width:100%}
+    @media (max-width:980px){.x-layout{grid-template-columns:minmax(0,1fr)}}
+    .x-filters{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;padding:16px}
+    @media (max-width:980px){.x-filters{position:static;max-height:none}}
+    .f-group{padding:12px 0;border-bottom:1px solid var(--line)}
+    .f-group:last-child{border-bottom:0}
+    .f-group > .f-title{display:flex;justify-content:space-between;align-items:center;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+    .f-title button{all:unset;cursor:pointer;color:var(--accent-2);font-size:12px;text-transform:none;letter-spacing:0}
+    .f-title button:focus-visible{outline:2px solid var(--accent-2);border-radius:4px}
+    .x-filters input[type=search],.x-filters select,.x-filters input[type=number]{width:100%;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--fg);padding:9px 11px;font:inherit;font-size:14px}
+    .x-filters select:disabled{opacity:.45}
+    .x-filters select option{background:#101a29}
+    .f-field{margin-bottom:8px}
+    .f-field label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+    .f-check{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:14px;cursor:pointer}
+    .f-check input{accent-color:var(--accent)}
+    .f-check .n{margin-left:auto;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+    .f-check.is-zero{opacity:.45}
+    .f-range{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center}
+    .f-hint{font-size:12px;color:var(--muted);margin-top:6px}
+    .x-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+    @media (max-width:700px){.x-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    .x-stats .metric .value{font-size:24px;font-variant-numeric:tabular-nums}
+    .x-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:14px 0 10px}
+    .seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:rgba(255,255,255,.02)}
+    .seg button{border:0;background:transparent;color:var(--muted);padding:7px 14px;border-radius:999px;font:inherit;font-size:13px;cursor:pointer}
+    .seg button[aria-pressed=true]{background:rgba(115,167,255,.16);color:var(--fg)}
+    .btn{border:1px solid var(--line-strong);background:rgba(255,255,255,.03);color:var(--fg);padding:8px 13px;border-radius:999px;font:inherit;font-size:13px;cursor:pointer;text-decoration:none;display:inline-flex;gap:6px;align-items:center}
+    .btn:hover{border-color:rgba(115,167,255,.5)}
+    .btn.primary{background:rgba(78,197,168,.16);border-color:rgba(78,197,168,.45)}
+    .btn:disabled{opacity:.5;cursor:default}
+    .chips{display:flex;flex-wrap:wrap;gap:6px;min-height:8px}
+    .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 10px;font-size:12px;background:rgba(115,167,255,.07)}
+    .chip button{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0 4px}
+    .x-results{padding:0;overflow:hidden}
+    .x-results table{min-width:640px}
+    .x-results tbody tr{cursor:pointer}
+    .x-results tbody tr:hover{background:rgba(115,167,255,.05)}
+    .x-results td.num,.x-results th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .x-results th button{all:unset;cursor:pointer}
+    .x-results th button:focus-visible{outline:2px solid var(--accent-2)}
+    .x-title{max-width:560px}
+    .x-sub{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+    .badge{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11px;border:1px solid var(--line);white-space:nowrap}
+    .badge.verified{color:#9be7d2;border-color:rgba(78,197,168,.5)}
+    .badge.probable{color:#bcd3ff;border-color:rgba(115,167,255,.5)}
+    .badge.ambiguous,.badge.conflicting{color:#ffd9a0;border-color:rgba(255,207,112,.45)}
+    .badge.unresolved{color:var(--muted)}
+    .x-pager{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;color:var(--muted);font-size:13px}
+    .x-empty{padding:28px;color:var(--muted)}
+    .x-empty strong{color:var(--fg)}
+    .x-empty ul{margin:10px 0 0;padding-left:18px}
+    .x-note{font-size:12px;color:var(--muted);padding:10px 14px;border-top:1px solid var(--line)}
+    .drawer-backdrop{position:fixed;inset:0;background:rgba(3,8,14,.55);z-index:40}
+    .drawer{position:fixed;top:0;right:0;bottom:0;width:min(860px,100%);background:#0d1726;border-left:1px solid var(--line-strong);z-index:41;overflow:auto;padding:22px 22px 40px;box-shadow:-20px 0 60px rgba(0,0,0,.4)}
+    .drawer h2{margin:6px 0 4px;font-size:22px;letter-spacing:-.02em}
+    .drawer .desc{color:#cfd9ea;font-size:14px;white-space:pre-wrap;max-height:9.5em;overflow:hidden;position:relative}
+    .drawer .desc.open{max-height:none}
+    .drawer h3{margin:22px 0 8px;font-size:15px}
+    .drawer table{min-width:600px}
+    .drawer td,.drawer th{padding:8px 10px;font-size:13px}
+    .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:12px}
+    .kv div{border:1px solid var(--line);border-radius:14px;padding:8px 10px}
+    .kv span{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+    .export-panel{margin-top:10px;padding:14px 16px}
+    .export-panel .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .progress{height:6px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:10px}
+    .progress > div{height:100%;background:var(--accent);width:0}
+    code.cmd{display:block;margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.25);font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}
+    .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  </style>
 </head>
 <body>
-  <div class="wrap">
-    <nav class="site-nav" style="margin-bottom:18px">
-      <a class="site-brand" href="./index.html">
-        <div class="site-brand-mark"><img src="./assets/umdb-logo.png" alt="UMDB logo" /></div>
-        <div class="site-brand-copy">
-          <strong>UMDB</strong>
-          <span>Urban Microbiome Database</span>
-        </div>
-      </a>
-      <div class="site-links">
-        <a href="./index.html">Home</a>
-        <a class="is-active" href="./explorer.html">Explorer</a>
-        <a href="./about.html">About</a>
-        <a href="./methodology.html">Methodology</a>
-        <a href="./data.html">Data Access</a>
-        <a href="./analytics.html">Analytics</a>
-        <a href="./analytics.html">Analytics</a>
-        <a href="./global-map.html">Global Map</a>
-        <button class="modeToggle" id="modeToggle" type="button" aria-label="Toggle light and dark mode">Dark Mode</button>
-      </div>
-    </nav>
-
-<header>
-  <div style="min-width:280px;flex:1">
-    <div class="topline" style="margin-top:10px">
-      <span class="pill" id="pGenerated">Loading…</span>
-      <span class="pill" id="pTotals">—</span>
+<div class="site-shell">
+  <nav class="site-nav">
+    <a class="site-brand" href="./index.html"><div class="site-brand-copy"><strong>UMDB</strong><span>Urban Microbiome Database</span></div></a>
+    <div class="site-links">
+      <a href="./index.html">Home</a>
+      <a class="is-active" href="./explorer.html">Explorer</a>
+      <a href="./global-map.html">Map</a>
+      <a href="./analytics.html">Analytics</a>
+      <a href="./data.html">Downloads</a>
+      <a href="./methodology.html">Methods</a>
+      <a href="./about.html">About</a>
     </div>
+  </nav>
 
-  </div>
-</header>
-
-
-    <div class="grid explorerWorkspace" id="database">
-      <div class="card explorerSidebar">
-        <div class="sectionEyebrow controlEyebrow">Control Panel</div>
-        <h2 style="color:var(--fg);font-size:18px;margin-bottom:4px">Find the right BioProjects faster</h2>
-        <div class="filtersIntro">
-          <h3>Search, refine, and export from one place</h3>
-          <p>Use natural-language search, geographic filters, and export actions without leaving the explorer. Everything here works against the current published release.</p>
-        </div>
-
-        <div class="controlsGrid sectionBlock">
-          <div>
-            <div class="sectionEyebrow">Search</div>
-            <div class="row">
-              <div style="flex:1;min-width:240px">
-                <label>Search (natural language or fielded query)</label>
-                <input id="q" placeholder='e.g., wastewater in tokyo after 2021 | country:japan assay:wgs year>=2020' />
-              </div>
-            </div>
-            <div class="hint" style="margin-top:8px">
-              Supports free text plus query operators such as <span class="mono">country:japan</span>, <span class="mono">city:"new york"</span>,
-              <span class="mono">assay:wgs</span>, <span class="mono">year&gt;=2020</span>, <span class="mono">center:tsinghua</span>,
-              <span class="mono">srr:SRR123</span>, <span class="mono">bioproject:PRJNA123</span>, or phrases like
-              <span class="mono">air microbiome in seoul before 2024</span>.
-            </div>
-          </div>
-          <div>
-            <div class="collapseCard" id="refineCard">
-              <button class="collapseBtn" id="refineToggle" type="button" aria-expanded="true" aria-controls="refineBody">
-                <span>Refine</span>
-                <span id="refineToggleIcon">−</span>
-              </button>
-              <div class="collapseBody" id="refineBody">
-                <div class="two">
-                  <div>
-                    <label>Country</label>
-                    <select id="country"><option value="">(any)</option></select>
-                  </div>
-                  <div>
-                    <label>City</label>
-                    <select id="city"><option value="">(any)</option></select>
-                  </div>
-                </div>
-
-                <div class="two" style="margin-top:10px">
-                  <div>
-                    <label>Assay class</label>
-                    <select id="assay"><option value="">(any)</option></select>
-                  </div>
-                  <div>
-                    <label>Center</label>
-                    <input id="center" placeholder='e.g., "Weill Cornell", "TSINGHUA"' />
-                  </div>
-                </div>
-
-                <div style="margin-top:10px">
-                  <label for="eligibility">Urban eligibility <a class="small" href="https://github.com/aglucaci/UMDB/blob/main/INCLUSION_CRITERIA.md" target="_blank" rel="noopener">(how?)</a></label>
-                  <select id="eligibility">
-                    <option value="">(any)</option>
-                    <option value="confirmed">Confirmed urban only</option>
-                    <option value="likely">Confirmed + probable urban</option>
-                    <option value="not_excluded">Exclude non-urban and non-environmental</option>
-                    <option value="uncertain">Uncertain only</option>
-                    <option value="non_urban">Non-urban only</option>
-                    <option value="non_environmental">Non-environmental only (host, clinical, lab)</option>
-                  </select>
-                </div>
-
-                <div class="two" style="margin-top:10px">
-                  <div>
-                    <label>Min year</label>
-                    <input id="minYear" placeholder="e.g. 2024" inputmode="numeric" />
-                  </div>
-                  <div>
-                    <label>Max year</label>
-                    <input id="maxYear" placeholder="e.g. 2026" inputmode="numeric" />
-                  </div>
-                </div>
-
-                <div style="margin-top:10px">
-                  <label>AI metadata filters</label>
-                  <div class="small muted" id="aiFilterStatus" style="margin-top:6px">Checking AI metadata availability...</div>
-                  <div class="checkrow" style="margin-top:8px">
-                    <label for="aiReviewedOnly">
-                      <input type="checkbox" id="aiReviewedOnly" />
-                      <span class="small">AI-reviewed only</span>
-                    </label>
-                  </div>
-                  <div class="checkrow">
-                    <label for="aiFixedOnly">
-                      <input type="checkbox" id="aiFixedOnly" />
-                      <span class="small">AI-fixed only</span>
-                    </label>
-                  </div>
-                  <div class="checkrow">
-                    <label for="aiInsufficientOnly">
-                      <input type="checkbox" id="aiInsufficientOnly" />
-                      <span class="small">AI-insufficient metadata</span>
-                    </label>
-                  </div>
-                  <div class="checkrow">
-                    <label for="aiUrbanOnly">
-                      <input type="checkbox" id="aiUrbanOnly" />
-                      <span class="small">AI urban-origin only</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div class="checkrow">
-                  <label for="requireGeo">
-                    <input type="checkbox" id="requireGeo" checked />
-                    <span class="small">Require Country <span class="muted">and</span> City</span>
-                  </label>
-                </div>
-
-                <div class="checkrow">
-                  <label for="excludeUnknown">
-                    <input type="checkbox" id="excludeUnknown" checked />
-                    <span class="small">Exclude <span class="mono">(unknown)</span> geo</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <div class="collapseCard" id="actionsCard">
-              <button class="collapseBtn" id="actionsToggle" type="button" aria-expanded="false" aria-controls="actionsBody">
-                <span>Actions And Export</span>
-                <span id="actionsToggleIcon">+</span>
-              </button>
-              <div class="collapseBody" id="actionsBody">
-                <div class="two">
-                  <div hidden>
-                    <select id="mode"><option value="stream">Index</option></select>
-                  </div>
-                  <div>
-                    <label>Projects per page</label>
-                    <select id="perPage">
-                      <option>25</option>
-                      <option>50</option>
-                      <option selected>100</option>
-                      <option>200</option>
-                      <option>500</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div class="btns" style="margin-top:10px">
-                  <button id="btnApply">Apply Filters</button>
-                  <button class="secondary" id="btnReset">Reset</button>
-                  <button class="secondary" id="btnStop" disabled>Stop loading</button>
-                </div>
-                <div class="btns" style="margin-top:8px">
-                  <button class="secondary" id="btnExport">Export page JSON</button>
-                  <button class="secondary" id="btnBundle">Bundle runs JSON</button>
-                  <button class="secondary" id="btnFastqScript">FASTQ script</button>
-                  <button class="secondary" id="btnSrrList">SRR list</button>
-                </div>
-
-                <div style="margin-top:10px">
-                  <div class="status">
-                    <div class="bar" aria-hidden="true" style="flex:1 1 320px"><div id="prog"></div></div>
-                    <div class="progressPct" id="pPct">0%</div>
-                    <div class="small muted" id="pLoad">—</div>
-                  </div>
-                  <div class="small muted" id="pMsg" style="margin-top:6px">—</div>
-                </div>
-                <div class="hint" style="margin-top:8px">
-                  Bundle actions use the <b>currently matched search results</b>. The FASTQ script exports SRA Toolkit commands
-                  that download raw reads from SRR accessions using <span class="mono">prefetch</span> and <span class="mono">fasterq-dump</span>.
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card resultsCard">
-        <div class="resultsTop">
-          <div>
-            <div class="sectionEyebrow">Results Workspace</div>
-            <h2>BioProject Results</h2>
-            <p>Browse matched BioProjects, sort the current cohort, expand any row for SRR-level detail, and use the live geography summary to sanity-check the filtered subset.</p>
-          </div>
-          <div class="inlinePills">
-            <span class="pill" id="pMatched">Matched: —</span>
-            <span class="pill" id="pShown">Showing: —</span>
-            <span class="pill">Sort: <span class="mono" id="sortKey">samples</span> <span id="sortDir">▼</span></span>
-          </div>
-        </div>
-
-        <div class="loadBanner" id="loadBanner">
-          <div class="loadBannerTop">
-            <div class="loadBannerTitle">Explorer Loading Progress</div>
-            <div class="loadBannerStatus" id="loadBannerStatus">Preparing dataset...</div>
-          </div>
-          <div class="bar" aria-hidden="true"><div id="loadBannerProg"></div></div>
-          <div class="loadBannerMeta">
-            <div id="loadBannerDetail">Starting Explorer load...</div>
-            <div><strong id="loadBannerPct">0%</strong></div>
-          </div>
-        </div>
-
-        <div class="resultsMetrics">
-          <div class="resultMetric">
-            <span class="label">Matched BioProjects</span>
-            <span class="value" id="matchedProjectsLarge">—</span>
-            <span class="note">Current project-level cohort after filters</span>
-          </div>
-          <div class="resultMetric">
-            <span class="label">Visible On This Page</span>
-            <span class="value" id="shownProjectsLarge">—</span>
-            <span class="note">Rows currently rendered in the table</span>
-          </div>
-          <div class="resultMetric">
-            <span class="label">Matched SRR Runs</span>
-            <span class="value" id="matchedRunsLarge">—</span>
-            <span class="note">Underlying run-level records across matched BioProjects</span>
-          </div>
-        </div>
-
-        <div class="resultsToolbar">
-          <div class="hintText">Click a column header to sort. Expand any row to inspect SRR, BioSample, platform, and organism-level details.</div>
-          <div class="small muted" id="pageInfo">—</div>
-        </div>
-
-        <div class="tableWrap">
-          <table id="tbl">
-            <thead>
-              <tr>
-                <th data-k="bioproject">BioProject</th>
-                <th data-k="bioproject_title">Title</th>
-                <th data-k="samples">Runs</th>
-                <th data-k="biosamples">BioSamples</th>
-                <th data-k="countries">Countries</th>
-                <th data-k="cities">Cities</th>
-                <th data-k="assays">Assays</th>
-                <th data-k="years">Years</th>
-                <th data-k="expand">Details</th>
-              </tr>
-            </thead>
-            <tbody id="tbody">
-              <tr><td colspan="9" class="muted">Loading manifest…</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="pager">
-          <div class="row">
-            <button id="prev">Prev</button>
-            <button id="next">Next</button>
-          </div>
-          <div class="small muted">
-          </div>
-        </div>
-
-        <div class="footer">
-        </div>
-      </div>
+  <div class="x-head">
+    <div>
+      <h1>Dataset Explorer</h1>
+      <p>Filter studies, BioSamples and sequencing runs by validated location, environment, assay and collection date. Every selection is in the page address, so it can be shared, reopened or shown on the map.</p>
     </div>
   </div>
+
+  <div class="x-layout">
+    <aside class="panel x-filters" aria-label="Filters">
+      <div class="f-group">
+        <div class="f-field">
+          <label for="f-q">Search studies</label>
+          <input id="f-q" type="search" placeholder="Title, BioProject accession, centre…" autocomplete="off" />
+        </div>
+      </div>
+
+      <div class="f-group">
+        <div class="f-title"><span>Urban status</span><button type="button" data-reset="tier">Default</button></div>
+        <div id="f-tier"></div>
+      </div>
+
+      <div class="f-group">
+        <div class="f-title"><span>Location</span><button type="button" data-reset="location">Clear</button></div>
+        <div class="f-field"><label for="f-country">Country</label><select id="f-country"></select></div>
+        <div class="f-field"><label for="f-region">Region</label><select id="f-region" disabled></select></div>
+        <div class="f-field"><label for="f-city">City or town</label><select id="f-city" disabled></select></div>
+        <div class="f-field"><label for="f-loc">Location quality</label><select id="f-loc"></select></div>
+        <div class="f-hint" id="f-loc-hint"></div>
+      </div>
+
+      <div class="f-group">
+        <div class="f-title"><span>Environment</span><button type="button" data-reset="context">Clear</button></div>
+        <div id="f-context"></div>
+      </div>
+
+      <div class="f-group">
+        <div class="f-title"><span>Sequencing assay</span><button type="button" data-reset="assay">Clear</button></div>
+        <div id="f-assay"></div>
+      </div>
+
+      <div class="f-group">
+        <div class="f-title"><span>Collection year</span><button type="button" data-reset="cyear">Clear</button></div>
+        <div class="f-range">
+          <input id="f-cmin" type="number" min="1900" max="2100" placeholder="From" aria-label="Collection year from" />
+          <span aria-hidden="true">–</span>
+          <input id="f-cmax" type="number" min="1900" max="2100" placeholder="To" aria-label="Collection year to" />
+        </div>
+        <div class="f-hint" id="f-cyear-hint"></div>
+      </div>
+
+      <div class="f-group">
+        <div class="f-title"><span>SRA release year</span><button type="button" data-reset="year">Clear</button></div>
+        <div class="f-range">
+          <input id="f-ymin" type="number" min="2000" max="2100" placeholder="From" aria-label="Release year from" />
+          <span aria-hidden="true">–</span>
+          <input id="f-ymax" type="number" min="2000" max="2100" placeholder="To" aria-label="Release year to" />
+        </div>
+      </div>
+
+      <div class="f-group">
+        <button type="button" class="btn" id="reset-all">Reset all filters</button>
+      </div>
+    </aside>
+
+    <main>
+      <div class="x-stats" aria-live="polite">
+        <div class="metric"><span class="label">BioSamples</span><span class="value" id="s-samples">…</span><span class="note">distinct biological samples</span></div>
+        <div class="metric"><span class="label">Runs</span><span class="value" id="s-runs">…</span><span class="note">sequencing runs</span></div>
+        <div class="metric"><span class="label">Studies</span><span class="value" id="s-projects">…</span><span class="note">BioProjects</span></div>
+        <div class="metric"><span class="label">Sequence</span><span class="value" id="s-gbases">…</span><span class="note">gigabases</span></div>
+      </div>
+
+      <div class="x-bar">
+        <div class="seg" role="group" aria-label="Show">
+          <button type="button" data-view="studies" aria-pressed="true">Studies</button>
+          <button type="button" data-view="samples" aria-pressed="false">BioSamples</button>
+          <button type="button" data-view="runs" aria-pressed="false">Runs</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <a class="btn" id="open-map" href="./global-map.html">Show on map</a>
+          <button type="button" class="btn" id="copy-link">Copy link</button>
+          <button type="button" class="btn primary" id="export-btn">Export cohort</button>
+        </div>
+      </div>
+      <div class="chips" id="chips" aria-label="Active filters"></div>
+      <div class="panel export-panel" id="export-panel" hidden></div>
+
+      <div class="panel x-results" style="margin-top:10px">
+        <div id="results"><div class="x-empty">Loading the catalogue…</div></div>
+      </div>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    Counts are exact: BioSamples, runs and studies are counted separately, and a sample with several runs or assays is counted once.
+    Countries, regions and cities are gazetteer-validated (ISO 3166, GeoNames); raw submitter text is shown next to every accepted location.
+    <span id="geo-attrib"></span>
+  </footer>
+</div>
+
+<div id="drawer-root"></div>
 
 <script src="./assets/db.js"></script>
 <script>
 (() => {
-  // --------- Config ----------
-  const MANIFEST_URL = "./db/srr_records_manifest.json";
-  const PART_BASE = "./db/"; // we normalize manifest paths that include docs/db\...
+  const U = window.UMDB;
+  const esc = U.escapeHtml;
+  const fmt = (n) => U.formatNumber(n);
+  const $ = (id) => document.getElementById(id);
+  const TIER_LABEL = { confirmed_urban: "Confirmed urban", probable_urban: "Probable urban", uncertain: "Uncertain",
+                       non_urban: "Not urban", non_environmental: "Not environmental", unscreened: "Unscreened" };
+  const TIER_ORDER = ["confirmed_urban", "probable_urban", "uncertain", "non_urban", "non_environmental", "unscreened"];
+  const CTX_LABEL = { municipal_wastewater: "Municipal wastewater", air_dust: "Air and dust", built_environment: "Built environment",
+                      water_drainage: "Urban water and drainage", soil_greenspace: "Soil and green space", transit: "Transit",
+                      surfaces_infrastructure: "Surfaces and infrastructure", "": "No urban context" };
+  const LOC_OPTIONS = [["any", "Any location"], ["country", "Validated country"], ["place", "Accepted city or town"], ["verified", "Verified city or town only"]];
+  const PAGE = 50;
 
-  // --------- State ----------
-  let manifest = null;
-  let allRuns = [];          // one weighted record per cube row (see assets/db.js)
-  let projectIndex = new Map();
-  let allProjects = [];      // BioProject-level aggregates
-  let matchedProjects = [];
-  let page = 1;
-  let perPage = 100;
-  let sortKey = "samples";
-  let sortAsc = false;
-  let aborter = null;
-  let biosampleCache = null;
-  let biosampleCachePromise = null;
-  let loadSession = 0;
+  let E = null;                       // query engine
+  let filters = U.filtersFromURL();
+  const params = new URLSearchParams(location.search);
+  let view = ["studies", "samples", "runs"].includes(params.get("view")) ? params.get("view") : "studies";
+  let page = 0, sortKey = "samples", result = null;
+  let listCache = { key: "", rows: [], loadedProjects: 0, loading: false };
 
-  // --------- Elements ----------
-  const el = (id) => document.getElementById(id);
-  const tbody = el("tbody");
-  const prog = el("prog");
-
-  const pGenerated = el("pGenerated");
-  const pTotals = el("pTotals");
-  const pLoad = el("pLoad");
-  const pPct = el("pPct");
-  const pMsg = el("pMsg");
-  const loadBanner = el("loadBanner");
-  const loadBannerProg = el("loadBannerProg");
-  const loadBannerPct = el("loadBannerPct");
-  const loadBannerStatus = el("loadBannerStatus");
-  const loadBannerDetail = el("loadBannerDetail");
-  let pEta = el("pEta");
-
-  if (!pEta && pMsg?.parentNode) {
-    pEta = document.createElement("div");
-    pEta.id = "pEta";
-    pEta.className = "small muted";
-    pEta.style.marginTop = "6px";
-    pEta.textContent = "Waiting to start...";
-    pMsg.parentNode.insertBefore(pEta, pMsg);
-    pMsg.style.marginTop = "4px";
+  // ------------------------------------------------------------ URL state
+  function syncURL(){
+    const p = U.filtersToParams(filters);
+    if (view !== "studies") p.set("view", view);
+    const qs = p.toString();
+    history.replaceState(null, "", qs ? `?${qs}` : location.pathname);
+    $("open-map").href = U.filtersToURL(filters, "./global-map.html");
   }
 
-  const pShown = el("pShown");
-  const pMatched = el("pMatched");
-  const pageInfo = el("pageInfo");
-  const matchedProjectsLarge = el("matchedProjectsLarge");
-  const shownProjectsLarge = el("shownProjectsLarge");
-  const matchedRunsLarge = el("matchedRunsLarge");
-  const aiFilterStatus = el("aiFilterStatus");
-
-  const q = el("q");
-  const assay = el("assay");
-  const eligibility = el("eligibility");
-  const country = el("country");
-  const city = el("city");
-  const center = el("center");
-  const minYear = el("minYear");
-  const maxYear = el("maxYear");
-  const aiReviewedOnly = el("aiReviewedOnly");
-  const aiFixedOnly = el("aiFixedOnly");
-  const aiInsufficientOnly = el("aiInsufficientOnly");
-  const aiUrbanOnly = el("aiUrbanOnly");
-  const mode = el("mode");
-  const perPageSel = el("perPage");
-  const requireGeo = el("requireGeo");
-  // --------- URL Params ---------- 
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.has('q')) {
-    q.value = urlParams.get('q');
-  }
-  if (urlParams.has('srr')) {
-    const srrs = urlParams.get('srr').split(',').map(s => s.trim()).filter(Boolean);
-    if (srrs.length) {
-      const query = srrs.map(s => `srr:${s}`).join(' OR ');
-      q.value = query;
-    }
-  }
-  const btnReset = el("btnReset");
-  const btnStop = el("btnStop");
-  const btnExport = el("btnExport");
-  const btnBundle = el("btnBundle");
-  const btnFastqScript = el("btnFastqScript");
-  const btnSrrList = el("btnSrrList");
-
-  const prev = el("prev");
-  const next = el("next");
-
-  const modeToggle = el("modeToggle");
-  const refineCard = el("refineCard");
-  const refineToggle = el("refineToggle");
-  const refineToggleIcon = el("refineToggleIcon");
-  const actionsCard = el("actionsCard");
-  const actionsToggle = el("actionsToggle");
-  const actionsToggleIcon = el("actionsToggleIcon");
-
-  // --------- Helpers ----------
-  const norm = (s) => (s ?? "").toString().trim();
-  const lower = (s) => norm(s).toLowerCase();
-  const uniq = (arr) => Array.from(new Set(arr.filter(Boolean)));
-
-  function isUnknownGeo(v) {
-    const s = norm(v);
-    return (!s) || (s.toLowerCase() === "(unknown)");
-  }
-
-  function escapeHtml(s) {
-    return (s ?? "").toString()
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
-
-  function safeInt(x) {
-    const n = parseInt((x ?? "").toString(), 10);
-    return Number.isFinite(n) ? n : null;
-  }
-
-  function safeYearFromRec(rec) {
-    // Prefer ReleaseDate -> year
-    const rd = rec?.runinfo_row?.ReleaseDate || rec?.runinfo_row?.LoadDate || "";
-    const m = rd.match(/^(\d{4})-/);
-    if (m) return safeInt(m[1]);
-    return null;
-  }
-
-  function formatTimestamp(value) {
-    if (!value) return "—";
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return value;
-    return d.toLocaleString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      timeZoneName: "short"
-    });
-  }
-
-  function applyTheme(theme) {
-    const root = document.documentElement;
-    root.setAttribute("data-theme", theme);
-    if (modeToggle) modeToggle.textContent = theme === "dark" ? "Light Mode" : "Dark Mode";
-  }
-
-  function setCollapsed(card, btn, icon, collapsed) {
-    if (!card || !btn || !icon) return;
-    card.classList.toggle("is-collapsed", collapsed);
-    btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
-    icon.textContent = collapsed ? "+" : "−";
-  }
-
-  function normalizePartPath(p) {
-    // Manifest can contain paths like "docs/db\\srr_records_part000.json"
-    let s = (p ?? "").toString().replaceAll("\\", "/");
-    // Strip leading docs/ if present
-    if (s.startsWith("docs/")) s = s.slice(5);
-    // If it's just a filename, prefix PART_BASE
-    if (!s.includes("/")) s = PART_BASE + s;
-    // Ensure it begins with ./db/ for GitHub Pages relative access
-    if (s.startsWith("db/")) s = "./" + s;
-    if (!s.startsWith("./")) s = "./" + s.replace(/^\/+/, "");
-    return s;
-  }
-
-  function setProgress(done, total) {
-    const pct = total ? Math.round((done / total) * 100) : 0;
-    prog.style.width = `${pct}%`;
-    if (pPct) pPct.textContent = `${pct}%`;
-    if (pEta) {
-      const remaining = Math.max((total || 0) - (done || 0), 0);
-      pEta.textContent = remaining > 0
-        ? `${remaining} part${remaining === 1 ? "" : "s"} remaining`
-        : "All parts loaded";
-    }
-    if (loadBannerProg) loadBannerProg.style.width = `${pct}%`;
-    if (loadBannerPct) loadBannerPct.textContent = `${pct}%`;
-    if (loadBannerDetail) {
-      const remaining = Math.max((total || 0) - (done || 0), 0);
-      loadBannerDetail.textContent = remaining > 0
-        ? `${remaining} part${remaining === 1 ? "" : "s"} remaining in this load`
-        : "All Explorer data loaded";
-    }
-  }
-
-  function setMsg(html, cls="muted") {
-    pMsg.className = "small " + cls;
-    pMsg.innerHTML = html;
-    if (loadBannerStatus) {
-      loadBannerStatus.textContent = (html || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-    }
-  }
-
-  function updateAiFilterAvailability() {
-    const aiRuns = allRuns.filter((rec) => {
-      const ai = getAiCuration(rec);
-      return ai && Object.keys(ai).length > 0;
-    });
-    const hasAiMetadata = aiRuns.length > 0;
-    const controls = [aiReviewedOnly, aiFixedOnly, aiInsufficientOnly, aiUrbanOnly].filter(Boolean);
-
-    controls.forEach((box) => {
-      box.disabled = !hasAiMetadata;
-      if (!hasAiMetadata) box.checked = false;
-    });
-
-    if (aiFilterStatus) {
-      aiFilterStatus.textContent = hasAiMetadata
-        ? `AI metadata available for ${aiRuns.length.toLocaleString()} run${aiRuns.length === 1 ? "" : "s"}.`
-        : "AI metadata filters are unavailable because the current published release has no AI-curated records yet.";
-    }
-  }
-
-  function getBPAcc(rec) {
-    return rec?.runinfo_row?.BioProject || rec?.bioproject?.accession || "";
-  }
-  function getBPTitle(rec) {
-    return rec?.bioproject?.title || rec?.bioproject?.bioproject_title || rec?.bioproject?.name || "";
-  }
-  // Rule-based eligibility tier assigned at export (see INCLUSION_CRITERIA.md).
-  function getEligibility(rec) {
-    return lower(rec?.eligibility?.status || "unscreened");
-  }
-  const ELIGIBILITY_SETS = {
-    confirmed: new Set(["confirmed_urban"]),
-    likely: new Set(["confirmed_urban", "probable_urban"]),
-    not_excluded: new Set(["confirmed_urban", "probable_urban", "uncertain", "unscreened"]),
-    uncertain: new Set(["uncertain"]),
-    non_urban: new Set(["non_urban"]),
-    non_environmental: new Set(["non_environmental"]),
-  };
-  function getAiCuration(rec) {
-    return rec?.ai_curation || {};
-  }
-  function getAssayClass(rec) {
-    return getAiCuration(rec)?.final_assay_class || rec?.assay?.assay_class || rec?.runinfo_row?.LibraryStrategy || "Unknown";
-  }
-  function getCountry(rec) {
-    return getAiCuration(rec)?.final_country || rec?.geo?.country || "";
-  }
-  function getCity(rec) {
-    return getAiCuration(rec)?.final_city || rec?.geo?.city || "";
-  }
-  function hasAiFix(rec) {
-    return !!getAiCuration(rec)?.ai_fixed;
-  }
-  function hasAiReview(rec) {
-    return !!(getAiCuration(rec)?.reviewed || Object.keys(getAiCuration(rec) || {}).length);
-  }
-  function getAiSufficiency(rec) {
-    return lower(getAiCuration(rec)?.metadata_sufficiency || "");
-  }
-  function getAiUrbanOrigin(rec) {
-    return lower(getAiCuration(rec)?.urban_origin || "");
-  }
-  function getCenter(rec) {
-    return rec?.runinfo_row?.CenterName || "";
-  }
-  function getSRR(rec) {
-    return rec?.srr || rec?.runinfo_row?.Run || "";
-  }
-  function getSRAStudy(rec) {
-    return rec?.runinfo_row?.SRAStudy || "";
-  }
-  function getBioSample(rec) {
-    return rec?.runinfo_row?.BioSample || rec?.geo?.biosample_accession || "";
-  }
-  function getBioSampleUrl(rec) {
-    const biosample = norm(getBioSample(rec));
-    return rec?.debug?.biosample_url || (biosample ? `https://www.ncbi.nlm.nih.gov/biosample/?term=${encodeURIComponent(biosample)}` : "");
-  }
-  function getLatitude(rec) {
-    return rec?.geo?.lat || "";
-  }
-  function getLongitude(rec) {
-    return rec?.geo?.lon || "";
-  }
-  function getSampleName(rec) {
-    return rec?.runinfo_row?.SampleName || "";
-  }
-  function getSciName(rec) {
-    return rec?.runinfo_row?.ScientificName || "";
-  }
-  function getDownloadPath(rec) {
-    return rec?.runinfo_row?.download_path || "";
-  }
-  function getPlatform(rec) {
-    const p = rec?.runinfo_row?.Platform || "";
-    const m = rec?.runinfo_row?.Model || "";
-    return (p && m) ? `${p} / ${m}` : (p || m);
-  }
-  function getLayout(rec) {
-    return rec?.runinfo_row?.LibraryLayout || "";
-  }
-  function getLibSource(rec) {
-    return rec?.runinfo_row?.LibrarySource || "";
-  }
-  function getLibraryStrategy(rec) {
-    return rec?.runinfo_row?.LibraryStrategy || "";
-  }
-  function parseLatLonText(raw) {
-    const s = norm(raw);
-    if (!s) return { lat: "", lon: "", label: "" };
-
-    const cardinal = s.match(/(-?\d+(?:\.\d+)?)\s*([NS])[\s,;]+(-?\d+(?:\.\d+)?)\s*([EW])/i);
-    if (cardinal) {
-      const latNum = parseFloat(cardinal[1]) * (/S/i.test(cardinal[2]) ? -1 : 1);
-      const lonNum = parseFloat(cardinal[3]) * (/W/i.test(cardinal[4]) ? -1 : 1);
-      return {
-        lat: String(latNum),
-        lon: String(lonNum),
-        label: `${latNum}, ${lonNum}`
-      };
-    }
-
-    const pair = s.match(/(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)/);
-    if (pair) {
-      return {
-        lat: pair[1],
-        lon: pair[2],
-        label: `${pair[1]}, ${pair[2]}`
-      };
-    }
-
-    return { lat: "", lon: "", label: s };
-  }
-  async function ensureBioSampleCache() {
-    // Project files (db/p/<ACC>.json) already carry each sample's coordinates.
-    return {};
-  }
-  function getBioSampleFallbackDetails(rec, lookup) {
-    const biosample = norm(getBioSample(rec));
-    if (!biosample || !lookup || !lookup[biosample]) return null;
-    const entry = lookup[biosample];
-    const attrs = entry?.attributes || {};
-    const rawLatLon = attrs.lat_lon || attrs["latitude and longitude"] || attrs.latitude_longitude || "";
-    const parsed = parseLatLonText(rawLatLon);
-    return {
-      url: entry?.efetch_url || "",
-      lat: parsed.lat,
-      lon: parsed.lon,
-      label: parsed.label
-    };
-  }
-
-  function tokenizeQuery(input) {
-    const rx = /"([^"]+)"|'([^']+)'|(\S+)/g;
-    const tokens = [];
-    let m;
-    while ((m = rx.exec(input || "")) !== null) {
-      tokens.push(m[1] || m[2] || m[3] || "");
-    }
-    return tokens.filter(Boolean);
-  }
-
-  function normalizeSearchValue(value) {
-    return lower(value).replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
-  }
-
-  function canonicalFieldName(key) {
-    const k = lower(key);
-    if (["country", "nation"].includes(k)) return "country";
-    if (["city", "town"].includes(k)) return "city";
-    if (["assay", "strategy", "librarystrategy"].includes(k)) return "assay";
-    if (["center", "centre", "lab", "institution"].includes(k)) return "center";
-    if (["year", "date"].includes(k)) return "year";
-    if (["minyear", "yearmin", "fromyear"].includes(k)) return "min_year";
-    if (["maxyear", "yearmax", "toyear"].includes(k)) return "max_year";
-    if (["bioproject", "bp", "project"].includes(k)) return "bioproject";
-    if (["srr", "run"].includes(k)) return "srr";
-    if (["biosample", "sample"].includes(k)) return "biosample";
-    if (["organism", "taxon", "scientificname"].includes(k)) return "organism";
-    if (["platform", "model"].includes(k)) return "platform";
-    if (["layout"].includes(k)) return "layout";
-    if (["source", "librarysource"].includes(k)) return "source";
-    return "";
-  }
-
-  function parseNaturalLanguageQuery(raw) {
-    const parsed = {
-      terms: [],
-      fields: [],
-      minYear: null,
-      maxYear: null
-    };
-    if (!norm(raw)) return parsed;
-
-    const tokens = tokenizeQuery(raw);
-    const pushField = (field, value, op="contains") => {
-      if (!field || !norm(value)) return;
-      parsed.fields.push({ field, value: norm(value), op });
-    };
-
-    for (let i = 0; i < tokens.length; i += 1) {
-      const token = tokens[i];
-      const exact = token.match(/^([a-zA-Z_]+):(.*)$/);
-      const compare = token.match(/^([a-zA-Z_]+)(<=|>=|=|<|>)(.+)$/);
-
-      if (exact) {
-        const field = canonicalFieldName(exact[1]);
-        const value = exact[2];
-        if (field === "year" || field === "min_year" || field === "max_year") {
-          const year = safeInt(value);
-          if (year != null) {
-            if (field === "max_year") parsed.maxYear = parsed.maxYear == null ? year : Math.min(parsed.maxYear, year);
-            else parsed.minYear = parsed.minYear == null ? year : Math.max(parsed.minYear, year);
-            if (field === "year") parsed.maxYear = parsed.maxYear == null ? year : Math.min(parsed.maxYear, year);
-          }
-        } else {
-          pushField(field, value);
-        }
-        continue;
-      }
-
-      if (compare) {
-        const field = canonicalFieldName(compare[1]);
-        const op = compare[2];
-        const value = compare[3];
-        if (field === "year") {
-          const year = safeInt(value);
-          if (year != null) {
-            if (op === ">" || op === ">=") parsed.minYear = parsed.minYear == null ? year : Math.max(parsed.minYear, year);
-            if (op === "<" || op === "<=") parsed.maxYear = parsed.maxYear == null ? year : Math.min(parsed.maxYear, year);
-            if (op === "=") {
-              parsed.minYear = year;
-              parsed.maxYear = year;
-            }
-          }
-        } else if (field === "min_year" || field === "max_year") {
-          const year = safeInt(value);
-          if (year != null) {
-            if (field === "min_year") parsed.minYear = parsed.minYear == null ? year : Math.max(parsed.minYear, year);
-            if (field === "max_year") parsed.maxYear = parsed.maxYear == null ? year : Math.min(parsed.maxYear, year);
-          }
-        } else {
-          pushField(field, value, op === "=" ? "equals" : "contains");
-        }
-        continue;
-      }
-
-      const low = lower(token);
-      const next = tokens[i + 1] ? norm(tokens[i + 1]) : "";
-      const nextYear = safeInt(next);
-
-      if ((low === "after" || low === "since") && nextYear != null) {
-        parsed.minYear = parsed.minYear == null ? nextYear : Math.max(parsed.minYear, nextYear);
-        i += 1;
-        continue;
-      }
-      if ((low === "before" || low === "until") && nextYear != null) {
-        parsed.maxYear = parsed.maxYear == null ? nextYear : Math.min(parsed.maxYear, nextYear);
-        i += 1;
-        continue;
-      }
-      if (low === "between" && safeInt(tokens[i + 1]) != null && lower(tokens[i + 2] || "") === "and" && safeInt(tokens[i + 3]) != null) {
-        parsed.minYear = safeInt(tokens[i + 1]);
-        parsed.maxYear = safeInt(tokens[i + 3]);
-        i += 3;
-        continue;
-      }
-      if (["country", "city", "assay", "center", "bioproject", "srr", "biosample", "organism", "platform", "layout", "source"].includes(low) && next) {
-        pushField(canonicalFieldName(low), next);
-        i += 1;
-        continue;
-      }
-      if ((low === "in" || low === "from") && next) {
-        pushField("place", next);
-        i += 1;
-        continue;
-      }
-      if (low === "paired" || low === "single") {
-        pushField("layout", low);
-        continue;
-      }
-      if (/^\d{4}$/.test(low)) {
-        const year = safeInt(low);
-        if (year != null) {
-          parsed.minYear = parsed.minYear == null ? year : parsed.minYear;
-          parsed.maxYear = parsed.maxYear == null ? year : parsed.maxYear;
-          continue;
-        }
-      }
-
-      parsed.terms.push(token);
-    }
-
-    return parsed;
-  }
-
-  function projectSearchBlob(p) {
-    const runStrings = p.runs.slice(0, 400).map(r => [
-      getSRR(r),
-      getBioSample(r),
-      getCountry(r),
-      getCity(r),
-      getCenter(r),
-      getSciName(r),
-      getPlatform(r),
-      getLayout(r),
-      getLibSource(r),
-      getLibraryStrategy(r),
-      getSampleName(r),
-      getSRAStudy(r)
-    ].join(" ")).join(" ");
-    return normalizeSearchValue([
-      p.bioproject,
-      p.title,
-      p.assays.join(" "),
-      p.countries_top.map(x => x[0]).join(" "),
-      p.cities_top.map(x => x[0]).join(" "),
-      p.centers_top.map(x => x[0]).join(" "),
-      runStrings
-    ].join(" "));
-  }
-
-  function projectFieldMatches(p, clause) {
-    const value = normalizeSearchValue(clause.value);
-    if (!value) return true;
-
-    const includesAny = (items) => items.some(item => normalizeSearchValue(item).includes(value));
-    const equalsAny = (items) => items.some(item => normalizeSearchValue(item) === value);
-    const test = clause.op === "equals" ? equalsAny : includesAny;
-
-    switch (clause.field) {
-      case "country": return test(p.runs.map(getCountry));
-      case "city": return test(p.runs.map(getCity));
-      case "place": return test([...p.runs.map(getCountry), ...p.runs.map(getCity)]);
-      case "assay": return test(p.runs.map(getAssayClass));
-      case "center": return test(p.runs.map(getCenter));
-      case "bioproject": return test([p.bioproject, p.title]);
-      case "srr": return test(p.runs.map(getSRR));
-      case "biosample": return test(p.runs.map(getBioSample));
-      case "organism": return test(p.runs.map(getSciName));
-      case "platform": return test(p.runs.map(getPlatform));
-      case "layout": return test(p.runs.map(getLayout));
-      case "source": return test(p.runs.map(getLibSource));
-      default: return test([projectSearchBlob(p)]);
-    }
-  }
-
-  // --------- Aggregation ----------
-  function buildProjectsFromRuns(runs) {
-    const map = new Map();
-    for (const rec of runs) {
-      const bp = norm(getBPAcc(rec)) || "(no_bioproject)";
-      if (!map.has(bp)) {
-        map.set(bp, {
-          bioproject: bp,
-          title: norm(getBPTitle(rec)),
-          bioproject_url: rec?.ncbi?.bioproject_url || (bp && bp !== "(no_bioproject)"
-            ? `https://www.ncbi.nlm.nih.gov/bioproject/?term=${encodeURIComponent(bp)}`
-            : ""),
-          runs: [],
-        });
-      }
-      const obj = map.get(bp);
-      if (!obj.title) obj.title = norm(getBPTitle(rec));
-      obj.runs.push(rec);
-    }
-
-    // Derive aggregates
-    const projects = [];
-    for (const [bp, obj] of map.entries()) {
-      const yrs = obj.runs.map(safeYearFromRec).filter(y => y != null);
-      const assays = uniq(obj.runs.map(getAssayClass));
-      // Cube rows stand for _w runs each: count values by weight.
-      const weightedTop = (fn, k) => {
-        const m = new Map();
-        for (const r of obj.runs) {
-          const v = norm(fn(r));
-          if (v) m.set(v, (m.get(v) || 0) + (r._w || 1));
-        }
-        return Array.from(m.entries()).sort((a, b) => b[1] - a[1]).slice(0, k);
-      };
-      const info = projectIndex.get(bp);
-      const runCount = obj.runs.reduce((n, r) => n + (r._w || 1), 0);
-      const biosamples = obj.runs[0]?._synthetic && info
-        ? Array(info.samples)
-        : uniq(obj.runs.map(getBioSample).map(norm).filter(Boolean));
-      const minY = yrs.length ? Math.min(...yrs) : null;
-      const maxY = yrs.length ? Math.max(...yrs) : null;
-
-      projects.push({
-        bioproject: bp,
-        title: obj.title,
-        bioproject_url: obj.bioproject_url,
-        samples: runCount,
-        biosamples: biosamples.length,
-        assays,
-        min_year: minY,
-        max_year: maxY,
-        countries_top: weightedTop(getCountry, 3),
-        cities_top: weightedTop(getCity, 3),
-        centers_top: weightedTop(getCenter, 2),
-        runs: obj.runs,
-      });
-    }
-    return projects;
-  }
-
-  function topCounts(values, k=3) {
-    const counts = {};
-    for (const v of values) {
-      const key = v || "(unknown)";
-      counts[key] = (counts[key] || 0) + 1;
-    }
-    const arr = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0,k);
-    return arr; // [ [name, count], ... ]
-  }
-
-  function countMap(values, unknownLabel="(unknown)") {
-    const m = new Map();
-    for (const v of values) {
-      const key = norm(v) || unknownLabel;
-      m.set(key, (m.get(key) || 0) + 1);
-    }
-    return Array.from(m.entries()).sort((a,b) => b[1]-a[1]);
-  }
-
-  // --------- Filtering ----------
-  function projectMatches(p) {
-    const parsedQ = parseNaturalLanguageQuery(q.value);
-    const wantAssay = norm(assay.value);
-    const wantCountry = norm(country.value);
-    const wantCity = norm(city.value);
-    const wantCenter = lower(center.value);
-    const wantAiReviewedOnly = !!(aiReviewedOnly && aiReviewedOnly.checked);
-    const wantAiFixedOnly = !!(aiFixedOnly && aiFixedOnly.checked);
-    const wantAiInsufficientOnly = !!(aiInsufficientOnly && aiInsufficientOnly.checked);
-    const wantAiUrbanOnly = !!(aiUrbanOnly && aiUrbanOnly.checked);
-    const minY = parsedQ.minYear != null ? parsedQ.minYear : safeInt(minYear.value);
-    const maxY = parsedQ.maxYear != null ? parsedQ.maxYear : safeInt(maxYear.value);
-
-    // Geo completeness filter (enabled by default)
-    // - requireGeo: require at least one run with BOTH country and city
-    // - excludeUnknown: treat "(unknown)" as missing and hide projects with unknown geo
-    const wantRequireGeo = (requireGeo && requireGeo.checked) ? true : false;
-    const wantExcludeUnknown = (excludeUnknown && excludeUnknown.checked) ? true : false;
-
-    if (wantRequireGeo || wantExcludeUnknown) {
-      const hasCountry = p.runs.some(r => !isUnknownGeo(getCountry(r)));
-      const hasCity = p.runs.some(r => !isUnknownGeo(getCity(r)));
-      if (!(hasCountry && hasCity)) return false;
-    }
-
-    if (wantExcludeUnknown) {
-      // If ANY run has unknown country OR unknown city, exclude the BioProject
-      const anyUnknown = p.runs.some(r => isUnknownGeo(getCountry(r)) || isUnknownGeo(getCity(r)));
-      if (anyUnknown) return false;
-    }
-
-    // Year filter uses project min/max (if missing, it passes unless min/max explicitly require overlap)
-    if (minY != null) {
-      if (p.max_year == null) return false;
-      if (p.max_year < minY) return false;
-    }
-    if (maxY != null) {
-      if (p.min_year == null) return false;
-      if (p.min_year > maxY) return false;
-    }
-
-    if (wantAssay) {
-      if (!p.assays.includes(wantAssay)) return false;
-    }
-
-    if (wantCountry) {
-      const countries = p.runs.map(r => norm(getCountry(r)) || "(unknown)");
-      if (!countries.includes(wantCountry)) return false;
-    }
-    if (wantCity) {
-      const cities = p.runs.map(r => norm(getCity(r)) || "(unknown)");
-      if (!cities.includes(wantCity)) return false;
-    }
-
-    if (wantCenter) {
-      const centers = p.runs.map(r => lower(getCenter(r)));
-      if (!centers.some(c => c.includes(wantCenter))) return false;
-    }
-
-    if (wantAiReviewedOnly) {
-      if (!p.runs.some(hasAiReview)) return false;
-    }
-    if (wantAiFixedOnly) {
-      if (!p.runs.some(hasAiFix)) return false;
-    }
-    if (wantAiInsufficientOnly) {
-      if (!p.runs.some(r => getAiSufficiency(r) === "insufficient")) return false;
-    }
-    if (wantAiUrbanOnly) {
-      if (!p.runs.some(r => getAiUrbanOrigin(r) === "urban")) return false;
-    }
-    const eligSet = eligibility ? ELIGIBILITY_SETS[eligibility.value] : null;
-    if (eligSet) {
-      if (!p.runs.some(r => eligSet.has(getEligibility(r)))) return false;
-    }
-
-    if (parsedQ.fields.length || parsedQ.terms.length) {
-      const blob = projectSearchBlob(p);
-      for (const clause of parsedQ.fields) {
-        if (!projectFieldMatches(p, clause)) return false;
-      }
-      for (const term of parsedQ.terms) {
-        if (!blob.includes(normalizeSearchValue(term))) return false;
-      }
-    }
-
-    return true;
-  }
-
-  function applyFilters() {
-    // Rebuild projects from runs (stream mode grows over time)
-    allProjects = buildProjectsFromRuns(allRuns);
-    updateAiFilterAvailability();
-
-    // Refresh filter dropdowns (based on runs, not projects)
-    populateFacets();
-
-    matchedProjects = allProjects.filter(projectMatches);
-    matchedProjects.sort(sortFn);
-
-    page = 1;
-    render();
-  }
-
-  // --------- Sorting ----------
-  function sortVal(p, k) {
-    switch (k) {
-      case "bioproject": return p.bioproject;
-      case "bioproject_title": return p.title || "";
-      case "samples": return p.samples;
-      case "biosamples": return p.biosamples;
-      case "countries": return (p.countries_top?.[0]?.[0] || "");
-      case "cities": return (p.cities_top?.[0]?.[0] || "");
-      case "assays": return p.assays.join(", ");
-      case "years": return (p.min_year ?? -1);
-      default: return p.samples;
-    }
-  }
-
-  function sortFn(a,b) {
-    const ak = sortVal(a, sortKey);
-    const bk = sortVal(b, sortKey);
-    if (ak === bk) return 0;
-    if (ak == null) return sortAsc ? 1 : -1;
-    if (bk == null) return sortAsc ? -1 : 1;
-    return sortAsc ? (ak > bk ? 1 : -1) : (ak < bk ? 1 : -1);
-  }
-
-  function setSort(k) {
-    if (k === "expand") return;
-    if (sortKey === k) sortAsc = !sortAsc;
-    else { sortKey = k; sortAsc = (k === "bioproject" || k === "bioproject_title" || k === "countries" || k === "cities" || k === "assays" || k === "years") ? true : false; }
-    el("sortKey").textContent = k;
-    el("sortDir").textContent = sortAsc ? "▲" : "▼";
-    matchedProjects.sort(sortFn);
-    render();
-  }
-
-  // --------- Rendering ----------
-  function render() {
-    perPage = parseInt(perPageSel.value, 10) || 100;
-    const total = matchedProjects.length;
-    const pages = Math.max(1, Math.ceil(total / perPage));
-    page = Math.min(page, pages);
-
-    const start = (page - 1) * perPage;
-    const end = Math.min(total, start + perPage);
-    const slice = matchedProjects.slice(start, end);
-
-    pMatched.textContent = `Matched: ${total.toLocaleString()} BioProjects`;
-    pShown.textContent = `Showing: ${slice.length.toLocaleString()}`;
-    pageInfo.textContent = `Page ${page} / ${pages}`;
-    if (matchedProjectsLarge) matchedProjectsLarge.textContent = total.toLocaleString();
-    if (shownProjectsLarge) shownProjectsLarge.textContent = slice.length.toLocaleString();
-    if (matchedRunsLarge) matchedRunsLarge.textContent = matchedProjects.reduce((n, p) => n + p.samples, 0).toLocaleString();
-
-    prev.disabled = page <= 1;
-    next.disabled = page >= pages;
-
-    if (!slice.length) {
-      tbody.innerHTML = `<tr><td colspan="9" class="muted">No results (try loosening filters).</td></tr>`;
-      return;
-    }
-    tbody.innerHTML = slice.map(projectToRow).join("");
-
-    // Wire expanders
-    for (const tr of tbody.querySelectorAll("tr[data-bp]")) {
-      const bp = tr.getAttribute("data-bp");
-      const btn = tr.querySelector("button[data-expand]");
-      const childRow = tbody.querySelector(`tr[data-child-for="${bp}"]`);
-      const box = childRow ? childRow.querySelector(".expander") : null;
-      if (btn && childRow && box) {
-        btn.addEventListener("click", () => {
-          const isOpen = childRow.style.display !== "none";
-          childRow.style.display = isOpen ? "none" : "table-row";
-          box.style.display = isOpen ? "none" : "block";
-          btn.textContent = isOpen ? "Expand" : "Collapse";
-          btn.classList.toggle("secondary", isOpen);
-          if (!isOpen) renderRunsInto(box, bp);
-        });
-      }
-    }
-  }
-
-  function projectToRow(p) {
-    const bp = escapeHtml(p.bioproject);
-    const bpUrl = p.bioproject_url || (p.bioproject && p.bioproject !== "(no_bioproject)"
-      ? `https://www.ncbi.nlm.nih.gov/bioproject/?term=${encodeURIComponent(p.bioproject)}`
-      : "#");
-
-    const countries = p.countries_top.length
-      ? p.countries_top.map(([k,v]) => `<span class="chip">${escapeHtml(k)} <span class="muted">(${v})</span></span>`).join("")
-      : `<span class="muted">—</span>`;
-
-    const cities = p.cities_top.length
-      ? p.cities_top.map(([k,v]) => `<span class="chip">${escapeHtml(k)} <span class="muted">(${v})</span></span>`).join("")
-      : `<span class="muted">—</span>`;
-
-    const assays = (p.assays?.length)
-      ? p.assays.slice(0,4).map(a => `<span class="chip ${a === "Unknown" ? "warn" : "good"}">${escapeHtml(a)}</span>`).join("")
-      : `<span class="muted">—</span>`;
-
-    const years = (p.min_year != null || p.max_year != null)
-      ? `<span class="mono">${p.min_year ?? "—"}–${p.max_year ?? "—"}</span>`
-      : `<span class="muted">—</span>`;
-
-    const centers = p.centers_top?.length
-      ? `<div class="sub">Centers: ${p.centers_top.map(([k,v]) => `${escapeHtml(k)} (${v})`).join(", ")}</div>`
-      : ``;
-
-    return `
-      <tr data-bp="${escapeHtml(p.bioproject)}">
-        <td class="mono">
-          ${p.bioproject && p.bioproject !== "(no_bioproject)"
-            ? `<a href="${bpUrl}" target="_blank" rel="noopener">${bp}</a>`
-            : `<span class="muted">${bp}</span>`
-          }
-        </td>
-        <td>
-          <div class="title">${p.title ? escapeHtml(p.title) : `<span class="muted">—</span>`}</div>
-          ${centers}
-        </td>
-        <td class="mono">${p.samples.toLocaleString()}</td>
-        <td class="mono">${p.biosamples.toLocaleString()}</td>
-        <td><div class="chips">${countries}</div></td>
-        <td><div class="chips">${cities}</div></td>
-        <td><div class="chips">${assays}</div></td>
-        <td>${years}</td>
-        <td>
-          <button class="tagbtn" data-expand="1">Expand</button>
-        </td>
-      </tr>
-      <tr class="childRow" data-child-for="${escapeHtml(p.bioproject)}" style="display:none">
-        <td colspan="9" style="padding:0 0 12px 0;border:0">
-          <div class="expander" style="display:none">
-            <div class="expanderHead">
-              <div class="small muted">
-                <span class="mono">${bp}</span> · ${p.samples.toLocaleString()} runs · ${p.biosamples.toLocaleString()} biosamples
-              </div>
-              <div class="row">
-                <a class="linkbtn" href="${bpUrl}" target="_blank" rel="noopener">Open BioProject</a>
-              </div>
-            </div>
-            <div class="expanderBody">
-              <div class="miniWrap">
-                <table class="miniTable">
-                  <thead>
-                    <tr>
-                      <th>SRR</th>
-                      <th>SRA UID</th>
-                      <th>BioSample</th>
-                      <th>Assay</th>
-                      <th>Country</th>
-                      <th>City</th>
-                      <th>Year</th>
-                      <th>Center</th>
-                      <th>Platform</th>
-                      <th>Layout</th>
-                      <th>Organism</th>
-                    </tr>
-                  </thead>
-                  <tbody class="miniBody">
-                    <tr><td colspan="11" class="muted">Loading runs…</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </td>
-      </tr>
-    `;
-  }
-
-  async function renderRunsInto(expanderEl, bioprojectAcc) {
-    // Find the project in current matched list (or allProjects)
-    const p = allProjects.find(x => x.bioproject === bioprojectAcc) || matchedProjects.find(x => x.bioproject === bioprojectAcc);
-    const body = expanderEl.querySelector(".miniBody");
-    if (!p || !body) return;
-    if (p.runs[0]?._synthetic) {
-      body.innerHTML = `<tr><td colspan="11" class="muted">Loading runs for ${escapeHtml(bioprojectAcc)}…</td></tr>`;
-      try {
-        p.runs = (await window.UMDB.fetchProject(bioprojectAcc)).runs;
-      } catch (e) {
-        body.innerHTML = `<tr><td colspan="11" class="err">Could not load ${escapeHtml(bioprojectAcc)}: ${escapeHtml(e.message)}</td></tr>`;
-        return;
-      }
-    }
-
-    // Sort runs by ReleaseDate desc (approx: year desc then SRR)
-    const runs = p.runs.slice().sort((a,b) => {
-      const ay = safeYearFromRec(a) ?? -1;
-      const by = safeYearFromRec(b) ?? -1;
-      if (ay !== by) return by - ay;
-      return (norm(getSRR(a)) < norm(getSRR(b))) ? -1 : 1;
-    });
-
-    let bioLookup = null;
-    const needsBioSampleFallback = runs.some((rec) => {
-      const biosample = norm(getBioSample(rec));
-      return biosample && (!norm(getLatitude(rec)) || !norm(getLongitude(rec)) || !getBioSampleUrl(rec));
-    });
-    if (needsBioSampleFallback) {
-      try {
-        bioLookup = await ensureBioSampleCache();
-      } catch (err) {
-        console.warn("Unable to load BioSample cache for explorer fallback", err);
-      }
-    }
-
-    body.innerHTML = runs.map(rec => {
-      const srr = norm(getSRR(rec));
-      const srrUrl = rec?.ncbi?.srr_url || (srr ? `https://www.ncbi.nlm.nih.gov/sra/?term=${encodeURIComponent(srr)}` : "#");
-      const sraUid = norm(rec?.sra_uid);
-      const sraUrl = rec?.ncbi?.sra_uid_url || (sraUid ? `https://www.ncbi.nlm.nih.gov/sra/?term=${encodeURIComponent(sraUid)}` : "#");
-
-      const assay = norm(getAssayClass(rec)) || "Unknown";
-      const ctry = norm(getCountry(rec)) || "(unknown)";
-      const cty = norm(getCity(rec)) || "(unknown)";
-      const yr = safeYearFromRec(rec);
-      const cn = norm(getCenter(rec)) || "(unknown)";
-      const bs = norm(getBioSample(rec)) || "(unknown)";
-      const fallback = getBioSampleFallbackDetails(rec, bioLookup);
-      const bsUrl = getBioSampleUrl(rec) || fallback?.url || "";
-      const platform = norm(getPlatform(rec)) || "(unknown)";
-      const layout = norm(getLayout(rec)) || "";
-      const org = norm(getSciName(rec)) || "";
-      const lat = norm(getLatitude(rec)) || norm(fallback?.lat);
-      const lon = norm(getLongitude(rec)) || norm(fallback?.lon);
-      const coordLabel = lat && lon ? `${lat}, ${lon}` : (norm(fallback?.label) || lat || lon);
-      const ai = getAiCuration(rec);
-      const aiNote = ai?.reviewed
-        ? [ai.ai_fixed ? "AI-fixed" : "AI-reviewed", ai.metadata_sufficiency || "", ai.urban_origin || ""].filter(Boolean).join(" · ")
-        : "";
-      const elig = rec?.eligibility?.status
-        ? [rec.eligibility.status.replace("_", " "), ...(rec.eligibility.urban_context || []).slice(0, 1).map(c => c.replace("_", " "))].join(" · ")
-        : "";
-      const eligTitle = rec?.eligibility
-        ? [...(rec.eligibility.reasons || []),
-           ...(Array.isArray(rec.eligibility.evidence) ? rec.eligibility.evidence : [])
-             .map(e => `${e.signal}: ${e.source} ${e.field} = ${e.value}`)].join("\n")
-        : "";
-
-      return `
-        <tr>
-          <td class="mono"><a href="${srrUrl}" target="_blank" rel="noopener">${escapeHtml(srr)}</a></td>
-          <td class="mono">${sraUid ? `<a href="${sraUrl}" target="_blank" rel="noopener">${escapeHtml(sraUid)}</a>` : `<span class="muted">—</span>`}</td>
-          <td>
-            ${bs !== "(unknown)" && bsUrl
-              ? `<a class="mono" href="${bsUrl}" target="_blank" rel="noopener">${escapeHtml(bs)}</a>`
-              : `<span class="mono">${escapeHtml(bs)}</span>`
-            }
-            ${coordLabel ? `<div class="sub">Lat/Lon: <span class="mono">${escapeHtml(coordLabel)}</span></div>` : ``}
-            ${aiNote ? `<div class="sub">${escapeHtml(aiNote)}</div>` : ``}
-            ${elig ? `<div class="sub" title="${escapeHtml(eligTitle)}">Eligibility: ${escapeHtml(elig)}</div>` : ``}
-          </td>
-          <td><span class="chip ${assay === "Unknown" ? "warn" : "good"}">${escapeHtml(assay)}</span></td>
-          <td>${escapeHtml(ctry)}</td>
-          <td>${escapeHtml(cty)}</td>
-          <td class="mono">${yr ?? "—"}</td>
-          <td>${escapeHtml(cn)}</td>
-          <td>${escapeHtml(platform)}</td>
-          <td class="mono">${escapeHtml(layout)}</td>
-          <td>${escapeHtml(org)}</td>
-        </tr>
-      `;
+  // ------------------------------------------------------------ rendering: filters
+  function checks(el, items, selected, counts, label, key){
+    el.innerHTML = items.map((v) => {
+      const c = counts.get(v) || { samples: 0, runs: 0 };
+      const on = selected.includes(v);
+      return `<label class="f-check${c.samples || on ? "" : " is-zero"}"><input type="checkbox" data-key="${key}" value="${esc(v)}"${on ? " checked" : ""}>
+        <span>${esc(label(v))}</span><span class="n" title="${fmt(c.samples)} BioSamples · ${fmt(c.runs)} runs">${fmt(c.samples)}</span></label>`;
     }).join("");
   }
 
-  // --------- Facets (dropdown options) ----------
-  function populateFacets() {
-    // Build from runs so stream mode stays accurate
-    const assays = uniq(allRuns.map(getAssayClass).map(norm).filter(Boolean)).sort((a,b)=>a.localeCompare(b));
-    const countries = uniq(allRuns.map(getCountry).map(x => norm(x) || "(unknown)")).sort((a,b)=>a.localeCompare(b));
-    const cities = uniq(allRuns.map(getCity).map(x => norm(x) || "(unknown)")).sort((a,b)=>a.localeCompare(b));
-
-    fillSelect(assay, assays, "(any)");
-    fillSelect(country, countries, "(any)");
-    fillSelect(city, cities, "(any)");
+  function options(sel, items, current, placeholder, disabled){
+    sel.innerHTML = `<option value="">${esc(placeholder)}</option>` + items.map(([v, label, n]) =>
+      `<option value="${esc(v)}"${String(v) === String(current) ? " selected" : ""}>${esc(label)} (${fmt(n)})</option>`).join("");
+    sel.disabled = !!disabled;
   }
 
-  function fillSelect(sel, values, anyLabel="(any)") {
-    const cur = sel.value;
-    const opts = [`<option value="">${anyLabel}</option>`]
-      .concat(values.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`));
-    sel.innerHTML = opts.join("");
-    if (values.includes(cur)) sel.value = cur;
-    else sel.value = "";
+  function renderFilters(){
+    const F = result.facets, G = E.geo;
+    $("f-q").value = filters.q;
+    checks($("f-tier"), TIER_ORDER.filter((t) => E.tiers.includes(t)), filters.tier, F.tier, (t) => TIER_LABEL[t] || t, "tier");
+    const ctxs = E.contexts.slice().sort((a, b) => (a === "") - (b === "") || (CTX_LABEL[a] || a).localeCompare(CTX_LABEL[b] || b));
+    checks($("f-context"), ctxs, filters.context, F.context, (c) => CTX_LABEL[c] || c, "context");
+    const assays = E.assays.slice().sort((a, b) => (F.assay.get(b)?.samples || 0) - (F.assay.get(a)?.samples || 0));
+    checks($("f-assay"), assays, filters.assay, F.assay, (a) => a, "assay");
+
+    const countries = [...F.country.entries()].map(([i, c]) => [G.countries[i].iso2, G.countries[i].name, c.samples])
+      .filter((x) => x[2] > 0 || x[0] === filters.country).sort((a, b) => a[1].localeCompare(b[1]));
+    options($("f-country"), countries, filters.country, "All countries");
+
+    const country = filters.country ? G.countryByIso.get(filters.country) : null;
+    const regions = country ? [...F.region.entries()].map(([i, c]) => [G.admin1[i], c.samples])
+      .filter(([a, n]) => a.country === country.i && (n > 0 || a.code === filters.region))
+      .map(([a, n]) => [a.code, a.name, n]).sort((a, b) => a[1].localeCompare(b[1])) : [];
+    options($("f-region"), regions, filters.region, country ? (regions.length ? "All regions" : "No validated regions") : "Choose a country first", !country || !regions.length);
+
+    const region = filters.region ? G.admin1ByCode.get(filters.region) : null;
+    const cities = country ? [...F.city.entries()].map(([i, c]) => [G.places[i], c.samples])
+      .filter(([p, n]) => p.country === country.i && (!region || p.admin1 === region.i) && (n > 0 || String(p.geonames_id) === filters.city))
+      .map(([p, n]) => [String(p.geonames_id), p.name, n]).sort((a, b) => a[1].localeCompare(b[1])) : [];
+    options($("f-city"), cities, filters.city, country ? (cities.length ? "All cities and towns" : "No validated cities") : "Choose a country first", !country || !cities.length);
+
+    const locCount = (k) => {
+      const L = F.loc; const g = (s) => L.get(s)?.samples || 0;
+      if (k === "verified") return g("verified");
+      if (k === "place") return g("verified") + g("probable");
+      return null;
+    };
+    $("f-loc").innerHTML = LOC_OPTIONS.map(([v, label]) => {
+      const n = locCount(v);
+      return `<option value="${v}"${filters.loc === v ? " selected" : ""}>${esc(label)}${n == null ? "" : ` (${fmt(n)})`}</option>`;
+    }).join("");
+    const noPlace = result.samplesNoPlace, noCountry = result.samplesNoCountry;
+    $("f-loc-hint").textContent = result.samples
+      ? `${fmt(noPlace)} of ${fmt(result.samples)} matching BioSamples have no validated city${noCountry ? `; ${fmt(noCountry)} have no validated country` : ""}. They stay in country and global counts.`
+      : "";
+    $("f-cmin").value = filters.cmin ?? ""; $("f-cmax").value = filters.cmax ?? "";
+    $("f-ymin").value = filters.ymin ?? ""; $("f-ymax").value = filters.ymax ?? "";
+    $("f-cyear-hint").textContent = (filters.cmin != null || filters.cmax != null)
+      ? "Samples without a collection date are excluded while a range is set."
+      : (result.samplesNoCyear ? `${fmt(result.samplesNoCyear)} matching BioSamples have no collection year.` : "");
   }
 
-  // --------- Loading ----------
-  async function loadManifest() {
-    const r = await fetch(MANIFEST_URL, {cache:"default"});
-    if (!r.ok) throw new Error(`Failed to fetch manifest: ${r.status} ${r.statusText}`);
-    manifest = await r.json();
-    return manifest;
+  function renderChips(){
+    const G = E.geo, chips = [];
+    const add = (label, clear) => chips.push({ label, clear });
+    if (filters.q) add(`Search: ${filters.q}`, () => { filters.q = ""; });
+    if (filters.project) add(`Study: ${filters.project}`, () => { filters.project = ""; });
+    if (filters.country) add(`Country: ${E.countryName(filters.country)}`, () => { filters.country = filters.region = filters.city = ""; });
+    if (filters.region) add(`Region: ${G.admin1ByCode.get(filters.region)?.name || filters.region}`, () => { filters.region = filters.city = ""; });
+    if (filters.city) add(`City: ${E.placeName(filters.city)}`, () => { filters.city = ""; });
+    if (filters.loc !== "any") add(LOC_OPTIONS.find((o) => o[0] === filters.loc)[1], () => { filters.loc = "any"; });
+    filters.context.forEach((c) => add(CTX_LABEL[c] || c, () => { filters.context = filters.context.filter((x) => x !== c); }));
+    filters.assay.forEach((a) => add(a, () => { filters.assay = filters.assay.filter((x) => x !== a); }));
+    if (filters.cmin != null || filters.cmax != null) add(`Collected ${filters.cmin ?? "…"}–${filters.cmax ?? "…"}`, () => { filters.cmin = filters.cmax = null; });
+    if (filters.ymin != null || filters.ymax != null) add(`Released ${filters.ymin ?? "…"}–${filters.ymax ?? "…"}`, () => { filters.ymin = filters.ymax = null; });
+    const tiers = filters.tier;
+    const isDefault = tiers.length === 2 && U.DEFAULT_TIERS.every((t) => tiers.includes(t));
+    if (!isDefault) add(tiers.length ? tiers.map((t) => TIER_LABEL[t] || t).join(", ") : "All urban statuses", () => { filters.tier = U.DEFAULT_TIERS.slice(); });
+    $("chips").innerHTML = chips.map((c, i) => `<span class="chip">${esc(c.label)}<button type="button" data-chip="${i}" aria-label="Remove ${esc(c.label)}">×</button></span>`).join("");
+    $("chips").onclick = (ev) => {
+      const b = ev.target.closest("button[data-chip]");
+      if (!b) return;
+      chips[+b.dataset.chip].clear();
+      update();
+    };
   }
 
-  // The whole catalog arrives as the aggregated cube plus the project index
-  // (well under 1 MB compressed); runs are fetched per project when expanded.
-  async function loadParts() {
-    btnStop.disabled = true;
-    if (loadBanner) loadBanner.hidden = false;
-    setMsg("Loading the catalog index…", "muted");
-    setProgress(0, 1);
-    const [groups, index] = await Promise.all([window.UMDB.fetchGroups(), window.UMDB.fetchProjectsIndex()]);
-    projectIndex = index;
-    allRuns = groups;
-    const total = groups.reduce((n, g) => n + g._w, 0);
-    setProgress(1, 1);
-    pLoad.textContent = `Loaded ${index.size.toLocaleString()} BioProjects · ${total.toLocaleString()} runs`;
-    if (loadBanner) window.setTimeout(() => { loadBanner.hidden = true; }, 600);
-    applyFilters();
-    setMsg(`<span class="ok">Ready.</span> ${index.size.toLocaleString()} BioProjects, ${total.toLocaleString()} runs. Open a project to load its runs.`, "ok");
+  // ------------------------------------------------------------ rendering: results
+  function emptyState(){
+    // Which single filter, if removed, would bring results back?
+    const tries = [];
+    const probe = (label, patch) => {
+      const f = { ...filters, ...patch };
+      const r = E.query(f);
+      if (r.samples) tries.push(`${label}: ${fmt(r.samples)} BioSamples`);
+    };
+    if (filters.q) probe("Without the search text", { q: "" });
+    if (filters.city) probe("Without the city", { city: "" });
+    if (filters.region) probe("Without the region and city", { region: "", city: "" });
+    if (filters.country) probe("Anywhere in the world", { country: "", region: "", city: "" });
+    if (filters.loc !== "any") probe("With any location quality", { loc: "any" });
+    if (filters.context.length) probe("Without the environment filter", { context: [] });
+    if (filters.assay.length) probe("Without the assay filter", { assay: [] });
+    if (filters.cmin != null || filters.cmax != null) probe("Without the collection-year range", { cmin: null, cmax: null });
+    if (filters.ymin != null || filters.ymax != null) probe("Without the release-year range", { ymin: null, ymax: null });
+    if (filters.tier.length) probe("With every urban status", { tier: [] });
+    return `<div class="x-empty"><strong>No records match these filters.</strong>
+      ${tries.length ? `<p>Loosening one filter would help:</p><ul>${tries.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>`
+                     : "<p>The catalogue has no records with this combination of metadata.</p>"}</div>`;
   }
 
-  // Exports need real run accessions: fetch the matched projects' files.
-  async function loadMatchedRuns() {
-    const pending = matchedProjects.filter(p => p.runs[0]?._synthetic);
-    if (pending.length > 300 && !window.confirm(
-      `This export needs run lists for ${pending.length.toLocaleString()} BioProjects (one file each). Continue?`)) {
-      throw new Error("Export cancelled");
+  function renderStudies(){
+    const rows = result.projects.slice().sort((a, b) =>
+      sortKey === "runs" ? b.runs - a.runs || b.samples - a.samples
+      : sortKey === "accession" ? a.accession.localeCompare(b.accession)
+      : sortKey === "year" ? (b.last_year || 0) - (a.last_year || 0) || b.samples - a.samples
+      : b.samples - a.samples || b.runs - a.runs);
+    const pages = Math.max(1, Math.ceil(rows.length / PAGE));
+    page = Math.min(page, pages - 1);
+    const slice = rows.slice(page * PAGE, page * PAGE + PAGE);
+    const th = (key, label, cls) => `<th class="${cls || ""}" aria-sort="${sortKey === key ? "descending" : "none"}"><button type="button" data-sort="${key}">${label}${sortKey === key ? " ↓" : ""}</button></th>`;
+    $("results").innerHTML = `<div class="table-shell" style="border:0;border-radius:0"><table>
+      <thead><tr>${th("accession", "Study")}<th>Title</th>${th("samples", "BioSamples", "num")}${th("runs", "Runs", "num")}${th("year", "Released", "num")}</tr></thead>
+      <tbody>${slice.map((p) => `<tr data-project="${esc(p.accession)}" tabindex="0">
+        <td class="mono">${esc(p.accession || "(no BioProject)")}</td>
+        <td class="x-title">${esc(p.title || "Untitled")}<span class="x-sub">${esc(p.center_name || "")}</span></td>
+        <td class="num">${fmt(p.samples)}<span class="x-sub">of ${fmt(p.totalSamples)}</span></td>
+        <td class="num">${fmt(p.runs)}<span class="x-sub">of ${fmt(p.totalRuns)}</span></td>
+        <td class="num">${p.first_year ? (p.first_year === p.last_year ? p.first_year : `${p.first_year}–${p.last_year}`) : "—"}</td></tr>`).join("")}</tbody></table></div>
+      ${pager(rows.length, pages)}
+      <div class="x-note">Matching counts per study; "of" gives the study's total. A BioSample shared by two studies counts toward both rows but once in the totals above.</div>`;
+  }
+
+  function pager(total, pages){
+    if (pages <= 1) return `<div class="x-pager"><span>${fmt(total)} studies</span></div>`;
+    return `<div class="x-pager"><span>${fmt(page * PAGE + 1)}–${fmt(Math.min(total, (page + 1) * PAGE))} of ${fmt(total)} studies</span>
+      <span><button type="button" class="btn" data-page="-1"${page ? "" : " disabled"}>Previous</button>
+      <button type="button" class="btn" data-page="1"${page < pages - 1 ? "" : " disabled"}>Next</button></span></div>`;
+  }
+
+  // BioSample and run lists come from the project files of matching studies,
+  // loaded a batch at a time (largest studies first).
+  async function loadRecords(more){
+    const key = JSON.stringify(U.filtersToParams(filters).toString());
+    if (listCache.key !== key){ listCache = { key, rows: [], runs: [], loadedProjects: 0, loading: false }; }
+    if (listCache.loading) return;
+    const todo = result.projects.slice(listCache.loadedProjects, listCache.loadedProjects + (more ? 25 : 10));
+    if (!todo.length) return;
+    listCache.loading = true;
+    renderRecordList();
+    const myKey = key;
+    for (const p of todo){
+      try {
+        const { samples, runs } = await U.fetchProject(p.accession);
+        if (listCache.key !== myKey) return;
+        const runAssays = new Map();
+        runs.forEach((r) => { const s = r._sample.accession; if (!runAssays.has(s)) runAssays.set(s, []); runAssays.get(s).push(r.assay.assay_class); });
+        const ok = new Set(samples.filter((s) => E.sampleMatches(filters, s, runAssays.get(s.accession))).map((s) => s.accession));
+        samples.forEach((s) => { if (ok.has(s.accession)) listCache.rows.push({ s, project: p.accession, nruns: runAssays.get(s.accession)?.length || 0 }); });
+        runs.forEach((r) => {
+          if (!ok.has(r._sample.accession)) return;
+          if (filters.assay.length && !filters.assay.includes(r.assay.assay_class)) return;
+          const y = parseInt((r._run.release_date || "").slice(0, 4), 10) || null;
+          if ((filters.ymin != null && (y == null || y < filters.ymin)) || (filters.ymax != null && (y == null || y > filters.ymax))) return;
+          listCache.runs.push({ r, project: p.accession });
+        });
+      } catch (err) { console.warn(err); }
+      listCache.loadedProjects += 1;
     }
-    let done = 0;
-    const queue = pending.slice();
-    const worker = async () => {
-      while (queue.length) {
+    listCache.loading = false;
+    renderRecordList();
+  }
+
+  function locCell(s){
+    const parts = [s.city, s.region, s.country].filter(Boolean);
+    const st = s.location_status || "unresolved";
+    return `${parts.length ? esc(parts.join(", ")) : "<span class='x-sub' style='display:inline'>No validated location</span>"}
+      <span class="badge ${esc(st)}" title="${esc(s.location_method || "")}${s.location_note ? " · " + esc(s.location_note) : ""}">${esc(st)}</span>
+      ${s.geo_loc_raw ? `<span class="x-sub">Submitted: ${esc(s.geo_loc_raw)}</span>` : ""}`;
+  }
+
+  function renderRecordList(){
+    const isRuns = view === "runs";
+    const rows = isRuns ? listCache.runs : listCache.rows;
+    const shown = rows.slice(0, 2000);
+    const head = isRuns
+      ? "<tr><th>Run</th><th>BioSample</th><th>Study</th><th>Assay</th><th>Platform</th><th>Released</th><th class='num'>Gbases</th></tr>"
+      : "<tr><th>BioSample</th><th>Study</th><th>Location</th><th>Collected</th><th>Urban status</th><th>Environment</th><th class='num'>Runs</th></tr>";
+    const body = isRuns ? shown.map(({ r, project }) => `<tr data-project="${esc(project)}">
+        <td class="mono"><a href="${esc(r.ncbi.srr_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(r.srr)}</a></td>
+        <td class="mono">${esc(r._sample.accession || "")}</td><td class="mono">${esc(project)}</td>
+        <td>${esc(r.assay.assay_class)}</td><td>${esc(r.runinfo_row.Platform)}</td>
+        <td>${esc((r._run.release_date || "").slice(0, 10))}</td><td class="num">${r._run.bases ? (r._run.bases / 1e9).toFixed(2) : "—"}</td></tr>`).join("")
+      : shown.map(({ s, project, nruns }) => `<tr data-project="${esc(project)}">
+        <td class="mono"><a href="https://www.ncbi.nlm.nih.gov/biosample/${encodeURIComponent(s.accession)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(s.accession)}</a></td>
+        <td class="mono">${esc(project)}</td><td>${locCell(s)}</td><td>${esc(s.collection_date || "")}</td>
+        <td>${esc(TIER_LABEL[s.urban_status] || s.urban_status || "")}</td><td>${esc(CTX_LABEL[s.urban_context || ""] || s.urban_context || "")}</td>
+        <td class="num">${fmt(nruns)}</td></tr>`).join("");
+    const total = result.projects.length, done = listCache.loadedProjects;
+    $("results").innerHTML = `<div class="table-shell" style="border:0;border-radius:0"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>
+      <div class="x-pager"><span>${fmt(rows.length)} ${isRuns ? "runs" : "BioSamples"} listed from ${fmt(done)} of ${fmt(total)} matching studies
+        (of ${fmt(isRuns ? result.runs : result.samples)} in total)${rows.length > shown.length ? "; showing the first 2,000" : ""}.</span>
+        ${done < total ? `<button type="button" class="btn" id="load-more"${listCache.loading ? " disabled" : ""}>${listCache.loading ? "Loading…" : "Load 25 more studies"}</button>` : ""}</div>
+      <div class="x-note">Records are read from each study's file as needed. Use "Export cohort" for the complete list.</div>`;
+    const lm = $("load-more");
+    if (lm) lm.onclick = () => loadRecords(true);
+  }
+
+  function renderResults(){
+    if (!result.samples && !result.runs){ $("results").innerHTML = emptyState(); return; }
+    if (view === "studies") renderStudies();
+    else {
+      const key = JSON.stringify(U.filtersToParams(filters).toString());
+      if (listCache.key !== key || !listCache.loadedProjects) loadRecords(false); else renderRecordList();
+    }
+  }
+
+  function update(opts){
+    opts = opts || {};
+    if (!opts.keepPage) page = 0;
+    result = E.query(filters);
+    $("s-samples").textContent = fmt(result.samples);
+    $("s-runs").textContent = fmt(result.runs);
+    $("s-projects").textContent = fmt(result.projects.length);
+    $("s-gbases").textContent = fmt(Math.round(result.gbases));
+    document.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === view)));
+    renderFilters();
+    renderChips();
+    renderResults();
+    syncURL();
+  }
+
+  // ------------------------------------------------------------ drawer
+  async function openDrawer(acc){
+    const root = $("drawer-root");
+    root.innerHTML = `<div class="drawer-backdrop" data-close></div><aside class="drawer" role="dialog" aria-modal="true" aria-label="Study ${esc(acc)}">
+      <button type="button" class="btn" data-close>Close</button><div id="drawer-body" style="margin-top:12px">Loading ${esc(acc)}…</div></aside>`;
+    root.querySelector(".drawer").focus?.();
+    root.onclick = (ev) => { if (ev.target.closest("[data-close]")) root.innerHTML = ""; };
+    let data;
+    try { data = await U.fetchProject(acc); }
+    catch (err) { $("drawer-body").textContent = `Could not load this study (${err.message}).`; return; }
+    const { project, samples, runs } = data;
+    const runsBySample = new Map();
+    runs.forEach((r) => { const k = r._sample.accession; if (!runsBySample.has(k)) runsBySample.set(k, []); runsBySample.get(k).push(r); });
+    const match = (s) => E.sampleMatches(filters, s, (runsBySample.get(s.accession) || []).map((r) => r.assay.assay_class));
+    let onlyMatching = samples.some(match);
+    const draw = () => {
+      const list = samples.filter((s) => s.accession && (!onlyMatching || match(s)));
+      const runList = runs.filter((r) => !onlyMatching || match(r._sample));
+      $("drawer-body").innerHTML = `
+        <div class="mono x-sub">${esc(project.accession || "(no BioProject)")}${project.center_name ? " · " + esc(project.center_name) : ""}</div>
+        <h2>${esc(project.title || "Untitled study")}</h2>
+        ${project.description ? `<div class="desc" id="desc">${esc(project.description)}</div><button type="button" class="btn" style="margin-top:6px" id="desc-more">Show full description</button>` : ""}
+        <div class="kv">
+          <div><span>BioSamples</span>${fmt(samples.filter((s) => s.accession).length)}</div>
+          <div><span>Runs</span>${fmt(runs.length)}</div>
+          <div><span>Matching filters</span>${fmt(samples.filter((s) => s.accession && match(s)).length)} samples</div>
+          <div><span>Links</span>${project.accession ? `<a href="https://www.ncbi.nlm.nih.gov/bioproject/${encodeURIComponent(project.accession)}" target="_blank" rel="noopener">NCBI BioProject</a>` : "—"}</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+          <label class="f-check"><input type="checkbox" id="only-match"${onlyMatching ? " checked" : ""}> Only records matching the filters</label>
+          <button type="button" class="btn" id="dl-project">Download this study (TSV)</button>
+          <button type="button" class="btn" id="filter-project">Filter to this study</button>
+        </div>
+        <h3>BioSamples (${fmt(list.length)})</h3>
+        <div class="table-shell"><table><thead><tr><th>BioSample</th><th>Accepted location</th><th>Collected</th><th>Urban status</th><th>Environment</th><th>Isolation source</th></tr></thead>
+        <tbody>${list.slice(0, 500).map((s) => `<tr><td class="mono"><a href="https://www.ncbi.nlm.nih.gov/biosample/${encodeURIComponent(s.accession)}" target="_blank" rel="noopener">${esc(s.accession)}</a><span class="x-sub">${esc(s.title || "")}</span></td>
+          <td>${locCell(s)}</td><td>${esc(s.collection_date || "")}</td><td>${esc(TIER_LABEL[s.urban_status] || s.urban_status || "")}<span class="x-sub">${esc(s.eligibility_reason || "")}</span></td>
+          <td>${esc(CTX_LABEL[s.urban_context || ""] || s.urban_context || "")}</td><td>${esc(s.isolation_source || "")}</td></tr>`).join("")}</tbody></table></div>
+        ${list.length > 500 ? `<div class="x-note">Showing 500 of ${fmt(list.length)}; download the study for all of them.</div>` : ""}
+        <h3>Runs (${fmt(runList.length)})</h3>
+        <div class="table-shell"><table><thead><tr><th>Run</th><th>BioSample</th><th>Assay</th><th>Library</th><th>Platform</th><th>Released</th><th class="num">Gbases</th></tr></thead>
+        <tbody>${runList.slice(0, 500).map((r) => `<tr><td class="mono"><a href="${esc(r.ncbi.srr_url)}" target="_blank" rel="noopener">${esc(r.srr)}</a></td>
+          <td class="mono">${esc(r._sample.accession || "")}</td><td>${esc(r.assay.assay_class)}</td>
+          <td>${esc([r.runinfo_row.LibraryStrategy, r.runinfo_row.LibrarySource, r.runinfo_row.LibraryLayout].filter(Boolean).join(" · "))}</td>
+          <td>${esc(r.runinfo_row.Model || r.runinfo_row.Platform)}</td><td>${esc((r._run.release_date || "").slice(0, 10))}</td>
+          <td class="num">${r._run.bases ? (r._run.bases / 1e9).toFixed(2) : "—"}</td></tr>`).join("")}</tbody></table></div>
+        ${runList.length > 500 ? `<div class="x-note">Showing 500 of ${fmt(runList.length)}.</div>` : ""}
+        ${Object.keys(data.runs.find((r) => Object.keys(r.ai_curation).length)?.ai_curation || {}).length ? `<p class="x-note">Some runs have AI-proposed annotations. They are shown as proposals in the data files and do not change counts, filters or locations.</p>` : ""}`;
+      $("only-match").onchange = (e) => { onlyMatching = e.target.checked; draw(); };
+      const more = $("desc-more");
+      if (more) more.onclick = () => { $("desc").classList.add("open"); more.remove(); };
+      $("dl-project").onclick = () => download(`${project.accession || "study"}_runs.tsv`, runsTSV(runList.map((r) => ({ r, project: project.accession }))), "text/tab-separated-values");
+      $("filter-project").onclick = () => { filters.project = project.accession; $("drawer-root").innerHTML = ""; update(); };
+    };
+    draw();
+  }
+
+  // ------------------------------------------------------------ export
+  const TSV_COLS = ["run_accession", "biosample_accession", "bioproject_accession", "experiment_accession", "assay_class",
+    "library_strategy", "library_source", "library_layout", "platform", "instrument_model", "release_date", "bases",
+    "country_iso2", "country", "region", "city", "geonames_id", "location_status", "location_method", "submitted_location",
+    "latitude", "longitude", "collection_date", "urban_status", "urban_context", "isolation_source", "env_medium"];
+  function runsTSV(items){
+    const clean = (v) => (v ?? "").toString().replace(/[\t\r\n]+/g, " ");
+    const lines = [TSV_COLS.join("\t")];
+    for (const { r, project } of items){
+      const s = r._sample;
+      lines.push([r.srr, s.accession, project, r._run.experiment, r.assay.assay_class, r._run.library_strategy, r._run.library_source,
+        r._run.library_layout, r._run.platform, r._run.instrument_model, r._run.release_date, r._run.bases,
+        s.country_iso2, s.country, s.region, s.city, s.place_id, s.location_status, s.location_method, s.geo_loc_raw,
+        s.lat, s.lon, s.collection_date, s.urban_status, s.urban_context, s.isolation_source, s.env_medium].map(clean).join("\t"));
+    }
+    return lines.join("\n") + "\n";
+  }
+  function download(name, text, type){
+    const url = URL.createObjectURL(new Blob([text], { type: type || "text/plain" }));
+    const a = Object.assign(document.createElement("a"), { href: url, download: name });
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  async function exportCohort(){
+    const panel = $("export-panel");
+    const projects = result.projects;
+    if (!projects.length) return;
+    if (projects.length > 300 && !confirm(`This cohort spans ${fmt(projects.length)} studies (${fmt(result.runs)} runs). Building it downloads each study's file and may take a while. Continue?`)) return;
+    panel.hidden = false;
+    panel.innerHTML = `<strong>Building the cohort…</strong><div class="f-hint" id="ex-status">0 of ${fmt(projects.length)} studies</div><div class="progress"><div id="ex-bar"></div></div>`;
+    const items = [];
+    let done = 0, failed = [];
+    const queue = projects.slice();
+    const snapshot = JSON.parse(JSON.stringify(filters));
+    async function worker(){
+      while (queue.length){
         const p = queue.shift();
-        p.runs = (await window.UMDB.fetchProject(p.bioproject)).runs;
+        try {
+          const { samples, runs } = await U.fetchProject(p.accession);
+          const runAssays = new Map();
+          runs.forEach((r) => { const k = r._sample.accession; if (!runAssays.has(k)) runAssays.set(k, []); runAssays.get(k).push(r.assay.assay_class); });
+          const ok = new Set(samples.filter((s) => E.sampleMatches(snapshot, s, runAssays.get(s.accession))).map((s) => s.accession));
+          for (const r of runs){
+            if (!ok.has(r._sample.accession)) continue;
+            if (snapshot.assay.length && !snapshot.assay.includes(r.assay.assay_class)) continue;
+            const y = parseInt((r._run.release_date || "").slice(0, 4), 10) || null;
+            if ((snapshot.ymin != null && (y == null || y < snapshot.ymin)) || (snapshot.ymax != null && (y == null || y > snapshot.ymax))) continue;
+            items.push({ r, project: p.accession });
+          }
+        } catch (err) { failed.push(p.accession); }
         done += 1;
-        if (done % 10 === 0 || done === pending.length) {
-          setMsg(`Loading run lists: ${done.toLocaleString()}/${pending.length.toLocaleString()} BioProjects…`, "muted");
-        }
+        $("ex-status").textContent = `${fmt(done)} of ${fmt(projects.length)} studies · ${fmt(items.length)} runs`;
+        $("ex-bar").style.width = `${(100 * done / projects.length).toFixed(1)}%`;
       }
-    };
-    await Promise.all(Array.from({length: Math.min(6, queue.length)}, worker));
-    return matchedProjects.flatMap(p => p.runs);
-  }
-
-  function resetUI() {
-    q.value = "";
-    assay.value = "";
-    country.value = "";
-    city.value = "";
-    center.value = "";
-    minYear.value = "";
-    maxYear.value = "";
-    if (aiReviewedOnly) aiReviewedOnly.checked = false;
-    if (aiFixedOnly) aiFixedOnly.checked = false;
-    if (aiInsufficientOnly) aiInsufficientOnly.checked = false;
-    if (aiUrbanOnly) aiUrbanOnly.checked = false;
-    if (eligibility) eligibility.value = "";
-    if (requireGeo) requireGeo.checked = true;
-    if (excludeUnknown) excludeUnknown.checked = true;
-    perPageSel.value = "100";
-    mode.value = "stream";
-    sortKey = "samples";
-    sortAsc = false;
-    el("sortKey").textContent = sortKey;
-    el("sortDir").textContent = "▼";
-    page = 1;
-    applyFilters();
-  }
-
-  function slugify(value) {
-    return (value || "search")
-      .toString()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "")
-      .slice(0, 48) || "search";
-  }
-
-  async function buildBundlePayload() {
-    const runs = await loadMatchedRuns();
-    const accessions = uniq(runs.map(getSRR).map(norm).filter(Boolean)).sort((a,b) => a.localeCompare(b));
-    const projects = matchedProjects.map(p => ({
-      bioproject: p.bioproject,
-      title: p.title,
-      run_count: p.samples,
-      biosample_count: p.biosamples,
-      assays: p.assays,
-      years: { min: p.min_year, max: p.max_year },
-      countries_top: p.countries_top,
-      cities_top: p.cities_top,
-      centers_top: p.centers_top
-    }));
-
-    return {
-      exported_utc: new Date().toISOString(),
-      source: "UMDB search bundle",
-      filters: {
-        q: q.value,
-        assay: assay.value,
-        country: country.value,
-        city: city.value,
-        center: center.value,
-        min_year: minYear.value,
-        max_year: maxYear.value,
-        eligibility: eligibility ? eligibility.value : "",
-        ai_filters: {
-          reviewed_only: !!(aiReviewedOnly && aiReviewedOnly.checked),
-          fixed_only: !!(aiFixedOnly && aiFixedOnly.checked),
-          insufficient_only: !!(aiInsufficientOnly && aiInsufficientOnly.checked),
-          urban_only: !!(aiUrbanOnly && aiUrbanOnly.checked)
-        },
-        require_geo: !!(requireGeo && requireGeo.checked),
-        exclude_unknown: !!(excludeUnknown && excludeUnknown.checked)
-      },
-      counts: {
-        matched_projects: matchedProjects.length,
-        matched_runs: runs.length,
-        unique_srr_accessions: accessions.length
-      },
-      srr_accessions: accessions,
-      projects,
-      runs: runs.map(rec => ({
-        srr: norm(getSRR(rec)),
-        bioproject: norm(getBPAcc(rec)),
-        biosample: norm(getBioSample(rec)),
-        assay_class: norm(getAssayClass(rec)),
-        country: norm(getCountry(rec)),
-        city: norm(getCity(rec)),
-        center: norm(getCenter(rec)),
-        year: safeYearFromRec(rec),
-        scientific_name: norm(getSciName(rec)),
-        platform: norm(getPlatform(rec)),
-        layout: norm(getLayout(rec)),
-        library_source: norm(getLibSource(rec)),
-        sra_download_path: norm(getDownloadPath(rec)),
-        ncbi_srr_url: rec?.ncbi?.srr_url || "",
-        ai_curation: rec?.ai_curation || {}
-      }))
-    };
-  }
-
-  function downloadTextFile(filename, content, type="text/plain") {
-    const blob = new Blob([content], { type });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  }
-
-  async function exportMatchedBundle() {
-    const payload = await buildBundlePayload();
-    const label = slugify(q.value || country.value || city.value || assay.value || "matched_runs");
-    downloadTextFile(`UMDB_bundle_${label}.json`, JSON.stringify(payload, null, 2), "application/json");
-    setMsg(`<span class="ok">Bundle exported.</span> Saved ${payload.counts.unique_srr_accessions.toLocaleString()} SRR accessions from the current search.`, "ok");
-  }
-
-  async function exportSrrList() {
-    const payload = await buildBundlePayload();
-    const label = slugify(q.value || country.value || city.value || assay.value || "matched_runs");
-    downloadTextFile(`UMDB_srr_${label}.txt`, payload.srr_accessions.join("\n") + "\n");
-    setMsg(`<span class="ok">SRR list exported.</span> Saved ${payload.counts.unique_srr_accessions.toLocaleString()} accessions for the current search.`, "ok");
-  }
-
-  async function buildFastqScript() {
-    const payload = await buildBundlePayload();
-    const label = slugify(q.value || country.value || city.value || assay.value || "matched_runs");
-    const accessions = payload.srr_accessions;
-    const accessionBlock = accessions.map(acc => `  "${acc}"`).join(" \\\n");
-    return `#!/usr/bin/env bash
-set -euo pipefail
-
-# UMDB FASTQ bundle
-# Generated: ${payload.exported_utc}
-# Matched BioProjects: ${payload.counts.matched_projects}
-# Matched SRR runs: ${payload.counts.unique_srr_accessions}
-
-OUTDIR="\${1:-UMDB_fastq_${label}}"
-THREADS="\${THREADS:-6}"
-mkdir -p "$OUTDIR/sra" "$OUTDIR/fastq" "$OUTDIR/logs"
-
-if ! command -v prefetch >/dev/null 2>&1; then
-  echo "Missing required command: prefetch" >&2
-  echo "Install NCBI SRA Toolkit first: https://github.com/ncbi/sra-tools/wiki/02.-Installing-SRA-Toolkit" >&2
-  exit 1
-fi
-
-if ! command -v fasterq-dump >/dev/null 2>&1; then
-  echo "Missing required command: fasterq-dump" >&2
-  echo "Install NCBI SRA Toolkit first: https://github.com/ncbi/sra-tools/wiki/02.-Installing-SRA-Toolkit" >&2
-  exit 1
-fi
-
-SRRS=(
-${accessionBlock}
-)
-
-for SRR in "\${SRRS[@]}"; do
-  echo "[UMDB] downloading $SRR"
-  prefetch "$SRR" --output-directory "$OUTDIR/sra" >> "$OUTDIR/logs/prefetch.log" 2>&1
-  fasterq-dump "$OUTDIR/sra/$SRR" --split-files --threads "$THREADS" --outdir "$OUTDIR/fastq" >> "$OUTDIR/logs/fasterq_dump.log" 2>&1
-done
-
-echo "[UMDB] completed FASTQ export into $OUTDIR/fastq"
-`;
-  }
-
-  async function exportFastqScript() {
-    const payload = await buildBundlePayload();
-    const label = slugify(q.value || country.value || city.value || assay.value || "matched_runs");
-    downloadTextFile(`UMDB_fastq_bundle_${label}.sh`, await buildFastqScript(), "text/x-shellscript");
-    setMsg(`<span class="ok">FASTQ script exported.</span> Script includes ${payload.counts.unique_srr_accessions.toLocaleString()} SRR runs from the current search.`, "ok");
-  }
-
-  function exportCurrentPage() {
-    perPage = parseInt(perPageSel.value, 10) || 100;
-    const start = (page - 1) * perPage;
-    const end = Math.min(matchedProjects.length, start + perPage);
-    const slice = matchedProjects.slice(start, end).map(p => ({
-      bioproject: p.bioproject,
-      title: p.title,
-      samples: p.samples,
-      biosamples: p.biosamples,
-      assays: p.assays,
-      years: {min: p.min_year, max: p.max_year},
-      countries_top: p.countries_top,
-      cities_top: p.cities_top,
-      centers_top: p.centers_top,
-      // Run records are included once a project has been opened (loaded from db/p/).
-      runs: p.runs[0]?._synthetic ? undefined : p.runs,
-    }));
-
-    const blob = new Blob([JSON.stringify({
-      exported_utc: new Date().toISOString(),
-      page,
-      per_page: perPage,
-      sort: {key: sortKey, asc: sortAsc},
-      filters: {
-        q: q.value,
-        assay: assay.value,
-        country: country.value,
-        city: city.value,
-        center: center.value,
-        min_year: minYear.value,
-        max_year: maxYear.value,
-        eligibility: eligibility ? eligibility.value : "",
-        ai_filters: {
-          reviewed_only: !!(aiReviewedOnly && aiReviewedOnly.checked),
-          fixed_only: !!(aiFixedOnly && aiFixedOnly.checked),
-          insufficient_only: !!(aiInsufficientOnly && aiInsufficientOnly.checked),
-          urban_only: !!(aiUrbanOnly && aiUrbanOnly.checked)
-        }
-      },
-      projects: slice
-    }, null, 2)], {type:"application/json"});
-
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `UMDB_bioproject_page_${page}.json`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  }
-
-  // --------- Events ----------
-  btnApply.addEventListener("click", applyFilters);
-  btnReset.addEventListener("click", resetUI);
-  btnStop.addEventListener("click", () => { if (aborter) aborter.abort(); btnStop.disabled = true; });
-  btnExport.addEventListener("click", exportCurrentPage);
-  const reportExportError = (e) => setMsg(`<span class="err">${escapeHtml(e.message)}</span>`, "err");
-  btnBundle.addEventListener("click", () => exportMatchedBundle().catch(reportExportError));
-  btnFastqScript.addEventListener("click", () => exportFastqScript().catch(reportExportError));
-  btnSrrList.addEventListener("click", () => exportSrrList().catch(reportExportError));
-  if (modeToggle) {
-    modeToggle.addEventListener("click", () => {
-      const current = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
-      const next = current === "dark" ? "light" : "dark";
-      localStorage.setItem("umdb-explorer-theme", next);
-      applyTheme(next);
-    });
-  }
-  if (refineToggle) {
-    refineToggle.addEventListener("click", () => {
-      const collapsed = !refineCard.classList.contains("is-collapsed");
-      setCollapsed(refineCard, refineToggle, refineToggleIcon, collapsed);
-    });
-  }
-  if (actionsToggle) {
-    actionsToggle.addEventListener("click", () => {
-      const collapsed = !actionsCard.classList.contains("is-collapsed");
-      setCollapsed(actionsCard, actionsToggle, actionsToggleIcon, collapsed);
-    });
-  }
-
-  prev.addEventListener("click", () => { page = Math.max(1, page - 1); render(); });
-  next.addEventListener("click", () => { page = page + 1; render(); });
-
-  // Sort on header click
-  document.querySelectorAll("th[data-k]").forEach(th => {
-    th.addEventListener("click", () => setSort(th.getAttribute("data-k")));
-  });
-
-  // Apply on Enter in search boxes
-  [q, center, minYear, maxYear].forEach(inp => {
-    inp.addEventListener("keydown", (e) => { if (e.key === "Enter") applyFilters(); });
-  });
-
-  [aiReviewedOnly, aiFixedOnly, aiInsufficientOnly, aiUrbanOnly].forEach((box) => {
-    if (box) box.addEventListener("change", applyFilters);
-  });
-  if (eligibility) eligibility.addEventListener("change", applyFilters);
-  if (requireGeo) requireGeo.addEventListener("change", applyFilters);
-  if (excludeUnknown) excludeUnknown.addEventListener("change", applyFilters);
-
-  // --------- Init ----------
-  (async () => {
-    if (!window.UMDB) {
-      setMsg("Database script not loaded. Please serve the site from the docs/ directory or use a local web server.", "err");
-      return;
     }
-    try {
-      const savedTheme = localStorage.getItem("umdb-explorer-theme");
-      applyTheme(savedTheme === "light" ? "light" : "dark");
-      setCollapsed(refineCard, refineToggle, refineToggleIcon, false);
-      setCollapsed(actionsCard, actionsToggle, actionsToggleIcon, false);
-      const mf = await loadManifest();
-      pGenerated.textContent = `Generated: ${formatTimestamp(mf.generated_utc || mf.generated || "")}`;
-      pTotals.textContent = `Total SRR records: ${(mf.total_records ?? mf.total_srr_records ?? "—").toLocaleString?.() ?? (mf.total_records ?? mf.total_srr_records ?? "—")}`;
+    await Promise.all(Array.from({ length: 6 }, worker));
+    const summary = await U.fetchSummary();
+    const manifest = await U.fetchManifest();
+    const tsv = runsTSV(items);
+    const accessions = items.map(({ r }) => r.srr).join("\n") + "\n";
+    const query = {
+      umdb_release: { generated_utc: summary.generated_utc, site_schema_version: manifest.site_schema_version,
+                      database_built_utc: manifest.database_built_utc, query_profiles_version: manifest.query_profiles_version,
+                      eligibility_rules_version: manifest.eligibility_rules_version, geo_rules_version: manifest.geo_rules_version },
+      filters: snapshot, url: location.origin + location.pathname.replace(/[^/]*$/, "") + U.filtersToURL(snapshot, "explorer.html"),
+      counts: { runs: items.length, biosamples: new Set(items.map(({ r }) => r._sample.accession)).size, bioprojects: new Set(items.map((x) => x.project)).size },
+      expected_counts_from_index: { runs: result.runs, biosamples: result.samples, bioprojects: projects.length },
+      columns: TSV_COLS, failed_studies: failed,
+      exported_utc: new Date().toISOString(),
+      attribution: E.geo.attribution, license: "UMDB annotations CC BY-NC-SA 4.0; sequence data and metadata from NCBI SRA/BioSample/BioProject"
+    };
+    panel.innerHTML = `<strong>Cohort ready:</strong> ${fmt(query.counts.runs)} runs from ${fmt(query.counts.biosamples)} BioSamples in ${fmt(query.counts.bioprojects)} studies.
+      ${failed.length ? `<div class="f-hint" style="color:var(--danger)">${fmt(failed.length)} studies could not be loaded and are missing: ${esc(failed.slice(0, 5).join(", "))}${failed.length > 5 ? "…" : ""}</div>` : ""}
+      <div class="row">
+        <button type="button" class="btn primary" id="ex-tsv">Runs and metadata (TSV)</button>
+        <button type="button" class="btn" id="ex-acc">Run accessions (TXT)</button>
+        <button type="button" class="btn" id="ex-json">Query manifest (JSON)</button>
+        <button type="button" class="btn" id="ex-close">Close</button>
+      </div>
+      <code class="cmd"># Download the reads with the SRA Toolkit\nprefetch --option-file umdb_cohort_accessions.txt\nfasterq-dump --split-files SRR... (one per run)</code>`;
+    $("ex-tsv").onclick = () => download("umdb_cohort_runs.tsv", tsv, "text/tab-separated-values");
+    $("ex-acc").onclick = () => download("umdb_cohort_accessions.txt", accessions);
+    $("ex-json").onclick = () => download("umdb_cohort_manifest.json", JSON.stringify(query, null, 2), "application/json");
+    $("ex-close").onclick = () => { panel.hidden = true; };
+  }
 
-      await loadParts();
-      if (q.value) applyFilters();
-    } catch (e) {
-      setMsg(`<span class="err">${escapeHtml(e.message)}</span>`, "err");
-      tbody.innerHTML = `<tr><td colspan="9" class="err">Failed to initialize: ${escapeHtml(e.message)}</td></tr>`;
-    }
-  })();
+  // ------------------------------------------------------------ events
+  function wire(){
+    let qTimer = null;
+    $("f-q").addEventListener("input", (e) => { clearTimeout(qTimer); qTimer = setTimeout(() => { filters.q = e.target.value.trim(); update(); }, 200); });
+    document.querySelector(".x-filters").addEventListener("change", (e) => {
+      const t = e.target;
+      if (t.matches("input[type=checkbox][data-key]")){
+        const k = t.dataset.key;
+        const set = new Set(filters[k]);
+        t.checked ? set.add(t.value) : set.delete(t.value);
+        filters[k] = [...set];
+      } else if (t.id === "f-country"){ filters.country = t.value; filters.region = ""; filters.city = ""; }
+      else if (t.id === "f-region"){ filters.region = t.value; filters.city = ""; }
+      else if (t.id === "f-city"){ filters.city = t.value; }
+      else if (t.id === "f-loc"){ filters.loc = t.value; }
+      else if (["f-cmin", "f-cmax", "f-ymin", "f-ymax"].includes(t.id)){
+        const v = t.value ? parseInt(t.value, 10) : null;
+        filters[t.id.slice(2)] = Number.isFinite(v) ? v : null;
+      } else return;
+      update();
+    });
+    document.querySelectorAll("[data-reset]").forEach((b) => b.addEventListener("click", () => {
+      const k = b.dataset.reset;
+      if (k === "tier") filters.tier = U.DEFAULT_TIERS.slice();
+      if (k === "location"){ filters.country = filters.region = filters.city = ""; filters.loc = "any"; }
+      if (k === "context") filters.context = [];
+      if (k === "assay") filters.assay = [];
+      if (k === "cyear") filters.cmin = filters.cmax = null;
+      if (k === "year") filters.ymin = filters.ymax = null;
+      update();
+    }));
+    $("reset-all").onclick = () => { filters = U.emptyFilters(); update(); };
+    document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => { view = b.dataset.view; update(); }));
+    $("results").addEventListener("click", (e) => {
+      const sort = e.target.closest("[data-sort]");
+      if (sort){ sortKey = sort.dataset.sort; page = 0; renderStudies(); return; }
+      const pg = e.target.closest("[data-page]");
+      if (pg){ page += +pg.dataset.page; renderStudies(); return; }
+      const tr = e.target.closest("tr[data-project]");
+      if (tr && !e.target.closest("a")) openDrawer(tr.dataset.project);
+    });
+    $("results").addEventListener("keydown", (e) => {
+      const tr = e.target.closest("tr[data-project]");
+      if (tr && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); openDrawer(tr.dataset.project); }
+    });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("drawer-root").innerHTML = ""; });
+    $("copy-link").onclick = async () => {
+      try { await navigator.clipboard.writeText(location.href); $("copy-link").textContent = "Link copied"; }
+      catch { $("copy-link").textContent = "Copy from the address bar"; }
+      setTimeout(() => { $("copy-link").textContent = "Copy link"; }, 1800);
+    };
+    $("export-btn").onclick = () => exportCohort().catch((err) => { $("export-panel").hidden = false; $("export-panel").textContent = `Export failed: ${err.message}`; });
+  }
+
+  U.openIndex().then((engine) => {
+    E = engine;
+    $("geo-attrib").textContent = E.geo.attribution + ".";
+    wire();
+    update();
+    if (filters.project) openDrawer(filters.project);
+  }).catch((err) => {
+    $("results").innerHTML = `<div class="x-empty"><strong>The catalogue could not be loaded.</strong><p>${esc(err.message)}</p></div>`;
+  });
 })();
 </script>
-<script src="./assets/page-loading.js"></script>
 </body>
 </html>

@@ -610,32 +610,102 @@ class CatalogBundleTests(unittest.TestCase):
 
 
 class SiteTests(unittest.TestCase):
+    def _build(self, d):
+        import json
+        from umdb_harvester import database, exports
+        DatabaseTests._catalog(None, d)
+        # SAMN1 also has an amplicon run in a second project: one BioSample,
+        # two assays, two projects. It must still be counted once.
+        extra = {"srr": "SRR3", "sra_uid": "3", "title": "subway 16S",
+                 "runinfo_row": {"Run": "SRR3", "Experiment": "SRX3", "BioSample": "SAMN1", "BioProject": "PRJNA2",
+                                 "ScientificName": "metagenome", "LibraryStrategy": "AMPLICON",
+                                 "LibrarySource": "METAGENOMIC", "ReleaseDate": "2025-01-01", "bases": "1000"},
+                 "provenance": {"ingested_utc": "2026-01-01T00:00:00Z"}}
+        with open(os.path.join(d, "srr_catalog_2026.jsonl"), "a") as fh:
+            fh.write(json.dumps(extra) + "\n")
+        dbp = os.path.join(d, "umdb.sqlite")
+        with mock.patch.object(exports, "DATA_DIR", d), \
+             mock.patch.object(database, "BIOSAMPLE_CACHE", os.path.join(d, "cache", "biosample.json")), \
+             mock.patch.object(database, "BIOPROJECT_CACHE", os.path.join(d, "cache", "bioproject.json")), \
+             mock.patch.object(database, "AI_CURATION_CACHE", os.path.join(d, "cache", "ai.json")):
+            database.build_database(dbp, geonames_dir=make_gazetteer(os.path.join(d, "geonames")))
+        return dbp
+
     def test_site_from_database(self):
-        import tempfile
-        from umdb_harvester import database, site, exports
+        import sqlite3, tempfile
+        from umdb_harvester import site
         with tempfile.TemporaryDirectory() as d:
-            DatabaseTests._catalog(None, d)
-            dbp, out = os.path.join(d, "umdb.sqlite"), os.path.join(d, "site")
-            with mock.patch.object(exports, "DATA_DIR", d), \
-                 mock.patch.object(database, "BIOSAMPLE_CACHE", os.path.join(d, "cache", "biosample.json")), \
-                 mock.patch.object(database, "BIOPROJECT_CACHE", os.path.join(d, "cache", "bioproject.json")), \
-                 mock.patch.object(database, "AI_CURATION_CACHE", os.path.join(d, "cache", "ai.json")):
-                database.build_database(dbp)
+            dbp, out = self._build(d), os.path.join(d, "site")
             os.makedirs(out)
             with open(os.path.join(out, "srr_records_part000.json"), "w") as fh:
                 fh.write("[]")
             manifest = site.build_site(dbp, out)
-            cube = json.load(open(os.path.join(out, "cube.json")))
-            ix = {k: i for i, k in enumerate(cube["cols"])}
-            self.assertEqual(sum(r[ix["runs"]] for r in cube["rows"]), manifest["counts"]["runs"])
-            projects = json.load(open(os.path.join(out, "projects.json")))
+            load = lambda n: json.load(open(os.path.join(out, n)))
+            cube, samples, geo, summary = load("cube.json"), load("samples.json"), load("geo.json"), load("summary.json")
+            con = sqlite3.connect(dbp)
+            q = lambda sql: con.execute(sql).fetchone()[0]
+
+            # Totals from the two cubes equal exact SQLite counts.
+            rix = {k: i for i, k in enumerate(cube["cols"])}
+            six = {k: i for i, k in enumerate(samples["cols"])}
+            self.assertEqual(sum(r[rix["runs"]] for r in cube["rows"]), q("SELECT count(*) FROM runs"))
+            n_samples = q("SELECT count(DISTINCT sample_accession) FROM runs")
+            self.assertEqual(sum(r[six["samples"]] for r in samples["rows"]), n_samples)
+            self.assertEqual((summary["totalRuns"], summary["totalBioSamples"], summary["totalProjects"]), (3, 2, 2))
+            self.assertNotIn("samples", cube["cols"])          # runs cube no longer carries sample counts
+
+            # The two-assay, two-project sample sits in one row, with set-valued dims.
+            D = samples["dims"]
+            multi = [r for r in samples["rows"] if len(D["assaysets"][r[six["assays"]]]) == 2]
+            self.assertEqual(len(multi), 1)
+            self.assertEqual(multi[0][six["samples"]], 1)
+            self.assertEqual(len(D["projsets"][multi[0][six["projects"]]]), 2)
+
+            # Geography comes from the validated table: NYC for SAMN1, none for SAMN2.
+            place_names = [p[1] for p in geo["places"]]
+            self.assertEqual(place_names, ["New York City"])
+            self.assertEqual([c[0] for c in geo["countries"]], ["US"])
+            us = [r for r in samples["rows"] if r[six["country"]] == 0]
+            self.assertEqual(sum(r[six["samples"]] for r in us),
+                             q("SELECT count(*) FROM sample_locations WHERE country_iso2='US' "
+                               "AND country_status IN ('verified','probable')"))
+            self.assertEqual(summary["countries"][0]["biosamples"], 1)
+            self.assertEqual(summary["countries"][0]["runs"], 2)
+            self.assertIn("GeoNames", geo["attribution"])
+
+            projects = load("projects.json")
             acc = projects["rows"][0][0]
-            shard = json.load(open(os.path.join(out, "p", site.shard_name(acc))))
+            shard = load(os.path.join("p", site.shard_name(acc)))
             self.assertEqual(len(shard["runs"]), projects["rows"][0][5])
+            sc = {k: i for i, k in enumerate(shard["sample_cols"])}
+            s1 = [s for s in shard["samples"] if s[0] == "SAMN1"][0]
+            self.assertEqual((s1[sc["city"]], s1[sc["country_iso2"]], s1[sc["geo_loc_raw"]]),
+                             ("New York City", "US", "USA: New York City"))
             self.assertFalse(os.path.exists(os.path.join(out, "srr_records_part000.json")))  # legacy removed
             mtime = os.path.getmtime(os.path.join(out, "p", site.shard_name(acc)))
             site.build_site(dbp, out)  # unchanged content is not rewritten
             self.assertEqual(os.path.getmtime(os.path.join(out, "p", site.shard_name(acc))), mtime)
+            self.assertEqual(manifest["counts"]["biosamples"], n_samples)
+
+    def test_database_enforces_location_consistency(self):
+        import sqlite3, tempfile
+        with tempfile.TemporaryDirectory() as d:
+            con = sqlite3.connect(self._build(d))
+            con.execute("PRAGMA foreign_keys = ON")
+            self.assertEqual(con.execute("PRAGMA foreign_key_check").fetchall(), [])
+            row = con.execute("SELECT l.country_iso2, p.name, l.status FROM sample_locations l "
+                              "JOIN places p ON p.geonames_id = l.place_id WHERE l.sample_accession='SAMN1'").fetchone()
+            self.assertEqual(row, ("US", "New York City", "verified"))
+            con.execute("INSERT INTO samples(accession) VALUES ('SAMN9')")
+            bad = [  # a US place filed under China; a place without an accepted status; verified without a place
+                ("SAMN9", "CN", "verified", None, 5128581, "verified"),
+                ("SAMN9", "US", "verified", None, 5128581, "ambiguous"),
+                ("SAMN9", "US", "verified", None, None, "verified"),
+            ]
+            for r in bad:
+                with self.assertRaises(sqlite3.IntegrityError, msg=r):
+                    con.execute("INSERT INTO sample_locations(sample_accession, country_iso2, country_status, "
+                                "admin1_code, place_id, status, geo_rules_version) VALUES (?,?,?,?,?,?,'t')", r)
 
 
 class SlimRecordTests(unittest.TestCase):
@@ -707,7 +777,7 @@ class DatabaseTests(unittest.TestCase):
                  mock.patch.object(database, "BIOSAMPLE_CACHE", os.path.join(d, "cache", "biosample.json")), \
                  mock.patch.object(database, "BIOPROJECT_CACHE", os.path.join(d, "cache", "bioproject.json")), \
                  mock.patch.object(database, "AI_CURATION_CACHE", os.path.join(d, "cache", "ai.json")):
-                counts = database.build_database(db)
+                counts = database.build_database(db, geonames_dir=make_gazetteer(os.path.join(d, "geonames")))
             self.assertEqual((counts["runs"], counts["samples"], counts["projects"]), (2, 2, 1))
             con = sqlite3.connect(db)
             self.assertEqual(con.execute("SELECT spots FROM runs WHERE accession='SRR1'").fetchone()[0], 2000)
@@ -732,6 +802,127 @@ class DatabaseTests(unittest.TestCase):
         self.assertEqual(parse_collection_date("2019/06/04"), ("2019-06-04", 2019))
         self.assertEqual(parse_collection_date("missing"), (None, None))
         self.assertEqual(parse_collection_date("Jun-2019"), (None, None))
+
+
+
+def make_gazetteer(d):
+    """A tiny GeoNames extract with the cases the resolver must get right."""
+    import zipfile
+    os.makedirs(d, exist_ok=True)
+    countries = [("US", "USA", "840", "United States", "NA"), ("CN", "CHN", "156", "China", "AS"),
+                 ("HK", "HKG", "344", "Hong Kong", "AS"), ("DK", "DNK", "208", "Denmark", "EU"),
+                 ("CA", "CAN", "124", "Canada", "NA"), ("GB", "GBR", "826", "United Kingdom", "EU")]
+    with open(os.path.join(d, "countryInfo.txt"), "w") as fh:
+        fh.write("#ISO\tISO3\tISO-Numeric\tfips\tCountry\tCapital\tArea\tPop\tContinent\n")
+        for iso2, iso3, num, name, cont in countries:
+            fh.write("\t".join([iso2, iso3, num, "", name, "", "0", "0", cont]) + "\n")
+    admin1 = [("US.NY", "New York"), ("US.OR", "Oregon"), ("US.ME", "Maine"), ("US.IL", "Illinois"),
+              ("US.MA", "Massachusetts"), ("CN.22", "Beijing"), ("CA.10", "Quebec"), ("DK.17", "Capital Region")]
+    with open(os.path.join(d, "admin1CodesASCII.txt"), "w") as fh:
+        for i, (code, name) in enumerate(admin1):
+            fh.write(f"{code}\t{name}\t{name}\t{1000 + i}\n")
+    #   id, name, alternates, lat, lon, code, country, admin1, population
+    places = [(5128581, "New York City", "New York,NYC", 40.71427, -74.00597, "PPL", "US", "NY", 8804190),
+              (5128638, "Manhattan", "", 40.78343, -73.96625, "PPLX", "US", "NY", 1600000),
+              (5110629, "Buffalo", "", 42.88645, -78.87837, "PPLA2", "US", "NY", 278349),
+              (5746545, "Portland", "", 45.52345, -122.67621, "PPLA2", "US", "OR", 652503),
+              (4975802, "Portland", "", 43.66147, -70.25533, "PPLA2", "US", "ME", 66881),
+              (4250542, "Springfield", "", 39.80172, -89.64371, "PPLA", "US", "IL", 114394),
+              (4951788, "Springfield", "", 42.10148, -72.58981, "PPLA2", "US", "MA", 155929),
+              (1816670, "Beijing", "Peking", 39.9075, 116.39723, "PPLC", "CN", "22", 18960744),
+              (1819729, "Hong Kong", "", 22.27832, 114.17469, "PPLC", "HK", "", 7491609),
+              (6325494, "Québec", "Quebec,Quebec City", 46.81228, -71.21454, "PPLA", "CA", "10", 531902),
+              (2618425, "Copenhagen", "København", 55.67594, 12.56553, "PPLC", "DK", "17", 1153615),
+              (2614030, "Søvang", "", 55.58, 12.54, "PPL", "DK", "17", 900)]
+    lines = []
+    for pid, name, alts, lat, lon, code, cc, a1, pop in places:
+        f = [str(pid), name, name, alts, str(lat), str(lon), "P", code, cc, "", a1, "", "", "", str(pop), "", "0", "", ""]
+        lines.append("\t".join(f))
+    with zipfile.ZipFile(os.path.join(d, "cities500.zip"), "w") as zf:
+        zf.writestr("cities500.txt", "\n".join(lines) + "\n")
+    return d
+
+
+class GazetteerTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        import tempfile
+        from umdb_harvester import geo
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.gaz = geo.Gazetteer(make_gazetteer(cls.tmp.name))
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def res(self, raw, country, lat=None, lon=None, source="biosample"):
+        from umdb_harvester import geo
+        a = geo.Resolver(self.gaz).resolve(raw, country, source, lat, lon)
+        name = self.gaz.p_name[a["place_index"]] if a["place_index"] is not None else None
+        return a, name
+
+    def test_unique_city_is_verified(self):
+        a, name = self.res("USA: Buffalo, NY", "United States")
+        self.assertEqual((a["status"], name, a["admin1_code"], a["country_iso2"]), ("verified", "Buffalo", "US.NY", "US"))
+
+    def test_city_named_like_its_state(self):
+        a, name = self.res("USA: New York, NY", "United States")
+        self.assertEqual((a["status"], name), ("probable", "New York City"))
+        a, name = self.res("USA: NYC", "United States")       # alternate name
+        self.assertEqual((a["status"], name), ("verified", "New York City"))
+
+    def test_city_sections_are_not_places(self):
+        a, name = self.res("USA: New York, Manhattan", "United States")
+        self.assertNotEqual(name, "Manhattan")
+
+    def test_homonyms(self):
+        a, name = self.res("USA: Portland, ME", "United States")
+        self.assertEqual((a["status"], self.gaz.p_admin1[a["place_index"]]), ("verified", "US.ME"))
+        a, name = self.res("USA: Portland", "United States")       # 10x larger: dominant
+        self.assertEqual((a["status"], a["admin1_code"], a["method"]), ("probable", "US.OR", "text-population"))
+        a, name = self.res("USA: Springfield", "United States")   # comparable: no guess
+        self.assertEqual((a["status"], name), ("ambiguous", None))
+
+    def test_coordinates_confirm_or_contradict(self):
+        a, name = self.res("USA: Buffalo, NY", "United States", 42.90, -78.85)
+        self.assertEqual((a["status"], a["method"]), ("verified", "text+coordinates"))
+        a, name = self.res("USA: Buffalo, NY", "United States", 40.71, -74.006)   # NYC coordinates
+        self.assertEqual((a["status"], name), ("conflicting", None))
+        a, name = self.res("USA: Buffalo, NY", "United States", 41.0, -74.0)      # whole degrees: too coarse
+        self.assertEqual(a["status"], "verified")
+
+    def test_coordinates_alone_pick_the_city_not_the_village(self):
+        a, name = self.res("Denmark", "Denmark", 55.6, 12.55)
+        self.assertEqual((a["status"], name, a["method"]), ("probable", "Copenhagen", "coordinates"))
+
+    def test_coordinates_in_another_country(self):
+        a, name = self.res("Canada: Quebec", "Canada", 55.676, 12.566)            # Copenhagen
+        self.assertEqual((a["country_status"], a["place_index"]), ("conflicting", None))
+
+    def test_city_states_and_territories(self):
+        a, name = self.res("Hong Kong", "Hong Kong")
+        self.assertEqual((a["country_iso2"], name, a["method"]), ("HK", "Hong Kong", "city-state"))
+        a, name = self.res("China: Hong Kong", "China")
+        self.assertEqual((a["country_iso2"], name), ("HK", "Hong Kong"))
+
+    def test_no_country_no_place(self):
+        for raw in ("R10016", "Pacific Ocean", "missing: data agreement established pre-2023", ""):
+            a, name = self.res(raw, raw)
+            self.assertEqual((a["country_iso2"], a["country_status"], name), (None, "unresolved", None), raw)
+
+    def test_text_fallback_country_is_only_probable(self):
+        a, _ = self.res("", "China", source="text_fallback")
+        self.assertEqual(a["country_status"], "probable")
+
+    def test_place_always_inside_its_country(self):
+        from umdb_harvester import geo
+        r = geo.Resolver(self.gaz)
+        cases = [("USA: Buffalo, NY", "United States", None, None), ("Denmark", "Denmark", 55.6, 12.55),
+                 ("Hong Kong", "Hong Kong", None, None), ("USA: Portland", "United States", None, None)]
+        for raw, c, lat, lon in cases:
+            a = r.resolve(raw, c, "biosample", lat, lon)
+            if a["place_index"] is not None:
+                self.assertEqual(self.gaz.p_country[a["place_index"]], a["country_iso2"])
 
 
 class QueryProfileTests(unittest.TestCase):

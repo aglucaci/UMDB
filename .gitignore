@@ -26,3 +26,5 @@ data/srr_catalog_*.jsonl
 data/cache/*.json
 data/seen_*.txt
 data/.catalog-state.json
+# GeoNames gazetteer (downloaded by `umdb geo fetch`; shipped in the catalog bundle)
+data/reference/

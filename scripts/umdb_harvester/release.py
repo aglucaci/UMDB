@@ -36,7 +36,8 @@ RELEASE_ROOT = os.path.join("dist", "releases")
 # curated fields plus the submitted BioSample attributes.
 DROP_COLUMNS = {"projects": {"raw_json"}, "runs": {"runinfo_json"}}
 DATE_COLUMNS = {"collection_date"}
-TABLES = ["projects", "samples", "experiments", "runs", "project_samples", "ai_annotations"]
+TABLES = ["projects", "samples", "experiments", "runs", "project_samples", "ai_annotations",
+          "countries", "admin1", "places", "sample_locations"]
 VIEWS = ["umdb_samples", "umdb_runs"]
 TSV_VIEWS = ["umdb_samples", "umdb_runs"]
 

@@ -26,7 +26,7 @@ hard to find, compare and combine.
 profiles (municipal wastewater, air and dust, built environment, urban
 metagenomes, transit, urban soil and green space, and urban water and
 drainage). It fetches run, BioSample and BioProject metadata for every match,
-standardizes locations and assay types, and applies a transparent, rule-based
+validates every sample location against ISO 3166 and the GeoNames gazetteer (checking reported coordinates where present), standardizes assay types, and applies a transparent, rule-based
 eligibility screen to each BioSample. The screen checks that a sample is
 environmental, then looks for evidence of urban origin, and assigns one of five
 tiers (confirmed urban, probable urban, uncertain, non-urban,
@@ -38,10 +38,11 @@ its public inputs.
 
 **Results.** The current release indexes 477,166 runs from 406,177
 BioSamples in 11,366 BioProjects, released between 2008 and 2026, from
-190 countries. 103,028 BioSamples are confirmed urban and 122,352
+148 countries. 103,028 BioSamples are confirmed urban and 122,352
 probable urban. Municipal wastewater dominates (157,187 urban samples),
 followed by air and dust (30,917) and the built environment (18,773).
-176,347 samples have geographic coordinates. Amplicon sequencing makes up the
+216,834 BioSamples are located to a validated city or town (122,728 verified, 94,106 probable)
+and 176,347 report coordinates. Amplicon sequencing makes up the
 largest share of experiments, followed by shotgun metagenomes and
 metatranscriptomes.
 
@@ -59,8 +60,13 @@ https://aglucaci.github.io/UMDB/.
   catalog yet (`ai_annotations` is empty). `CITATION.cff` currently claims AI
   review; soften it or run the review before submission.
 - **Limitations to state in the paper.** Discovery is keyword-based, so studies
-  with sparse metadata are missed; the eligibility screen is rule-based; city
-  and place labels are not validated against a gazetteer.
+  with sparse metadata are missed; the eligibility screen is rule-based and not
+  yet benchmarked against expert labels; location validation depends on
+  submitter text (places under 500 inhabitants, city districts and facility
+  names are not resolved), and 3,515 samples have coordinates that contradict
+  their stated place.
+- **Location numbers** come from `sample_locations` (status verified/probable for
+  places; country_status verified/probable for countries). Cite GeoNames.
 
 ## Refreshing the numbers
 

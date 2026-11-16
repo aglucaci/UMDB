@@ -183,11 +183,13 @@
 
       try {
         const files = [
-          ["db/summary.json", "Headline counts and top lists (years, assays, countries, cities, centres, eligibility tiers, largest projects).", "Dashboards and quick status checks."],
-          ["db/cube.json", "Runs aggregated by BioProject, release year, country, city, assay, eligibility tier, urban context, AI review and rounded coordinates. Dictionary-encoded; every filter and chart on this site works from it.", "Lightweight analysis and the site's explorer, analytics and map."],
+          ["db/summary.json", "Exact headline counts from the database, each labelled with its unit (runs, BioSamples, BioProjects): eligibility tiers, location validation status, countries and cities, assays, release and collection years, largest projects.", "Dashboards and quick status checks."],
+          ["db/geo.json", "The validated location hierarchy used by every filter and map: ISO 3166 countries, GeoNames first-order regions and GeoNames places (id, name, coordinates, population). Place data: GeoNames, CC BY 4.0.", "Joining UMDB counts to maps and gazetteers."],
+          ["db/samples.json", "BioSamples aggregated by project set, release and collection year, validated country, region and place, assay set, eligibility tier, context, location status and rounded coordinates. Each sample is counted once, so totals are exact.", "BioSample-level analysis; the explorer and map."],
+          ["db/cube.json", "Sequencing runs aggregated by the same dimensions (one assay and project per run), with gigabases.", "Run-level analysis; the explorer, analytics and map."],
           ["db/projects.json", "One row per BioProject: title, centre, data type, submission date, run and BioSample counts, year span.", "Project-level browsing and linking."],
-          ["db/p/&lt;BioProject&gt;.json", "One project's BioSamples (location, eligibility, environment fields) and runs (assay, library, platform, size), loaded when a project is opened.", "Per-project reuse without downloading the catalog."],
-          ["db/manifest.json", "Build time, schema, query-profile and eligibility-rule versions, counts and file sizes.", "Provenance and release sanity checks."],
+          ["db/p/&lt;BioProject&gt;.json", "One project's BioSamples (accepted location with its validation status next to the submitted text, eligibility, environment fields) and runs (assay, library, platform, size), loaded when a project is opened.", "Per-project reuse without downloading the catalog."],
+          ["db/manifest.json", "Build time, schema, query-profile, eligibility-rule and location-rule versions, GeoNames download date, counts and file sizes.", "Provenance and release sanity checks."],
           ["latest_srr.json", "Recently added runs.", "Status widgets and monitoring views."]
         ];
         renderTable(primaryFilesTable,

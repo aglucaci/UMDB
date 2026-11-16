@@ -82,6 +82,9 @@ Deep harvest:
   umdb catalog push|pull|status  store the harvested catalog in GitHub Release assets
                                  (pull --merge keeps local records; push --snapshot dates it)
   umdb scrub                     remove api_key/email from stored NCBI URLs (data/, docs/, logs/)
+  umdb geo fetch [--force]       download the GeoNames gazetteer used to validate locations
+  umdb geo check "USA: Portland, ME" [--lat N --lon E]
+                                 show how one location string is resolved
 
 Database and releases:
   umdb db build                  (re)build data/umdb.sqlite from data/ (offline, ~30 s)
@@ -138,6 +141,9 @@ case "$cmd" in
     ;;
   repair|repair-bioprojects)
     harvester repair-bioprojects "$@"
+    ;;
+  geo)
+    harvester geo "$@"
     ;;
   scrub|scrub-secrets)
     harvester scrub-secrets "$@"

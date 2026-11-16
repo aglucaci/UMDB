@@ -16,6 +16,10 @@ Schema overview (SCHEMA_VERSION):
   runs            one row per sequencing run (sizes, dates, download URL)
   project_samples link table (a sample can appear in several projects)
   ai_annotations  AI-proposed annotations, kept separate from rule output
+  countries       ISO 3166-1 countries (GeoNames countryInfo)
+  admin1          first-order regions (GeoNames admin1 codes, e.g. US.NY)
+  places          GeoNames populated places referenced by samples
+  sample_locations one accepted, gazetteer-validated location per sample
   search          FTS5 full-text index over project and sample text
   meta            build metadata (versions, counts, timestamps)
 """
@@ -31,7 +35,7 @@ from typing import Any, Dict, Iterable, List, Optional
 from .config import DATA_DIR, BIOSAMPLE_CACHE, BIOPROJECT_CACHE, AI_CURATION_CACHE, QUERY_PROFILES_VERSION
 from .utils import read_json, utc_now, log, paint, num, fmt_duration, TIER_STYLE
 
-SCHEMA_VERSION = "1.0.0"
+SCHEMA_VERSION = "1.1.0"
 DB_PATH = os.path.join(DATA_DIR, "umdb.sqlite")
 
 # Most to least urban; a sample takes the most urban tier among its runs
@@ -152,6 +156,63 @@ CREATE TABLE ai_annotations (
     evidence             TEXT                   -- JSON list
 );
 
+CREATE TABLE countries (
+    iso2       TEXT PRIMARY KEY,                -- ISO 3166-1 alpha-2
+    iso3       TEXT,
+    iso_numeric TEXT,                           -- ISO 3166-1 numeric (joins Natural Earth shapes)
+    name       TEXT NOT NULL,
+    continent  TEXT
+);
+
+CREATE TABLE admin1 (
+    code          TEXT PRIMARY KEY,             -- GeoNames admin1 code, e.g. US.NY
+    country_iso2  TEXT NOT NULL REFERENCES countries(iso2),
+    name          TEXT NOT NULL,
+    geonames_id   INTEGER
+);
+
+CREATE TABLE places (
+    geonames_id   INTEGER PRIMARY KEY,
+    name          TEXT NOT NULL,
+    country_iso2  TEXT NOT NULL REFERENCES countries(iso2),
+    admin1_code   TEXT REFERENCES admin1(code),
+    lat           REAL,
+    lon           REAL,
+    population    INTEGER,
+    feature_code  TEXT
+);
+
+-- One accepted location per sample (see geo.py for the statuses). Maps,
+-- filters, summaries and exports all use this table, never raw text.
+CREATE TABLE sample_locations (
+    sample_accession  TEXT PRIMARY KEY REFERENCES samples(accession),
+    country_iso2      TEXT REFERENCES countries(iso2),
+    country_status    TEXT NOT NULL CHECK (country_status IN ('verified','probable','conflicting','unresolved')),
+    admin1_code       TEXT REFERENCES admin1(code),
+    place_id          INTEGER REFERENCES places(geonames_id),
+    status            TEXT NOT NULL CHECK (status IN ('verified','probable','ambiguous','conflicting','unresolved')),
+    method            TEXT,                     -- text / text+coordinates / text-population / coordinates / city-state
+    distance_km       REAL,                     -- reported coordinates to the accepted place
+    coord_decimals    INTEGER,                  -- precision of the reported coordinates
+    matched_text      TEXT,                     -- the location token that named the place
+    note              TEXT,
+    geo_rules_version TEXT NOT NULL,
+    CHECK (place_id IS NULL OR status IN ('verified','probable')),
+    CHECK (status NOT IN ('verified','probable') OR place_id IS NOT NULL),
+    CHECK (country_status = 'unresolved' OR country_iso2 IS NOT NULL),
+    CHECK (place_id IS NULL OR country_status IN ('verified','probable'))
+);
+
+-- A place must lie in the sample's country, and a region in its country.
+CREATE TRIGGER sample_location_consistency BEFORE INSERT ON sample_locations
+WHEN (NEW.place_id IS NOT NULL AND
+      (SELECT country_iso2 FROM places WHERE geonames_id = NEW.place_id) IS NOT NEW.country_iso2)
+  OR (NEW.admin1_code IS NOT NULL AND
+      (SELECT country_iso2 FROM admin1 WHERE code = NEW.admin1_code) IS NOT NEW.country_iso2)
+BEGIN
+    SELECT RAISE(ABORT, 'sample location is outside its country');
+END;
+
 CREATE VIRTUAL TABLE search USING fts5(
     accession UNINDEXED,
     kind UNINDEXED,                             -- project / sample
@@ -176,6 +237,9 @@ CREATE INDEX idx_runs_release_year   ON runs(release_year);
 CREATE INDEX idx_experiments_project ON experiments(project_accession);
 CREATE INDEX idx_experiments_assay   ON experiments(assay_class);
 CREATE INDEX idx_project_samples_s   ON project_samples(sample_accession);
+CREATE INDEX idx_locations_country   ON sample_locations(country_iso2, country_status);
+CREATE INDEX idx_locations_place     ON sample_locations(place_id);
+CREATE INDEX idx_locations_admin1    ON sample_locations(admin1_code);
 """
 
 # Denormalized views: one row per sample / per run with the context people filter on.
@@ -192,8 +256,15 @@ SELECT s.accession AS biosample_accession,
        (SELECT count(*) FROM runs r WHERE r.sample_accession = s.accession) AS run_count,
        (SELECT group_concat(DISTINCT e.assay_class) FROM runs r JOIN experiments e ON e.accession = r.experiment_accession
          WHERE r.sample_accession = s.accession) AS assay_classes,
-       s.eligibility_reason, s.rules_version
-FROM samples s;
+       s.eligibility_reason, s.rules_version,
+       l.country_iso2, co.name AS country_name, l.country_status,
+       l.admin1_code, a1.name AS admin1_name, l.place_id, pl.name AS place_name,
+       l.status AS location_status, l.method AS location_method
+FROM samples s
+LEFT JOIN sample_locations l ON l.sample_accession = s.accession
+LEFT JOIN countries co ON co.iso2 = l.country_iso2
+LEFT JOIN admin1 a1    ON a1.code = l.admin1_code
+LEFT JOIN places pl    ON pl.geonames_id = l.place_id;
 
 CREATE VIEW umdb_runs AS
 SELECT r.accession AS run_accession, r.experiment_accession, r.sample_accession AS biosample_accession,
@@ -264,7 +335,7 @@ def _attr(attrs: Dict[str, Any], *keys: str) -> Optional[str]:
     return None
 
 
-def build_database(path: str = DB_PATH) -> Dict[str, int]:
+def build_database(path: str = DB_PATH, geonames_dir: Optional[str] = None) -> Dict[str, int]:
     """(Re)build the SQLite database from the catalog and caches.
 
     Builds into a temporary file and swaps it in only on success, so a failed
@@ -291,6 +362,7 @@ def build_database(path: str = DB_PATH) -> Dict[str, int]:
         con.executescript("PRAGMA journal_mode = OFF; PRAGMA synchronous = OFF;")
         con.executescript(SCHEMA)
         counts = _populate(con, prefixes, winners, bs_cache, bp_cache, ai_cache)
+        geo_meta = _populate_locations(con, geonames_dir)
         log("Creating indexes, views and the full-text index")
         con.executescript(INDEXES)
         con.executescript(VIEWS)
@@ -301,6 +373,7 @@ def build_database(path: str = DB_PATH) -> Dict[str, int]:
             "query_profiles_version": QUERY_PROFILES_VERSION,
             "source": "data/srr_catalog_*.jsonl + data/cache/*.json",
             **{f"count_{k}": str(v) for k, v in counts.items()},
+            **geo_meta,
         }
         from .eligibility import RULES_VERSION
         meta["rules_version"] = RULES_VERSION
@@ -319,6 +392,7 @@ def build_database(path: str = DB_PATH) -> Dict[str, int]:
     log(f"{paint('Database ready', 'good')}: {path} ({size:.1f} MB) in {fmt_duration(time.time() - t0)}")
     for k in ("projects", "samples", "experiments", "runs", "ai_annotations"):
         log(f"  {k:15} {num(counts.get(k, 0))}")
+
     return counts
 
 
@@ -366,6 +440,7 @@ def _populate(con: sqlite3.Connection, prefixes: List[str], winners: Dict[str, i
             cur = samples.get(bsa)
             if cur is None or (status in TIER_ORDER and TIER_ORDER.index(status) < TIER_ORDER.index(cur["status"])):
                 samples[bsa] = {"status": status if status in TIER_ORDER else "uncertain", "elig": elig, "geo": geo}
+                _COUNTRY_SOURCE[bsa] = geo.get("country_source") or ""
 
         rel = _none(row.get("ReleaseDate"))
         run_rows.append((
@@ -422,6 +497,65 @@ def _populate(con: sqlite3.Connection, prefixes: List[str], winners: Dict[str, i
     con.executemany(f"INSERT INTO ai_annotations VALUES ({','.join('?' * 13)})", ai_rows)
     return {"projects": len(projects), "samples": len(sample_rows), "experiments": len(experiments),
             "runs": len(run_rows), "ai_annotations": len(ai_rows), "project_samples": len(project_samples)}
+
+
+_COUNTRY_SOURCE: Dict[str, str] = {}   # sample -> how its country was found (filled by _populate)
+
+
+def _populate_locations(con: sqlite3.Connection, geonames_dir: Optional[str] = None) -> Dict[str, str]:
+    """Validate every sample's location against GeoNames into sample_locations."""
+    from . import geo
+
+    directory = geonames_dir or geo.GEONAMES_DIR
+    if not geo.gazetteer_available(directory):
+        try:
+            geo.fetch_geonames(directory=directory)
+        except Exception as exc:  # offline: build without validated locations
+            from .utils import warn
+            warn(f"GeoNames reference files unavailable ({exc}); sample_locations left empty. "
+                 f"Run `umdb geo fetch` and rebuild.")
+            _COUNTRY_SOURCE.clear()
+            return {"geo_validation": "unavailable"}
+    t0 = time.time()
+    gaz = geo.Gazetteer(directory)
+    res = geo.Resolver(gaz)
+    con.executemany("INSERT INTO countries VALUES (?,?,?,?,?)",
+                    [(c["iso2"], c["iso3"], c["numeric"], c["name"], c["continent"]) for c in gaz.countries.values()])
+    con.executemany("INSERT INTO admin1 VALUES (?,?,?,?)",
+                    [(a["code"], a["country"], a["name"], a["geonames_id"]) for a in gaz.admin1.values()
+                     if a["country"] in gaz.countries])
+    admin1_ok = set(gaz.admin1)
+
+    rows, used = [], {}
+    counts: Dict[str, int] = {}
+    for acc, raw, country, lat, lon in con.execute("SELECT accession, geo_loc_raw, country, lat, lon FROM samples"):
+        a = res.resolve(raw or "", country or "", _COUNTRY_SOURCE.get(acc, "biosample") or "biosample", lat, lon)
+        pid = None
+        if a["place_index"] is not None:
+            rec = gaz.place_record(a["place_index"])
+            pid = rec["geonames_id"]
+            used[pid] = rec
+        adm = a["admin1_code"] if a["admin1_code"] in admin1_ok else None
+        iso = a["country_iso2"] if a["country_iso2"] in gaz.countries else None
+        cstat = a["country_status"] if iso else "unresolved"
+        stat = a["status"] if pid is not None or a["status"] not in ("verified", "probable") else "unresolved"
+        if cstat not in ("verified", "probable") and pid is not None:
+            pid, stat = None, "unresolved"
+        rows.append((acc, iso, cstat, adm if iso else None, pid, stat, a["method"], a["distance_km"],
+                     a["coord_decimals"], a["matched_text"], a["note"], geo.GEO_RULES_VERSION))
+        counts[stat] = counts.get(stat, 0) + 1
+    con.executemany("INSERT INTO places VALUES (?,?,?,?,?,?,?,?)", [
+        (r["geonames_id"], r["name"], r["country_iso2"], r["admin1_code"] if r["admin1_code"] in admin1_ok else None,
+         r["lat"], r["lon"], r["population"], r["feature_code"]) for r in used.values()])
+    con.executemany(f"INSERT INTO sample_locations VALUES ({','.join('?' * 12)})", rows)
+    _COUNTRY_SOURCE.clear()
+    log(f"Validated {num(len(rows))} sample locations against GeoNames in {fmt_duration(time.time() - t0)}: "
+        + ", ".join(f"{k} {num(counts.get(k, 0))}" for k in geo.STATUSES))
+    src = gaz.source or {}
+    return {"geo_validation": "geonames", "geo_rules_version": geo.GEO_RULES_VERSION,
+            "geonames_downloaded_utc": str(src.get("downloaded_utc", "")),
+            "geonames_cities_sha256": str(((src.get("files") or {}).get("cities500.zip") or {}).get("sha256", "")),
+            **{f"count_locations_{k}": str(counts.get(k, 0)) for k in geo.STATUSES}}
 
 
 def _populate_search(con: sqlite3.Connection) -> None:

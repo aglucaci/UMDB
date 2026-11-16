@@ -50,6 +50,7 @@ umdb serve                                # preview at http://localhost:8000
 | `umdb export` | Rebuild `data/umdb.sqlite` and the website data in `docs/db/` offline (re-applies geo, assay and eligibility rules) |
 | `umdb catalog pull` / `push` | Restore or upload the harvested catalog (`data/`), which lives in GitHub Release assets, not git |
 | `umdb repair` | Re-fetch BioProjects cached under the wrong accession |
+| `umdb geo fetch` / `umdb geo check "USA: Portland, ME"` | Download the GeoNames gazetteer; show how one location string is validated |
 | `umdb serve [port]` | Preview the website |
 | `umdb status` | Release size, eligibility tiers, settings check |
 | `umdb queries` | Print the exact discovery queries |

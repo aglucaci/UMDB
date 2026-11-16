@@ -12,11 +12,12 @@ data/srr_catalog_*.jsonl  +  data/cache/*.json        ← source of truth, git-i
         │  umdb db build        (automatic after every harvest)
         ▼
 data/umdb.sqlite                                       ← query database, derived, git-ignored
-  normalized tables · indexes · FTS5 search · views
+  normalized tables · indexes · FTS5 search · views    ← data/reference/geonames (GeoNames, CC BY):
+  sample_locations: one validated location per sample     every location validated at build time
         │                               │
         │  umdb release                 │  umdb export (automatic after every harvest)
         ▼                               ▼
-dist/releases/<version>/               docs/db/  summary · cube · projects (≈0.4 MB gz)
+dist/releases/<version>/               docs/db/  summary · geo · samples · cube · projects
   Parquet + TSV + schema +                       p/<ACC>.json per project, on demand
   manifest + checksums                 website data, in git (GitHub Pages)
   → GitHub Releases / Zenodo (DOI)
@@ -27,7 +28,8 @@ dist/releases/<version>/               docs/db/  summary · cube · projects (�
 | Layer | Format | Location | Role |
 | --- | --- | --- | --- |
 | Source of truth | JSON Lines + JSON caches | `data/` (git-ignored), bundled in the `catalog-latest` release | Append-only ingestion log of slim run records, plus raw BioSample/BioProject responses. One 18x-compressed bundle with checksums; pull and push from any checkout or workflow |
-| Query database | SQLite (`umdb.sqlite`) | `data/` (git-ignored) | Normalized, indexed, full-text searchable. Rebuilt in about 30 s, deterministically, with the current geography, assay and eligibility rules |
+| Query database | SQLite (`umdb.sqlite`) | `data/` (git-ignored) | Normalized, indexed, full-text searchable, with gazetteer-validated locations. Rebuilt deterministically from the catalog and the GeoNames extract, with the current geography, assay and eligibility rules |
+| Gazetteer | GeoNames text/zip files | `data/reference/geonames/` (git-ignored), bundled with the catalog | ISO countries, admin1 regions, populated places (≥ 500 people). Downloaded once (`umdb geo fetch`); checksums and download date recorded in the database `meta` and the site manifest |
 | Research releases | Parquet (Zstandard) + gzipped TSV | `dist/releases/<version>/` (not in git) | Compact, typed, versioned snapshots with checksums, for DuckDB, R, Python or spreadsheets. About 11 MB for the whole catalog |
 | Website | Compact JSON | `docs/db/` (git, GitHub Pages) | Aggregated index for filters, charts and the map, plus one file per project loaded on demand |
 
@@ -37,9 +39,24 @@ dist/releases/<version>/               docs/db/  summary · cube · projects (�
 
 ## Website data
 
-The site loads `summary.json`, `cube.json` and `projects.json` (about 0.4 MB compressed for 246,000 runs, against more than 1 GB of run records before) and fetches `p/<ACC>.json` when a project is opened or exported. `cube.json` aggregates runs by project, release year, country, city, assay, eligibility tier, context, AI review and coordinates rounded to 0.1°: 11,746 rows for 245,903 runs. The explorer filters projects on it; analytics and the map expand it into one lightweight object per run so their counts are exact (BioSample totals come from `summary.json`). Built by `site.py` from the database; unchanged files are left untouched. Field reference: [DATA_DICTIONARY.md](DATA_DICTIONARY.md#published-files-docs).
+The site loads `summary.json`, `geo.json`, `samples.json`, `cube.json` and `projects.json` (about 5 MB uncompressed for 477,000 runs) and fetches `p/<ACC>.json` when a project is opened or exported. Runs and BioSamples are aggregated separately so that both are counted exactly:
 
-## SQLite schema (version 1.0.0)
+- `samples.json` has one row contribution per BioSample. A sample's projects and assays are encoded as sets, so a sample with runs of two assays, or shared by two studies, is still counted once (26,785 rows for 406,177 BioSamples).
+- `cube.json` aggregates runs by the same dimensions (23,797 rows for 477,166 runs).
+- `geo.json` is the validated location hierarchy both cubes index into.
+
+`docs/assets/db.js` turns these into a query engine shared by the Explorer and the Map. A single pass over each cube computes the totals and, for every filter, the counts it would have with all other filters applied, so cascading country → region → city lists only offer combinations that exist. Filters live in the page address (`?country=US&region=US.NY&city_id=5128581&cyear=2018-2020`), so a selection on one page opens identically on the other. A test checks the cube totals against `COUNT(DISTINCT …)` in SQLite. Built by `site.py`; unchanged files are left untouched. Field reference: [DATA_DICTIONARY.md](DATA_DICTIONARY.md#published-files-docs).
+
+## Location validation
+
+Raw `geo_loc_name` text is free-form ("USA: New York, NY", "China:Hanzhou", "R10016"). `geo.py` resolves every sample at build time, offline, against GeoNames (cities500, admin1 codes, countryInfo): country → ISO 3166-1, region → admin1 code, place → GeoNames id, checked against reported coordinates. Each distinct location string is resolved once (about 7 s for 406,000 samples). The output is one row per sample in `sample_locations` with a status (verified, probable, ambiguous, conflicting, unresolved), the method and the evidence; see [DATA_DICTIONARY.md](DATA_DICTIONARY.md#validated-locations). Maps, filters, summaries and exports use only this table. Rules worth knowing:
+
+- A place is accepted only when the text names one place in the country (after any region constraint), or one of several same-named places is the capital and most populous, or five times larger than the next; otherwise the sample stays at country level.
+- Precise coordinates confirm a place within 30 km (wider for large cities) and contradict it beyond; coordinates given to whole degrees are too coarse to do either.
+- Coordinates alone assign the most populous place within 15 km (probable), never a village next to a city.
+- A place always lies in the sample's country; the database rejects anything else.
+
+## SQLite schema (version 1.1.0)
 
 BioSample is the principal unit of observation: one sample can have several experiments and runs, and location, environment and urban eligibility belong to the sample.
 
@@ -52,9 +69,13 @@ BioSample is the principal unit of observation: one sample can have several expe
 | `project_samples` | (project, sample) | Link table |
 | `ai_annotations` | Run accession | AI-proposed annotations, kept separate from rule output (`status = proposed`) |
 | `search` | FTS5 | Full-text index over project titles and descriptions, sample titles, environment fields and location strings |
-| `meta` | key | Schema, rules and query-profile versions, build time, row counts |
+| `countries` | ISO alpha-2 | ISO 3166-1 codes (alpha-3, numeric), name, continent |
+| `admin1` | GeoNames admin1 code | First-order region name and country |
+| `places` | GeoNames id | Populated places referenced by samples: name, country, region, coordinates, population, feature code |
+| `sample_locations` | BioSample accession | The accepted location: country and its status, region, place, place status, method, distance to reported coordinates, coordinate precision, matched text, note, rules version |
+| `meta` | key | Schema, rules, location-rules and query-profile versions, GeoNames download date and checksum, build time, row counts |
 
-Views: `umdb_samples` (one row per BioSample with projects, context, location, dates, run count and assay classes) and `umdb_runs` (one row per run joined to its sample, experiment and project).
+Views: `umdb_samples` (one row per BioSample with projects, context, raw and validated location, dates, run count and assay classes) and `umdb_runs` (one row per run joined to its sample, experiment and project).
 
 **Sample tier.** A sample takes the most urban tier among its runs. Runs of one sample share the BioSample evidence; they differ only through run-level labels such as the organism, so the strongest evidence wins. Run-level tiers stay in `runs.urban_status`.
 
@@ -121,5 +142,5 @@ Publish a release by attaching the folder to a GitHub Release, or deposit it in 
 ## Not yet built
 
 - **Discovery provenance:** which query profile found each experiment, and when (a `discovery_hits` table).
-- **Validated locations:** ISO 3166 country codes and GeoNames IDs (a `locations` table).
+- **Location review queue:** a curated override file for ambiguous and conflicting locations, applied at build time.
 - **Release history table** inside the database.

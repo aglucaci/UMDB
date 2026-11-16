@@ -72,66 +72,98 @@ New harvests write slim records; `umdb export` slims what it publishes, and `umd
 
 ## SQLite database and releases
 
-`data/umdb.sqlite` (built by `umdb db build`, git-ignored) and the Parquet/TSV releases (`umdb release`) hold the same information in normalized tables: `projects`, `samples`, `experiments`, `runs`, `project_samples`, `ai_annotations`, plus the views `umdb_samples` and `umdb_runs`. Column names follow the record fields below (for example `samples.urban_status` = `eligibility.status`, `samples.city` = `geo.city`, `runs.release_date` = `runinfo_row.ReleaseDate`). Unknown values are NULL. Every release's `schema.json` lists each file's columns and types. Table-by-table description, indexes and example queries: [ARCHITECTURE.md](ARCHITECTURE.md#sqlite-schema-version-100).
+`data/umdb.sqlite` (built by `umdb db build`, git-ignored) and the Parquet/TSV releases (`umdb release`) hold the same information in normalized tables: `projects`, `samples`, `experiments`, `runs`, `project_samples`, `ai_annotations`, the location tables `countries`, `admin1`, `places` and `sample_locations`, plus the views `umdb_samples` and `umdb_runs`. Column names follow the record fields below (for example `samples.urban_status` = `eligibility.status`, `samples.city` = `geo.city`, `runs.release_date` = `runinfo_row.ReleaseDate`). Unknown values are NULL. Every release's `schema.json` lists each file's columns and types. Table-by-table description, indexes and example queries: [ARCHITECTURE.md](ARCHITECTURE.md#sqlite-schema-version-110).
+
+### Validated locations
+
+`samples.country`, `samples.region` and `samples.city` are the parser's text labels, kept for provenance. **Use `sample_locations` for anything you count, filter or map.** It holds one accepted, gazetteer-validated location per BioSample (rules in `scripts/umdb_harvester/geo.py`, version in `meta.geo_rules_version`).
+
+| Table / column | Description |
+| --- | --- |
+| `countries` | ISO 3166-1: `iso2` (key), `iso3`, `iso_numeric`, `name`, `continent` (GeoNames countryInfo) |
+| `admin1` | First-order regions: `code` (GeoNames admin1 code such as `US.NY`), `country_iso2`, `name`, `geonames_id` |
+| `places` | GeoNames populated places used by at least one sample: `geonames_id` (key), `name`, `country_iso2`, `admin1_code`, `lat`, `lon`, `population`, `feature_code` |
+| `sample_locations.country_iso2` | Accepted country, or NULL |
+| `sample_locations.country_status` | `verified` (from the BioSample location field), `probable` (loose alias, text fallback, or coordinates only), `conflicting` (precise coordinates lie in another country), `unresolved` |
+| `sample_locations.admin1_code` | Region, from the text or from the accepted place |
+| `sample_locations.place_id` | Accepted GeoNames place; set only when `status` is `verified` or `probable` |
+| `sample_locations.status` | `verified`: the text names exactly one place in the country (after any region constraint), and precise coordinates, if reported, lie within 30 km (more for large cities). `probable`: chosen among same-named places by population, the region's main city, inferred from precise coordinates alone (most populous place within 15 km), or a city-state. `ambiguous`: several places match. `conflicting`: precise coordinates are far from the only place named. `unresolved`: no place identified |
+| `sample_locations.method` | `text`, `text+coordinates`, `text-population`, `coordinates` or `city-state` |
+| `distance_km`, `coord_decimals`, `matched_text`, `note` | Evidence: reported coordinates to the place, their precision (whole degrees never verify or contradict), the location token that named the place, and a human-readable reason |
+
+The database enforces the rules with CHECK constraints and a trigger: a place requires an accepted status and an accepted country, every verified or probable record has a place, and a place or region must lie in the record's country. GeoNames data are CC BY 4.0; cite GeoNames when publishing place-level results.
 
 ---
 
 ## Published files (`docs/`)
 
-The website loads a compact index built from `data/umdb.sqlite` (`umdb export`, and after every harvest), not every run record. Opening a BioProject fetches that project's file. Full tables are in the Parquet releases.
+The website loads a compact index built from `data/umdb.sqlite` (`umdb export`, and after every harvest), not every run record. Opening a BioProject fetches that project's file. Full tables are in the Parquet releases. All geography in these files comes from `sample_locations`: a country is published when `country_status` is verified or probable, a place when `status` is verified or probable. AI proposals never change counts or filters.
 
 | File | Contents |
 | --- | --- |
-| `docs/db/summary.json` | Precomputed counts used by the home and analytics pages |
-| `docs/db/cube.json` | Runs aggregated by BioProject, release year, country, city, assay, eligibility tier, urban context, AI review and coordinates rounded to 0.1° |
+| `docs/db/summary.json` | Exact counts from SQLite, each labelled with its unit |
+| `docs/db/geo.json` | Validated location hierarchy: countries, regions and places used by samples |
+| `docs/db/samples.json` | BioSamples aggregated so that each sample is counted in exactly one row |
+| `docs/db/cube.json` | Runs aggregated by the same dimensions |
 | `docs/db/projects.json` | One row per BioProject |
 | `docs/db/p/<ACC>.json` | One BioProject's samples and runs (`_none.json` for runs without a BioProject) |
-| `docs/db/manifest.json` | Build time, schema/rules/query versions, counts, file sizes |
+| `docs/db/manifest.json` | Build time, schema, rule, query and gazetteer versions, counts, file sizes |
 | `docs/db/srr_records_manifest.json` | Kept for older loaders: `generated_utc`, `total_records`, empty `parts` |
 | `docs/latest_srr.json` | Runs added by the most recent harvest |
 | `docs/debug/latest_report.json` | Counters, queries and query-profile version from the most recent run |
 
 Unchanged files are not rewritten, so a harvest changes only the projects it touched. Download URLs and verbatim NCBI records are left out (they are in the database and releases).
 
-### `cube.json`
+### `geo.json`
 
-`cols` names the columns of each row in `rows`; `dims` holds the value lists that the dictionary-encoded columns index into.
+`countries` rows (`country_cols`: iso2, numeric, name, continent), `admin1` rows (code, index into `countries`, name) and `places` rows (geonames_id, name, index into `countries`, index into `admin1` or null, lat, lon, population). `statuses` lists the location statuses that `loc` columns index into. `attribution` carries the GeoNames credit.
+
+### `samples.json` (unit: BioSamples)
+
+`cols` names the columns of each row in `rows`; `dims` holds the value lists that dictionary-encoded columns index into.
 
 | Column | Type | Description |
 | --- | --- | --- |
-| `project` | int → `dims.project` | BioProject accession |
-| `year` | int or null | Run release year |
-| `country`, `city` | int → `dims.country` / `dims.city` | Rule-based location labels (`""` = unknown) |
-| `assay` | int → `dims.assay` | Assay class |
-| `tier` | int → `dims.tier` | Run-level eligibility tier |
+| `projects` | int → `dims.projsets` | The set of BioProjects the sample belongs to (each a list of indexes into `dims.project`) |
+| `year` | int or null | SRA release year of the sample's earliest run |
+| `cyear` | int or null | Collection year (`collection_date`) |
+| `country`, `admin1`, `place` | int → `geo.json` lists, or null | Accepted location |
+| `assays` | int → `dims.assaysets` | The set of assay classes among the sample's runs |
+| `tier` | int → `dims.tier` | Sample-level eligibility tier |
 | `context` | int → `dims.context` | Primary urban context (`""` = none) |
-| `ai` | int → `dims.ai`, or null | AI review fields (`urban_origin`, `metadata_sufficiency`, `final_*`) |
-| `lat`, `lon` | float or null | Sample coordinates rounded to 0.1° |
-| `runs`, `samples` | int | Runs and distinct BioSamples in the group |
-| `gbases` | float | Sequenced gigabases |
+| `loc` | int → `dims.loc` | Place status (verified, probable, ambiguous, conflicting, unresolved) |
+| `lat`, `lon` | float or null | Reported coordinates rounded to 0.1° (not inferred from place names) |
+| `samples` | int | BioSamples in the row |
 
-A BioSample whose runs fall in two groups counts in both, so sum `samples` only within a group; exact totals are in `summary.json`.
+Because project and assay are sets, a sample in two projects or with runs of two assays is still one row: `sum(samples)` over any filter is exact.
+
+### `cube.json` (unit: runs)
+
+Columns `project`, `year` (run release year), `cyear`, `country`, `admin1`, `place`, `assay`, `tier` (run-level), `context`, `loc`, `ai` (index into `dims.ai`, or null), `runs`, `gbases`. It no longer has a `samples` column: count BioSamples with `samples.json`.
 
 ### `projects.json` and `p/<ACC>.json`
 
 `projects.json`: `cols` = accession, title, center_name, data_type, submission_date, runs, samples, first_year, last_year.
 
-`p/<ACC>.json`: `project` (accession, title, description, organism, data type, centre, dates); `samples` rows with `sample_cols` (accession, title, collection date, country, region, city, lat, lon, urban_status, urban_context, eligibility_reason, isolation_source, env_broad_scale, env_local_scale, env_medium, host, location_resolution); `runs` rows with `run_cols` (accession, index into `samples`, experiment, assay and library fields, platform, instrument, release date, spots, bases, average length, size in MB, organism label, run-level tier, experiment title); `ai` keyed by run accession.
+`p/<ACC>.json`: `project` (accession, title, description, organism, data type, centre, dates); `samples` rows with `sample_cols` (accession, title, collection date, accepted country name, region name and place name, lat, lon, urban_status, urban_context, eligibility_reason, isolation_source, env_broad_scale, env_local_scale, env_medium, host, location_resolution, country_iso2, place_id, location_status, location_method, location_note, the submitted `geo_loc_raw`, collection_year); `runs` rows with `run_cols` (accession, index into `samples`, experiment, assay and library fields, platform, instrument, release date, spots, bases, average length, size in MB, organism label, run-level tier, experiment title); `ai` keyed by run accession (proposals, `status: "proposed"`).
 
 ### `summary.json`
 
 | Field | Description |
 | --- | --- |
-| `totalRuns`, `totalBioSamples`, `totalProjects` | Distinct counts |
-| `totalCountries`, `totalCities` | Distinct non-empty labels (text labels, not validated places) |
-| `geoResolvedRuns` | Runs with both a country and a city label |
-| `downloadableRuns` | Runs with an SRA accession (all catalog runs) |
-| `years` | `[{name, count}]` by **run release year** (`ReleaseDate`, falling back to `LoadDate`) |
-| `assays`, `countries`, `cities`, `centers` | `[{name, count}]` tallies of runs |
-| `eligibility` | `[{name, runs, biosamples}]` per eligibility tier (five tiers) |
-| `largestProject`, `topProjects` | Per-BioProject rollups (run, BioSample, country, city and assay counts) |
-
-Country, city and assay values in the summary use the effective annotation (see [precedence](CURATION.md#annotation-layers-and-precedence)).
+| `units` | What each count means |
+| `totalRuns`, `totalBioSamples`, `totalProjects` | Distinct counts (`runsWithoutProject` separately) |
+| `totalCountries`, `totalCities` | Distinct accepted countries and GeoNames places |
+| `geoResolvedRuns`, `geoResolvedBioSamples` | Runs and BioSamples with an accepted place |
+| `location` | BioSamples per place status and per country status |
+| `eligibility` | `[{name, runs, biosamples}]` per tier |
+| `years` | `[{name, count}]` runs by **release year** |
+| `collectionYears` | `[{name, count}]` BioSamples by **collection year** |
+| `assays` | `[{name, count, biosamples}]` (`count` = runs) |
+| `countries` | `[{iso2, name, biosamples, runs, count}]` (`count` = runs, for older pages) |
+| `cities` | Top 200 `[{geonames_id, name, country, biosamples, runs, count}]` |
+| `centers` | `[{name, count}]` runs per submitting centre |
+| `largestProject`, `topProjects` | Largest BioProjects by runs |
 
 ---
 

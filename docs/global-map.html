@@ -4,723 +4,449 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>UMDB — Global Map</title>
-  <meta name="description" content="Large interactive global distribution map for UMDB with year filters, regional views, and fullscreen exploration." />
+  <meta name="description" content="Where UMDB's urban microbiome samples come from: country coverage from validated locations, reported sampling sites and environments, with filters shared with the Explorer." />
   <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon_16.png" />
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon_32.png" />
   <link rel="icon" href="./assets/favicon.ico" />
   <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
-  <meta property="og:image" content="./assets/umdb-logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./assets/site.css" />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-    crossorigin=""
-  />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-contextmenu@1.4.0/dist/leaflet.contextmenu.min.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
   <style>
-    .map-page{
-      max-width:1560px;
-    }
-    .map-workbench{
-      margin-top:18px;
-      padding:18px;
-      border-radius:28px;
-      border:1px solid var(--line-strong);
-      background:rgba(16,26,41,.90);
-      box-shadow:var(--shadow);
-    }
-    .map-controls{
-      display:grid;
-      gap:12px;
-      grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
-      margin-bottom:16px;
-    }
-    .map-controls label{
-      display:block;
-      margin-bottom:6px;
-      color:var(--muted);
-      font-size:12px;
-    }
-    .map-controls select,
-    .map-controls input{
-      width:100%;
-      border-radius:14px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.03);
-      color:var(--fg);
-      padding:10px 12px;
-    }
-    .map-layout{
-      display:grid;
-      gap:16px;
-      grid-template-columns:1fr;
-      align-items:start;
-    }
-    .map-stage{
-      border-radius:24px;
-      border:1px solid var(--line);
-      background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
-      overflow:hidden;
-      min-height:78vh;
-      position:relative;
-    }
-    .map-stage.is-fullscreen{
-      min-height:100vh;
-      border-radius:0;
-    }
-    .map-toolbar{
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      align-items:center;
-      flex-wrap:wrap;
-      padding:14px 16px;
-      border-bottom:1px solid var(--line);
-      background:rgba(255,255,255,.02);
-    }
-    .map-toolbar-actions{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-    .toolbar-btn{
-      border-radius:12px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.04);
-      color:var(--fg);
-      padding:9px 12px;
-      cursor:pointer;
-      font-weight:600;
-    }
-    .map-canvas{
-      width:100%;
-      min-height:calc(78vh - 68px);
-      background:#101a29;
-    }
-    .map-stage.is-fullscreen .map-canvas{
-      min-height:calc(100vh - 68px);
-    }
-    .leaflet-container{
-      width:100%;
-      height:100%;
-      min-height:inherit;
-      background:#101a29;
-      font-family:"IBM Plex Sans", "Avenir Next", "Segoe UI", sans-serif;
-    }
-    .leaflet-control-zoom a{
-      background:#152131;
-      color:#edf3ff;
-      border-color:#32455e;
-    }
-    .leaflet-popup-content-wrapper,
-    .leaflet-popup-tip{
-      background:#152131;
-      color:#edf3ff;
-    }
-    .leaflet-control-attribution{
-      background:rgba(16,26,41,.78);
-      color:#9fb0c3;
-    }
-    .leaflet-control-attribution a{
-      color:#dce6f7;
-    }
-    .sidebar-stack{
-      display:grid;
-      gap:16px;
-      grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));
-    }
-    .country-list{
-      display:grid;
-      gap:10px;
-      max-height:540px;
-      overflow:auto;
-      padding-right:4px;
-    }
-    .country-item{
-      display:grid;
-      grid-template-columns:minmax(140px, 1fr) 1fr 70px;
-      gap:10px;
-      align-items:center;
-      padding:10px 12px;
-      border-radius:16px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.02);
-    }
-    .country-item-name{
-      color:#dce6f7;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      font-size:13px;
-    }
-    .country-item-bar{
-      height:10px;
-      border-radius:999px;
-      overflow:hidden;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.04);
-    }
-    .country-item-bar > div{
-      height:100%;
-      width:0;
-      background:linear-gradient(90deg, rgba(78,197,168,.82), rgba(115,167,255,.84));
-    }
-    .country-item-value{
-      text-align:right;
-      color:var(--muted);
-      font-variant-numeric:tabular-nums;
-      font-size:12px;
-    }
-    .mini-hint{
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.45;
-    }
-    @media (max-width: 1100px){
-      .map-stage{
-        min-height:66vh;
-      }
-      .map-canvas{
-        min-height:calc(66vh - 68px);
-      }
-      .sidebar-stack{
-        grid-template-columns:1fr;
-      }
-    }
+    .site-shell{max-width:1560px}
+    .m-head h1{margin:0;font-size:30px;letter-spacing:-.03em}
+    .m-head p{margin:4px 0 14px;color:var(--muted);max-width:820px}
+    .m-layout{display:grid;grid-template-columns:320px minmax(0,1fr);gap:16px;align-items:start}
+    @media (max-width:980px){.m-layout{grid-template-columns:minmax(0,1fr)}}
+    .m-side{padding:16px;max-height:calc(100vh - 24px);overflow:auto;position:sticky;top:12px}
+    @media (max-width:980px){.m-side{position:static;max-height:none}}
+    .f-group{padding:12px 0;border-bottom:1px solid var(--line)}
+    .f-group:last-child{border-bottom:0}
+    .f-title{display:flex;justify-content:space-between;align-items:center;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+    .f-title button{all:unset;cursor:pointer;color:var(--accent-2);font-size:12px;text-transform:none;letter-spacing:0}
+    .f-check{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:14px;cursor:pointer}
+    .f-check input{accent-color:var(--accent)}
+    .f-check .n{margin-left:auto;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+    .f-check.is-zero{opacity:.45}
+    .f-range{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center}
+    .m-side input[type=number]{width:100%;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--fg);padding:8px 10px;font:inherit;font-size:14px}
+    .seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:999px;padding:3px;background:rgba(255,255,255,.02)}
+    .seg button{border:0;background:transparent;color:var(--muted);padding:7px 12px;border-radius:999px;font:inherit;font-size:13px;cursor:pointer}
+    .seg button[aria-pressed=true]{background:rgba(115,167,255,.16);color:var(--fg)}
+    .btn{border:1px solid var(--line-strong);background:rgba(255,255,255,.03);color:var(--fg);padding:8px 13px;border-radius:999px;font:inherit;font-size:13px;cursor:pointer;text-decoration:none;display:inline-flex;gap:6px;align-items:center}
+    .btn.primary{background:rgba(78,197,168,.16);border-color:rgba(78,197,168,.45)}
+    .m-main{display:flex;flex-direction:column;gap:12px}
+    .m-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+    .m-stats{display:flex;gap:18px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+    .m-stats b{color:var(--fg);font-size:18px;font-variant-numeric:tabular-nums}
+    #map{height:min(72vh,760px);min-height:420px;border-radius:22px;border:1px solid var(--line-strong);overflow:hidden;background:#0b1420}
+    .maplibregl-popup-content{background:#101a29;color:var(--fg);border:1px solid var(--line-strong);border-radius:12px;font:13px/1.45 "IBM Plex Sans",sans-serif;padding:8px 10px}
+    .maplibregl-popup-tip{border-top-color:#101a29 !important;border-bottom-color:#101a29 !important}
+    .maplibregl-ctrl-group{background:#152236}
+    .maplibregl-ctrl-group button .maplibregl-ctrl-icon{filter:invert(1)}
+    .legend{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--muted)}
+    .legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-3px;margin-right:5px}
+    .legend i.dot{border-radius:50%}
+    .sel h2{margin:0 0 2px;font-size:20px}
+    .sel .sub{color:var(--muted);font-size:13px}
+    .sel ul{list-style:none;margin:8px 0 0;padding:0;max-height:260px;overflow:auto}
+    .sel li button{all:unset;display:flex;justify-content:space-between;width:100%;padding:5px 6px;border-radius:8px;cursor:pointer;font-size:14px;box-sizing:border-box}
+    .sel li button:hover,.sel li button:focus-visible{background:rgba(115,167,255,.1)}
+    .sel li button span:last-child{color:var(--muted);font-variant-numeric:tabular-nums}
+    .sel li button[aria-current=true]{background:rgba(78,197,168,.14)}
+    .note{font-size:12px;color:var(--muted)}
+    .m-table table{min-width:520px}
+    .m-table td.num,.m-table th.num{text-align:right;font-variant-numeric:tabular-nums}
+    .m-table tbody tr{cursor:pointer}
+    .m-table tbody tr:hover{background:rgba(115,167,255,.05)}
   </style>
 </head>
 <body>
-  <div class="site-shell map-page">
-    <nav class="site-nav">
-      <a class="site-brand" href="./index.html">
-        <div class="site-brand-mark"><img src="./assets/umdb-logo.png" alt="UMDB logo" /></div>
-        <div class="site-brand-copy">
-          <strong>UMDB</strong>
-          <span>Urban Microbiome Database</span>
-        </div>
-      </a>
-      <div class="site-links">
-        <a href="./index.html">Home</a>
-        <a href="./explorer.html">Explorer</a>
-        <a href="./about.html">About</a>
-        <a href="./methodology.html">Methodology</a>
-        <a href="./data.html">Data Access</a>
-        <a href="./analytics.html">Analytics</a>
-        <a href="./analytics.html">Analytics</a>
-        <a class="is-active" href="./global-map.html">Global Map</a>
-      </div>
-    </nav>
+<div class="site-shell">
+  <nav class="site-nav">
+    <a class="site-brand" href="./index.html"><div class="site-brand-copy"><strong>UMDB</strong><span>Urban Microbiome Database</span></div></a>
+    <div class="site-links">
+      <a href="./index.html">Home</a>
+      <a href="./explorer.html">Explorer</a>
+      <a class="is-active" href="./global-map.html">Map</a>
+      <a href="./analytics.html">Analytics</a>
+      <a href="./data.html">Downloads</a>
+      <a href="./methodology.html">Methods</a>
+      <a href="./about.html">About</a>
+    </div>
+  </nav>
 
-    <section class="hero">
-      <div class="eyebrow">Interactive Map</div>
-      <h1>Explore global distribution in a larger, map-first view.</h1>
-      <p>
-        This page is designed for interaction rather than summary alone. Filter the release by year or region, switch map scope,
-        and open the map in fullscreen for easier browsing. You can inspect both conservative country-level coverage and sample-level
-        coordinates when BioSample latitude and longitude are available.
-      </p>
-    </section>
-
-    <section class="section">
-      <div class="map-workbench">
-        <div class="map-controls">
-          <div>
-            <label for="mapMode">Map Layer</label>
-            <select id="mapMode">
-              <option value="countries">Country Coverage</option>
-              <option value="samples" selected>Sample Coordinates</option>
-            </select>
-          </div>
-          <div>
-            <label for="regionSelect">Map Region</label>
-            <select id="regionSelect">
-              <option value="world">World</option>
-              <option value="002">Africa</option>
-              <option value="019">Americas</option>
-              <option value="142">Asia</option>
-              <option value="150">Europe</option>
-              <option value="009">Oceania</option>
-            </select>
-          </div>
-          <div>
-            <label for="startYear">Start Year</label>
-            <select id="startYear"><option value="">Any</option></select>
-          </div>
-          <div>
-            <label for="endYear">End Year</label>
-            <select id="endYear"><option value="">Any</option></select>
-          </div>
-          <div>
-            <label for="countrySearch">Country Filter</label>
-            <input id="countrySearch" placeholder="Filter country labels" />
-          </div>
-        </div>
-
-        <div class="map-layout">
-          <div class="map-stage" id="mapStage">
-            <div class="map-toolbar">
-              <div>
-                <strong>Global Distribution</strong>
-                <div class="mini-hint" id="mapSubtitle">Loading interactive map…</div>
-              </div>
-              <div class="map-toolbar-actions">
-                <button class="toolbar-btn" id="selectArea">Select Area</button>
-                <button class="toolbar-btn" id="resetMap">Reset Filters</button>
-                <button class="toolbar-btn" id="fullscreenMap">Fullscreen</button>
-              </div>
-            </div>
-            <div class="map-canvas" id="geoChart">
-              <div style="padding:24px;color:var(--muted)">Loading map data…</div>
-            </div>
-          </div>
-
-          <div class="sidebar-stack">
-            <div class="panel">
-              <div class="section-header">
-                <h2>Filtered Summary</h2>
-                <p>These metrics update with the current map filters.</p>
-              </div>
-              <div class="metric-grid" id="mapMetrics">
-                <div class="metric"><span class="label">Loading</span><span class="value">...</span><span class="note">Computing country-level totals</span></div>
-              </div>
-            </div>
-
-            <div class="panel">
-              <div class="section-header">
-                <h2>Top Countries</h2>
-                <p>Sorted by run count within the current filters.</p>
-              </div>
-              <div class="country-list" id="countryList"></div>
-            </div>
-
-            <div class="panel">
-              <div class="section-header">
-                <h2>How To Use</h2>
-                <p>Tips for navigating this larger interactive map.</p>
-              </div>
-              <div class="info-list">
-                <div class="info-item">
-                  <strong>Use fullscreen for exploration</strong>
-                  The fullscreen button expands the map surface so the choropleth is easier to inspect and present.
-                </div>
-                <div class="info-item">
-                  <strong>Filter by year range</strong>
-                  Narrow the release to a period of interest and compare how country representation changes over time.
-                </div>
-                <div class="info-item">
-                  <strong>Switch regional scope</strong>
-                  Change the map region to zoom the display toward a single continent-style view.
-                </div>
-                <div class="info-item">
-                  <strong>Right-click markers to load in explorer</strong>
-                  Right-click on any sample marker to open it directly in the BioProject Explorer for detailed inspection.
-                </div>
-                <div class="info-item">
-                  <strong>Use rectangle tool to select multiple samples</strong>
-                  Click the rectangle icon in the top-left toolbar to draw a selection area. All samples within the drawn rectangle will be loaded into the explorer.
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <footer class="site-footer">
-      The map uses resolved country labels for coverage views and BioSample latitude and longitude attributes for sample-coordinate views when present. It is intended for interactive exploration, not normalized epidemiological inference.
-    </footer>
+  <div class="m-head">
+    <h1>Global map</h1>
+    <p>Where the samples come from. Country shading counts BioSamples with a validated country; site points are the coordinates submitters reported. Click a country to see its regions and cities, then open the same selection in the Explorer.</p>
   </div>
 
-  <script src="./assets/db.js"></script>
-  <script src="./assets/page-loading.js"></script>
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-    crossorigin=""
-  ></script>
-  <script src="https://unpkg.com/leaflet-contextmenu@1.4.0/dist/leaflet.contextmenu.min.js"></script>
-  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
-  <script>
-    const fmt = (value) => window.UMDB.formatNumber(value);
-    const norm = (value) => (value ?? "").toString().trim();
-    const known = (value) => {
-      const s = norm(value).toLowerCase();
-      return !!s && s !== "(unknown)";
-    };
-    let biosampleCache = null;
-    let biosampleCachePromise = null;
-    const REGION_BOUNDS = {
-      world: [[-55, -170], [78, 190]],
-      "002": [[-38, -25], [38, 55]],
-      "019": [[-58, -170], [72, -30]],
-      "142": [[-10, 25], [78, 180]],
-      "150": [[34, -25], [72, 45]],
-      "009": [[-50, 110], [5, 180]]
-    };
-
-    function parseLatLonText(raw) {
-      const s = norm(raw);
-      if (!s) return null;
-
-      const cardinal = s.match(/(-?\d+(?:\.\d+)?)\s*([NS])[\s,;]+(-?\d+(?:\.\d+)?)\s*([EW])/i);
-      if (cardinal) {
-        const lat = parseFloat(cardinal[1]) * (/S/i.test(cardinal[2]) ? -1 : 1);
-        const lon = parseFloat(cardinal[3]) * (/W/i.test(cardinal[4]) ? -1 : 1);
-        if (Number.isFinite(lat) && Number.isFinite(lon)) return { lat, lon };
-      }
-
-      const pair = s.match(/(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)/);
-      if (pair) {
-        const lat = parseFloat(pair[1]);
-        const lon = parseFloat(pair[2]);
-        if (Number.isFinite(lat) && Number.isFinite(lon)) return { lat, lon };
-      }
-
-      return null;
-    }
-
-    async function ensureBioSampleCache() {
-      // Coordinates now come with the aggregated site data (db/cube.json).
-      return {};
-    }
-
-    function extractCoordinates(rec, bioLookup) {
-      const directLat = parseFloat(norm(rec?.geo?.lat));
-      const directLon = parseFloat(norm(rec?.geo?.lon));
-      if (Number.isFinite(directLat) && Number.isFinite(directLon)) {
-        return { lat: directLat, lon: directLon };
-      }
-
-      const biosample = window.UMDB.getBioSample(rec);
-      const attrs = biosample && bioLookup && bioLookup[biosample] ? (bioLookup[biosample].attributes || {}) : null;
-      const raw = attrs ? (attrs.lat_lon || attrs["latitude and longitude"] || attrs.latitude_longitude || "") : "";
-      return parseLatLonText(raw);
-    }
-
-    function fillYearSelect(select, years) {
-      const current = select.value;
-      select.innerHTML = [`<option value="">Any</option>`]
-        .concat(years.map((year) => `<option value="${year}">${year}</option>`))
-        .join("");
-      if (years.map(String).includes(current)) select.value = current;
-    }
-
-    function renderCountryList(target, items) {
-      const sliced = items.slice(0, 18);
-      const max = Math.max(...sliced.map((item) => item.count), 1);
-      target.innerHTML = sliced.map((item) => `
-        <div class="country-item">
-          <div class="country-item-name">${item.name}</div>
-          <div class="country-item-bar"><div style="width:${(item.count / max) * 100}%"></div></div>
-          <div class="country-item-value">${fmt(item.count)}</div>
+  <div class="m-layout">
+    <aside class="panel m-side" aria-label="Map filters and selection">
+      <div class="f-group sel" id="selection"></div>
+      <div class="f-group">
+        <div class="f-title"><span>Urban status</span><button type="button" data-reset="tier">Default</button></div>
+        <div id="f-tier"></div>
+      </div>
+      <div class="f-group">
+        <div class="f-title"><span>Environment</span><button type="button" data-reset="context">Clear</button></div>
+        <div id="f-context"></div>
+      </div>
+      <div class="f-group">
+        <div class="f-title"><span>Sequencing assay</span><button type="button" data-reset="assay">Clear</button></div>
+        <div id="f-assay"></div>
+      </div>
+      <div class="f-group">
+        <div class="f-title"><span>Collection year</span><button type="button" data-reset="cyear">Clear</button></div>
+        <div class="f-range">
+          <input id="f-cmin" type="number" min="1900" max="2100" placeholder="From" aria-label="Collection year from" />
+          <span aria-hidden="true">–</span>
+          <input id="f-cmax" type="number" min="1900" max="2100" placeholder="To" aria-label="Collection year to" />
         </div>
-      `).join("") || `<div class="mini-hint">No countries match the current filters.</div>`;
+      </div>
+    </aside>
+
+    <main class="m-main">
+      <div class="m-toolbar">
+        <div class="seg" role="group" aria-label="Map view">
+          <button type="button" data-mode="coverage" aria-pressed="true">Country coverage</button>
+          <button type="button" data-mode="sites" aria-pressed="false">Sampling sites</button>
+          <button type="button" data-mode="env" aria-pressed="false">Environments</button>
+        </div>
+        <div class="m-stats" aria-live="polite">
+          <span><b id="st-samples">…</b> BioSamples</span>
+          <span><b id="st-runs">…</b> runs</span>
+          <span><b id="st-projects">…</b> studies</span>
+        </div>
+      </div>
+      <div id="map" role="region" aria-label="World map of UMDB samples"></div>
+      <div class="legend" id="legend"></div>
+      <div class="note" id="map-note"></div>
+      <div class="panel m-table">
+        <h3 style="margin:0 0 8px;font-size:16px" id="table-title">Countries</h3>
+        <div class="table-shell"><table><thead><tr id="table-head"></tr></thead><tbody id="table-body"></tbody></table></div>
+        <p class="note" style="margin-top:8px">The table lists the same numbers as the map, for keyboard and screen-reader use.</p>
+      </div>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    Countries, regions and cities are validated against ISO 3166 and GeoNames before publication; samples whose location could not be validated count only at the level that could (country or none).
+    Site points show reported BioSample coordinates rounded to 0.1° and are not inferred from place names.
+    Country boundaries: Natural Earth (public domain) via world-atlas. <span id="geo-attrib"></span>
+  </footer>
+</div>
+
+<script src="./assets/db.js"></script>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script>
+(() => {
+  const U = window.UMDB, esc = U.escapeHtml, fmt = (n) => U.formatNumber(n);
+  const $ = (id) => document.getElementById(id);
+  const TIER_LABEL = { confirmed_urban: "Confirmed urban", probable_urban: "Probable urban", uncertain: "Uncertain",
+                       non_urban: "Not urban", non_environmental: "Not environmental", unscreened: "Unscreened" };
+  const TIER_ORDER = ["confirmed_urban", "probable_urban", "uncertain", "non_urban", "non_environmental", "unscreened"];
+  const CTX = {
+    municipal_wastewater: ["Municipal wastewater", "#4ec5a8"], air_dust: ["Air and dust", "#73a7ff"],
+    built_environment: ["Built environment", "#ffcf70"], water_drainage: ["Urban water and drainage", "#5fd3f3"],
+    soil_greenspace: ["Soil and green space", "#9ad46b"], transit: ["Transit", "#ff8d7a"],
+    surfaces_infrastructure: ["Surfaces and infrastructure", "#d59cff"], "": ["No urban context", "#7d8aa0"]
+  };
+  const WORLD = [[-165, -56], [180, 75]];
+  const SHADES = ["#16324a", "#1d5170", "#24708f", "#2c90a6", "#3fb0ad", "#6fd0a7", "#b6eaa0"];
+
+  let E, map, world, mapReady = false;
+  let filters = U.filtersFromURL();
+  const qp = new URLSearchParams(location.search);
+  let mode = ["coverage", "sites", "env"].includes(qp.get("map")) ? qp.get("map") : "coverage";
+  let result = null;
+
+  function syncURL(){
+    const p = U.filtersToParams(filters);
+    if (mode !== "coverage") p.set("map", mode);
+    const qs = p.toString();
+    history.replaceState(null, "", qs ? `?${qs}` : location.pathname);
+  }
+
+  // --------------------------------------------------------------- side panel
+  function checks(el, items, selected, counts, label, key){
+    el.innerHTML = items.map((v) => {
+      const c = counts.get(v) || { samples: 0 };
+      const on = selected.includes(v);
+      return `<label class="f-check${c.samples || on ? "" : " is-zero"}"><input type="checkbox" data-key="${key}" value="${esc(v)}"${on ? " checked" : ""}>
+        <span>${esc(label(v))}</span><span class="n">${fmt(c.samples)}</span></label>`;
+    }).join("");
+  }
+
+  function renderSide(){
+    const F = result.facets, G = E.geo;
+    checks($("f-tier"), TIER_ORDER.filter((t) => E.tiers.includes(t)), filters.tier, F.tier, (t) => TIER_LABEL[t] || t, "tier");
+    checks($("f-context"), Object.keys(CTX).filter((c) => E.contexts.includes(c)), filters.context, F.context, (c) => CTX[c][0], "context");
+    checks($("f-assay"), E.assays.slice().sort((a, b) => (F.assay.get(b)?.samples || 0) - (F.assay.get(a)?.samples || 0)),
+           filters.assay, F.assay, (a) => a, "assay");
+    $("f-cmin").value = filters.cmin ?? ""; $("f-cmax").value = filters.cmax ?? "";
+
+    const sel = $("selection");
+    const explorer = U.filtersToURL(filters, "./explorer.html");
+    if (!filters.country){
+      const top = [...F.country.entries()].sort((a, b) => b[1].samples - a[1].samples).slice(0, 12);
+      sel.innerHTML = `<h2>World</h2><div class="sub">${fmt(F.country.size)} countries with matching samples</div>
+        <ul>${top.map(([i, c]) => `<li><button type="button" data-country="${esc(G.countries[i].iso2)}"><span>${esc(G.countries[i].name)}</span><span>${fmt(c.samples)}</span></button></li>`).join("")}</ul>
+        <p class="note" style="margin-top:8px">${fmt(result.samplesNoCountry)} matching BioSamples have no validated country and appear only in world totals.</p>
+        <p style="margin-top:10px"><a class="btn primary" href="${esc(explorer)}">Open in Explorer</a></p>`;
+      return;
     }
+    const country = G.countryByIso.get(filters.country);
+    const region = filters.region ? G.admin1ByCode.get(filters.region) : null;
+    const regions = country ? [...F.region.entries()].filter(([i]) => G.admin1[i].country === country.i)
+      .sort((a, b) => b[1].samples - a[1].samples) : [];
+    const cities = country ? [...F.city.entries()].filter(([i]) => G.places[i].country === country.i && (!region || G.places[i].admin1 === region.i))
+      .sort((a, b) => b[1].samples - a[1].samples) : [];
+    const here = F.country.get(country?.i) || { samples: 0, runs: 0 };
+    sel.innerHTML = `<button type="button" class="btn" data-world>← World</button>
+      <h2 style="margin-top:10px">${esc(country ? country.name : filters.country)}${region ? ` · ${esc(region.name)}` : ""}${filters.city ? ` · ${esc(E.placeName(filters.city))}` : ""}</h2>
+      <div class="sub">${fmt(result.samples)} BioSamples · ${fmt(result.runs)} runs · ${fmt(result.projects.length)} studies</div>
+      ${regions.length ? `<div class="f-title" style="margin-top:12px"><span>Regions</span>${filters.region ? `<button type="button" data-region="">All</button>` : ""}</div>
+      <ul>${regions.slice(0, 40).map(([i, c]) => `<li><button type="button" data-region="${esc(G.admin1[i].code)}" aria-current="${G.admin1[i].code === filters.region}"><span>${esc(G.admin1[i].name)}</span><span>${fmt(c.samples)}</span></button></li>`).join("")}</ul>` : ""}
+      <div class="f-title" style="margin-top:12px"><span>Cities and towns</span>${filters.city ? `<button type="button" data-city="">All</button>` : ""}</div>
+      ${cities.length ? `<ul>${cities.slice(0, 60).map(([i, c]) => `<li><button type="button" data-city="${esc(String(G.places[i].geonames_id))}" aria-current="${String(G.places[i].geonames_id) === filters.city}"><span>${esc(G.places[i].name)}</span><span>${fmt(c.samples)}</span></button></li>`).join("")}</ul>`
+                      : `<p class="note">No validated cities for this selection.</p>`}
+      <p class="note" style="margin-top:8px">${fmt(result.samplesNoPlace)} of these BioSamples have no validated city; they count toward ${esc(country ? country.name : "the country")} only.</p>
+      <p style="margin-top:10px"><a class="btn primary" href="${esc(explorer)}">Open in Explorer</a></p>`;
+  }
 
-    (async () => {
-      if (!window.UMDB) {
-        document.getElementById("mapSubtitle").textContent = "Database script not loaded. Please serve the site from the docs/ directory or use a local web server.";
-        return;
-      }
-      const chartRoot = document.getElementById("geoChart");
-      const mapStage = document.getElementById("mapStage");
-      const subtitle = document.getElementById("mapSubtitle");
-      const metrics = document.getElementById("mapMetrics");
-      const countryList = document.getElementById("countryList");
-      const mapMode = document.getElementById("mapMode");
-      const regionSelect = document.getElementById("regionSelect");
-      const startYear = document.getElementById("startYear");
-      const endYear = document.getElementById("endYear");
-      const countrySearch = document.getElementById("countrySearch");
-      const resetMap = document.getElementById("resetMap");
-      const fullscreenMap = document.getElementById("fullscreenMap");
-      let lastRegionValue = regionSelect.value;
-      const map = L.map(chartRoot, {
-        zoomSnap: 0.25,
-        worldCopyJump: true,
-        preferCanvas: true
+  function renderTable(){
+    const F = result.facets, G = E.geo;
+    const byCity = !!filters.country;
+    $("table-title").textContent = byCity ? `Cities and towns in ${E.countryName(filters.country)}` : "Countries";
+    $("table-head").innerHTML = `<th>${byCity ? "Place" : "Country"}</th><th class="num">BioSamples</th><th class="num">Runs</th>`;
+    const rows = byCity
+      ? [...F.city.entries()].filter(([i]) => G.places[i].country === G.countryByIso.get(filters.country)?.i).map(([i, c]) => ({ key: String(G.places[i].geonames_id), name: G.places[i].name, ...c }))
+      : [...F.country.entries()].map(([i, c]) => ({ key: G.countries[i].iso2, name: G.countries[i].name, ...c }));
+    rows.sort((a, b) => b.samples - a.samples || a.name.localeCompare(b.name));
+    $("table-body").innerHTML = rows.slice(0, 100).map((r) => `<tr tabindex="0" data-${byCity ? "city" : "country"}="${esc(r.key)}">
+      <td>${esc(r.name)}</td><td class="num">${fmt(r.samples)}</td><td class="num">${fmt(r.runs)}</td></tr>`).join("")
+      || `<tr><td colspan="3" class="note">Nothing matches these filters.</td></tr>`;
+  }
+
+  // --------------------------------------------------------------- map layers
+  function choroplethColor(n, max){
+    if (!n) return null;
+    const k = Math.min(SHADES.length - 1, Math.floor(Math.log10(n) / Math.log10(Math.max(max, 10)) * (SHADES.length - 1) + 1e-9));
+    return SHADES[Math.max(0, k)];
+  }
+
+  function updateMap(){
+    if (!mapReady) return;
+    const G = E.geo, F = result.facets;
+    // Country shading: BioSamples per validated country (all filters but country/region/city).
+    const counts = new Map([...F.country.entries()].map(([i, c]) => [G.countries[i].iso2, c.samples]));
+    const max = Math.max(1, ...counts.values());
+    for (const f of world.features){
+      const c = G.countryByNumeric.get(String(f.id));
+      const n = c ? counts.get(c.iso2) || 0 : 0;
+      map.setFeatureState({ source: "countries", id: f.id }, { n, color: choroplethColor(n, max) || "#121e2e", selected: !!(c && c.iso2 === filters.country) });
+    }
+    // Countries too small for the shapes (Hong Kong, Singapore …) as markers.
+    const shaped = new Set(world.features.map((f) => G.countryByNumeric.get(String(f.id))?.iso2).filter(Boolean));
+    const smalls = [];
+    for (const [iso, n] of counts){
+      if (shaped.has(iso) || !n) continue;
+      const ci = G.countryByIso.get(iso).i;
+      const best = G.places.filter((p) => p.country === ci).sort((a, b) => b.population - a.population)[0];
+      if (best) smalls.push({ type: "Feature", geometry: { type: "Point", coordinates: [best.lon, best.lat] },
+                              properties: { iso, name: G.countryByIso.get(iso).name, n, color: choroplethColor(n, max) } });
+    }
+    map.getSource("small-countries").setData({ type: "FeatureCollection", features: smalls });
+
+    // Reported coordinates of matching samples (all filters applied).
+    const pts = (result.points || []).map((p) => ({ type: "Feature", geometry: { type: "Point", coordinates: [p.lon, p.lat] },
+      properties: { n: p.n, ctx: p.ctx, color: (CTX[p.ctx] || CTX[""])[1] } }));
+    map.getSource("sites").setData({ type: "FeatureCollection", features: pts });
+    map.getSource("env").setData({ type: "FeatureCollection", features: pts });
+
+    // Selected city: the validated GeoNames place.
+    const place = filters.city ? G.placeById.get(String(filters.city)) : null;
+    map.getSource("place").setData({ type: "FeatureCollection", features: place ? [{ type: "Feature",
+      geometry: { type: "Point", coordinates: [place.lon, place.lat] }, properties: { name: place.name } }] : [] });
+
+    const vis = (id, on) => map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
+    vis("small-countries", mode === "coverage");
+    ["sites-clusters", "sites-single"].forEach((id) => vis(id, mode === "sites"));
+    vis("env-points", mode === "env");
+    map.setPaintProperty("countries-fill", "fill-opacity", mode === "coverage" ? 0.95 : 0.35);
+
+    const withXY = (result.points || []).reduce((a, p) => a + p.n, 0);
+    $("map-note").textContent = mode === "coverage"
+      ? `Shading counts ${fmt([...counts.values()].reduce((a, b) => a + b, 0))} BioSamples with a validated country (log scale).`
+      : `${fmt(withXY)} of ${fmt(result.samples)} matching BioSamples report coordinates; the rest are not drawn as points. Points are rounded to 0.1°.`;
+    $("legend").innerHTML = mode === "env"
+      ? Object.entries(CTX).filter(([k]) => E.contexts.includes(k)).map(([, [label, color]]) => `<span><i class="dot" style="background:${color}"></i>${esc(label)}</span>`).join("")
+      : mode === "coverage"
+        ? `<span>Fewer</span>${SHADES.map((c) => `<i style="background:${c}"></i>`).join("")}<span>More BioSamples</span>`
+        : `<span><i class="dot" style="background:#73a7ff"></i>Cluster of sites (size = BioSamples)</span><span><i class="dot" style="background:#ffcf70"></i>Validated city (selected)</span>`;
+  }
+
+  function bboxOf(feature){
+    // Largest polygon's extent, so countries spanning the antimeridian (USA, Russia, Fiji) zoom sensibly.
+    const polys = feature.geometry.type === "Polygon" ? [feature.geometry.coordinates] : feature.geometry.coordinates;
+    let best = null, bestArea = -1;
+    for (const poly of polys){
+      const ring = poly[0];
+      let minX = 180, minY = 90, maxX = -180, maxY = -90;
+      for (const [x, y] of ring){ minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y); }
+      const area = (maxX - minX) * (maxY - minY);
+      if (area > bestArea){ bestArea = area; best = [[minX, minY], [maxX, maxY]]; }
+    }
+    return best;
+  }
+
+  function focus(){
+    if (!mapReady) return;
+    const G = E.geo;
+    if (filters.city){
+      const p = G.placeById.get(String(filters.city));
+      if (p) return map.flyTo({ center: [p.lon, p.lat], zoom: 9 });
+    }
+    if (filters.country){
+      const c = G.countryByIso.get(filters.country);
+      const f = c && world.features.find((x) => String(x.id) === String(parseInt(c.numeric, 10)));
+      if (f) return map.fitBounds(bboxOf(f), { padding: 40, maxZoom: 6 });
+      const p = c && G.places.filter((x) => x.country === c.i).sort((a, b) => b.population - a.population)[0];
+      if (p) return map.flyTo({ center: [p.lon, p.lat], zoom: 8 });
+    }
+    map.fitBounds(WORLD, { padding: 10 });
+  }
+
+  function initMap(){
+    map = new maplibregl.Map({
+      container: "map",
+      style: { version: 8, sources: {}, layers: [{ id: "bg", type: "background", paint: { "background-color": "#0b1420" } }] },
+      center: [10, 25], zoom: 1.3, minZoom: 0.8, maxZoom: 12, attributionControl: false, renderWorldCopies: false
+    });
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: "Natural Earth · GeoNames · NCBI" }));
+    map.on("load", () => {
+      map.addSource("countries", { type: "geojson", data: world });
+      map.addLayer({ id: "countries-fill", type: "fill", source: "countries",
+        paint: { "fill-color": ["coalesce", ["feature-state", "color"], "#121e2e"], "fill-opacity": 0.95 } });
+      map.addLayer({ id: "countries-line", type: "line", source: "countries",
+        paint: { "line-color": ["case", ["boolean", ["feature-state", "selected"], false], "#ffcf70", "rgba(148,174,214,.28)"],
+                 "line-width": ["case", ["boolean", ["feature-state", "selected"], false], 2, 0.5] } });
+      map.addSource("small-countries", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({ id: "small-countries", type: "circle", source: "small-countries",
+        paint: { "circle-radius": 6, "circle-color": ["coalesce", ["get", "color"], "#2c90a6"], "circle-stroke-color": "#edf3ff", "circle-stroke-width": 1 } });
+      map.addSource("sites", { type: "geojson", data: { type: "FeatureCollection", features: [] }, cluster: true, clusterRadius: 38, clusterMaxZoom: 9,
+        clusterProperties: { n: ["+", ["get", "n"]] } });
+      map.addLayer({ id: "sites-clusters", type: "circle", source: "sites", filter: ["has", "point_count"],
+        paint: { "circle-color": "rgba(115,167,255,.55)", "circle-stroke-color": "#73a7ff", "circle-stroke-width": 1,
+                 "circle-radius": ["interpolate", ["linear"], ["sqrt", ["get", "n"]], 1, 6, 30, 16, 150, 30] } });
+      map.addLayer({ id: "sites-single", type: "circle", source: "sites", filter: ["!", ["has", "point_count"]],
+        paint: { "circle-color": "rgba(115,167,255,.75)", "circle-radius": ["interpolate", ["linear"], ["sqrt", ["get", "n"]], 1, 3.5, 30, 12] } });
+      map.addSource("env", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({ id: "env-points", type: "circle", source: "env",
+        paint: { "circle-color": ["get", "color"], "circle-opacity": 0.8,
+                 "circle-radius": ["interpolate", ["linear"], ["sqrt", ["get", "n"]], 1, 3, 30, 11, 150, 20] } });
+      map.addSource("place", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({ id: "place", type: "circle", source: "place",
+        paint: { "circle-radius": 8, "circle-color": "rgba(255,207,112,.25)", "circle-stroke-color": "#ffcf70", "circle-stroke-width": 2 } });
+
+      const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false });
+      const hover = (layer, html) => {
+        map.on("mousemove", layer, (e) => { map.getCanvas().style.cursor = "pointer"; popup.setLngLat(e.lngLat).setHTML(html(e.features[0])).addTo(map); });
+        map.on("mouseleave", layer, () => { map.getCanvas().style.cursor = ""; popup.remove(); });
+      };
+      hover("countries-fill", (f) => {
+        const c = E.geo.countryByNumeric.get(String(f.id));
+        const n = map.getFeatureState({ source: "countries", id: f.id }).n || 0;
+        return `<strong>${esc(c ? c.name : f.properties.name)}</strong><br>${fmt(n)} BioSamples`;
       });
-      const basemap = L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-        maxZoom: 19,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
+      hover("small-countries", (f) => `<strong>${esc(f.properties.name)}</strong><br>${fmt(f.properties.n)} BioSamples`);
+      hover("sites-clusters", (f) => `${fmt(f.properties.n)} BioSamples<br><span class="note">Click to zoom in</span>`);
+      hover("sites-single", (f) => `${fmt(f.properties.n)} BioSamples at this site`);
+      hover("env-points", (f) => `${esc((CTX[f.properties.ctx] || CTX[""])[0])}<br>${fmt(f.properties.n)} BioSamples`);
+      hover("place", (f) => `<strong>${esc(f.properties.name)}</strong><br>Validated place (GeoNames)`);
+
+      map.on("click", "sites-clusters", async (e) => {
+        const f = e.features[0];
+        const zoom = await map.getSource("sites").getClusterExpansionZoom(f.properties.cluster_id);
+        map.easeTo({ center: f.geometry.coordinates, zoom });
       });
-      basemap.addTo(map);
-      const pointLayer = L.layerGroup().addTo(map);
-
-      const drawControl = new L.Control.Draw({
-        draw: {
-          polyline: false,
-          polygon: false,
-          circle: false,
-          marker: false,
-          circlemarker: false,
-          rectangle: true
-        },
-        edit: false
+      map.on("click", "countries-fill", (e) => {
+        if (mode !== "coverage" && map.queryRenderedFeatures(e.point, { layers: ["sites-clusters", "sites-single", "env-points"] }).length) return;
+        const c = E.geo.countryByNumeric.get(String(e.features[0].id));
+        if (c) selectCountry(c.iso2);
       });
-      map.addControl(drawControl);
+      map.on("click", "small-countries", (e) => selectCountry(e.features[0].properties.iso));
+      mapReady = true;
+      updateMap();
+      if (filters.country || filters.city) focus(); else map.fitBounds(WORLD, { padding: 10, animate: false });
+    });
+  }
 
-      map.on('draw:created', function (e) {
-        const layer = e.layer;
-        const bounds = layer.getBounds();
-        const selectedSRRs = [];
-        pointLayer.eachLayer(function(marker) {
-          if (bounds.contains(marker.getLatLng())) {
-            selectedSRRs.push(marker.options.srr);
-          }
-        });
-        if (selectedSRRs.length) {
-          const srrParam = selectedSRRs.join(',');
-          window.open(`explorer.html?srr=${srrParam}`, '_blank');
-        }
-        map.removeLayer(layer);
-      });
+  function selectCountry(iso){
+    filters.country = filters.country === iso ? "" : iso;
+    filters.region = ""; filters.city = "";
+    update(); focus();
+  }
 
-      function applyRegionView() {
-        const bounds = REGION_BOUNDS[regionSelect.value] || REGION_BOUNDS.world;
-        map.fitBounds(bounds, { padding: [24, 24] });
+  function update(){
+    result = E.query(filters, { points: true });
+    $("st-samples").textContent = fmt(result.samples);
+    $("st-runs").textContent = fmt(result.runs);
+    $("st-projects").textContent = fmt(result.projects.length);
+    document.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
+    renderSide(); renderTable(); updateMap(); syncURL();
+  }
+
+  function wire(){
+    document.querySelector(".m-side").addEventListener("change", (e) => {
+      const t = e.target;
+      if (t.matches("input[type=checkbox][data-key]")){
+        const k = t.dataset.key, set = new Set(filters[k]);
+        t.checked ? set.add(t.value) : set.delete(t.value);
+        filters[k] = [...set];
+      } else if (t.id === "f-cmin" || t.id === "f-cmax"){
+        const v = t.value ? parseInt(t.value, 10) : null;
+        filters[t.id.slice(2)] = Number.isFinite(v) ? v : null;
+      } else return;
+      update();
+    });
+    const pick = (e) => {
+      const b = e.target.closest("[data-country],[data-region],[data-city],[data-world],[data-reset]");
+      if (!b) return;
+      if (b.hasAttribute("data-world")){ filters.country = filters.region = filters.city = ""; update(); focus(); return; }
+      if (b.dataset.reset){
+        const k = b.dataset.reset;
+        if (k === "tier") filters.tier = U.DEFAULT_TIERS.slice();
+        if (k === "context") filters.context = [];
+        if (k === "assay") filters.assay = [];
+        if (k === "cyear") filters.cmin = filters.cmax = null;
+        update(); return;
       }
+      if (b.dataset.country !== undefined){ selectCountry(b.dataset.country); return; }
+      if (b.dataset.region !== undefined){ filters.region = b.dataset.region; filters.city = ""; update(); return; }
+      if (b.dataset.city !== undefined){ filters.city = b.dataset.city; update(); focus(); }
+    };
+    document.querySelector(".m-side").addEventListener("click", pick);
+    $("table-body").addEventListener("click", pick);
+    $("table-body").addEventListener("keydown", (e) => { if (e.key === "Enter") pick(e); });
+    document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => { mode = b.dataset.mode; update(); }));
+  }
 
-      function clearLayer() {
-        pointLayer.clearLayers();
-      }
-
-      function aggregateCountriesFromCoordinates(rows) {
-        const grouped = new Map();
-        rows.forEach((row) => {
-          const key = row.country || "(unknown)";
-          if (!grouped.has(key)) {
-            grouped.set(key, {
-              name: key,
-              count: 0,
-              latTotal: 0,
-              lonTotal: 0,
-              projects: new Set(),
-              samples: 0
-            });
-          }
-          const entry = grouped.get(key);
-          entry.count += row.runCount || 1;
-          entry.samples += 1;
-          entry.latTotal += row.lat;
-          entry.lonTotal += row.lon;
-          if (row.project) entry.projects.add(row.project);
-        });
-        return Array.from(grouped.values())
-          .map((entry) => ({
-            name: entry.name,
-            count: entry.count,
-            projects: entry.projects.size,
-            sampleCount: entry.samples,
-            lat: entry.latTotal / Math.max(entry.samples, 1),
-            lon: entry.lonTotal / Math.max(entry.samples, 1)
-          }))
-          .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-      }
-
-      function drawSampleMarkers(rows) {
-        rows.forEach((row) => {
-          const marker = L.circleMarker([row.lat, row.lon], {
-            radius: 4,
-            weight: 1,
-            color: "#cfe4ff",
-            fillColor: "#4ec5a8",
-            fillOpacity: 0.68,
-            srr: row.run,
-            contextmenu: true,
-            contextmenuItems: [{
-              text: 'Load in Explorer',
-              callback: function(e) {
-                window.open(`explorer.html?srr=${this.options.srr}`, '_blank');
-              }
-            }]
-          });
-          marker.bindPopup(`
-            <div style="min-width:220px">
-              <strong>${row.country || "Unresolved country"}</strong><br />
-              ${row.city ? `${row.city}<br />` : ``}
-              ${row.biosample ? `BioSample: <span class="mono">${row.biosample}</span><br />` : ``}
-              ${row.run ? `Run: <span class="mono">${row.run}</span><br />` : ``}
-              <span class="mono">${row.lat.toFixed(4)}, ${row.lon.toFixed(4)}</span>
-            </div>
-          `);
-          pointLayer.addLayer(marker);
-        });
-      }
-
-      function drawCountryMarkers(rows) {
-        const max = Math.max(...rows.map((row) => row.count), 1);
-        rows.forEach((row) => {
-          const radius = 6 + (Math.sqrt(row.count / max) * 18);
-          const marker = L.circleMarker([row.lat, row.lon], {
-            radius,
-            weight: 1.5,
-            color: "#cfe4ff",
-            fillColor: "#73a7ff",
-            fillOpacity: 0.45
-          });
-          marker.bindPopup(`
-            <div style="min-width:220px">
-              <strong>${row.name}</strong><br />
-              Runs: <span class="mono">${fmt(row.count)}</span><br />
-              Coordinate-resolved samples: <span class="mono">${fmt(row.sampleCount)}</span><br />
-              BioProjects: <span class="mono">${fmt(row.projects)}</span><br />
-              <span class="mono">${row.lat.toFixed(4)}, ${row.lon.toFixed(4)}</span>
-            </div>
-          `);
-          pointLayer.addLayer(marker);
-        });
-      }
-
-      try {
-        const { allRuns } = await window.UMDB.fetchAllRuns();
-        const allYears = Array.from(new Set(allRuns.map(window.UMDB.yearFromRecord).filter(Boolean))).sort((a, b) => a - b);
-        fillYearSelect(startYear, allYears);
-        fillYearSelect(endYear, allYears);
-        applyRegionView();
-
-        function filteredRuns() {
-          const minYear = startYear.value ? parseInt(startYear.value, 10) : null;
-          const maxYear = endYear.value ? parseInt(endYear.value, 10) : null;
-          const needle = countrySearch.value.trim().toLowerCase();
-          return allRuns.filter((rec) => {
-            const country = window.UMDB.getCountry(rec);
-            const year = window.UMDB.yearFromRecord(rec);
-            if (minYear != null && (year == null || year < minYear)) return false;
-            if (maxYear != null && (year == null || year > maxYear)) return false;
-            if (needle && !country.toLowerCase().includes(needle)) return false;
-            if (mapMode.value === "countries" && !known(country)) return false;
-            return true;
-          });
-        }
-
-        async function draw(forceRegionFit = false) {
-          const runs = filteredRuns();
-          clearLayer();
-          const counts = new Map();
-          runs.forEach((rec) => {
-            const country = window.UMDB.getCountry(rec);
-            if (known(country)) counts.set(country, (counts.get(country) || 0) + 1);
-          });
-          const countries = Array.from(counts.entries())
-            .map(([name, count]) => ({ name, count }))
-            .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-
-          const topCountry = countries[0];
-          const projectCount = new Set(runs.map(window.UMDB.getBioProject).filter(Boolean)).size;
-          const visibleYears = Array.from(new Set(runs.map(window.UMDB.yearFromRecord).filter(Boolean))).sort((a, b) => a - b);
-          let coordinateRows = [];
-
-          if (mapMode.value === "samples") {
-            let bioLookup = null;
-            try {
-              bioLookup = await ensureBioSampleCache();
-            } catch (err) {
-              console.warn("Unable to load BioSample cache for sample-coordinate map", err);
-            }
-            coordinateRows = runs.map((rec) => {
-              const coords = extractCoordinates(rec, bioLookup);
-              if (!coords) return null;
-              const country = window.UMDB.getCountry(rec);
-              const city = window.UMDB.getCity(rec);
-              const biosample = window.UMDB.getBioSample(rec);
-              const run = rec?.srr || rec?.runinfo_row?.Run || "";
-              return {
-                lat: coords.lat,
-                lon: coords.lon,
-                country,
-                city,
-                biosample,
-                run,
-                project: window.UMDB.getBioProject(rec),
-                runCount: 1,
-                label: [country, city, biosample || run].filter(Boolean).join(" • ")
-              };
-            }).filter(Boolean);
-          }
-
-          const coordinateCountries = aggregateCountriesFromCoordinates(coordinateRows.filter((row) => known(row.country)));
-
-          subtitle.textContent = mapMode.value === "samples"
-            ? `Showing ${fmt(coordinateRows.length)} coordinate-resolved samples from ${fmt(runs.length)} filtered runs${visibleYears.length ? ` between ${visibleYears[0]} and ${visibleYears[visibleYears.length - 1]}` : ""}.`
-            : `Showing ${fmt(coordinateCountries.length)} coordinate-backed country hubs from ${fmt(runs.length)} filtered runs${visibleYears.length ? ` between ${visibleYears[0]} and ${visibleYears[visibleYears.length - 1]}` : ""}. Zoom and pan to inspect regional detail.`;
-
-          metrics.innerHTML = `
-            <div class="metric"><span class="label">${mapMode.value === "samples" ? "Coordinate Samples" : "Mapped Runs"}</span><span class="value">${fmt(mapMode.value === "samples" ? coordinateRows.length : runs.length)}</span><span class="note">${mapMode.value === "samples" ? "Runs with usable BioSample latitude and longitude" : "Runs in the current filtered map view"}</span></div>
-            <div class="metric"><span class="label">Countries</span><span class="value">${fmt(countries.length)}</span><span class="note">Resolved country labels passing the current filters</span></div>
-            <div class="metric"><span class="label">BioProjects</span><span class="value">${fmt(projectCount)}</span><span class="note">Distinct BioProjects represented in the filtered map</span></div>
-            <div class="metric"><span class="label">${mapMode.value === "samples" ? "Largest Country Bucket" : "Largest Bucket"}</span><span class="value" style="font-size:22px">${topCountry ? topCountry.name : "N/A"}</span><span class="note">${topCountry ? fmt(topCountry.count) + " runs" : "No countries available"}</span></div>
-          `;
-
-          renderCountryList(countryList, countries);
-
-          if (mapMode.value === "samples") {
-            if (!coordinateRows.length) {
-              subtitle.textContent = "No sample coordinates match the current filters.";
-              return;
-            }
-            drawSampleMarkers(coordinateRows);
-            if (forceRegionFit || regionSelect.value !== lastRegionValue) applyRegionView();
-            lastRegionValue = regionSelect.value;
-            return;
-          }
-
-          if (!coordinateCountries.length) {
-            subtitle.textContent = "No coordinate-backed country aggregates match the current filters.";
-            return;
-          }
-          drawCountryMarkers(coordinateCountries);
-          if (forceRegionFit || regionSelect.value !== lastRegionValue) applyRegionView();
-          lastRegionValue = regionSelect.value;
-        }
-
-        [mapMode, regionSelect, startYear, endYear].forEach((el) => el.addEventListener("change", draw));
-        countrySearch.addEventListener("input", draw);
-        resetMap.addEventListener("click", () => {
-          mapMode.value = "samples";
-          regionSelect.value = "world";
-          startYear.value = "";
-          endYear.value = "";
-          countrySearch.value = "";
-          draw(true);
-        });
-        fullscreenMap.addEventListener("click", async () => {
-          if (!document.fullscreenElement) {
-            await mapStage.requestFullscreen();
-            mapStage.classList.add("is-fullscreen");
-            fullscreenMap.textContent = "Exit Fullscreen";
-          } else {
-            await document.exitFullscreen();
-            mapStage.classList.remove("is-fullscreen");
-            fullscreenMap.textContent = "Fullscreen";
-          }
-          map.invalidateSize();
-          draw(true);
-        });
-        document.addEventListener("fullscreenchange", () => {
-          const active = document.fullscreenElement === mapStage;
-          mapStage.classList.toggle("is-fullscreen", active);
-          fullscreenMap.textContent = active ? "Exit Fullscreen" : "Fullscreen";
-          map.invalidateSize();
-          draw(true);
-        });
-        window.addEventListener("resize", () => {
-          map.invalidateSize();
-          draw(false);
-        });
-
-        draw(true);
-      } catch (err) {
-        subtitle.textContent = err.message;
-        metrics.innerHTML = `<div class="metric"><span class="label">Status</span><span class="value">Unavailable</span><span class="note">${err.message}</span></div>`;
-      }
-    })();
-  </script>
+  Promise.all([U.openIndex(), fetch("./assets/world-110m.json").then((r) => r.json())]).then(([engine, topo]) => {
+    E = engine;
+    world = topojson.feature(topo, topo.objects.countries);
+    world.features = world.features.filter((f) => f.id != null).map((f) => ({ ...f, id: parseInt(f.id, 10) }));
+    $("geo-attrib").textContent = E.geo.attribution + ".";
+    wire(); update(); initMap();
+  }).catch((err) => {
+    $("map").innerHTML = `<div style="padding:24px;color:var(--muted)">The map could not be loaded: ${esc(err.message)}</div>`;
+  });
+})();
+</script>
 </body>
 </html>

@@ -182,6 +182,12 @@
               <strong>Derived annotations</strong>
               Geographic harmonization and assay-class labeling are computed from the original public metadata and added as derived fields rather than replacing the source record.
             </div>
+            <div class="info-item">
+              <strong>Location validation (gazetteer)</strong>
+              Each BioSample gets exactly one accepted location per release. The submitted <span class="mono">geo_loc_name</span> is matched to an ISO 3166 country, a GeoNames first-order region and a GeoNames populated place (places with 500 or more inhabitants), and checked against reported coordinates.
+              Statuses: <span class="mono">verified</span> (the text names exactly one place, and precise coordinates, if any, agree), <span class="mono">probable</span> (chosen among same-named places by population, inferred from coordinates alone, or a region named after its main city), <span class="mono">ambiguous</span>, <span class="mono">conflicting</span> (precise coordinates far from the named place, or in another country) and <span class="mono">unresolved</span>.
+              Only verified and probable places appear in city filters and maps; a sample whose city cannot be validated still counts toward its country. A missing city is preferred to a wrong one, and the submitted text is always shown next to the accepted location.
+            </div>
           </div>
         </div>
       </div>
@@ -200,7 +206,7 @@
             </div>
             <div class="info-item">
               <strong>Non-destructive output</strong>
-              Original metadata are preserved. AI-reviewed values are stored alongside them as final annotations such as <span class="mono">final_country</span>, <span class="mono">final_city</span>, and <span class="mono">final_assay_class</span>, plus review flags such as <span class="mono">metadata_sufficient</span>, <span class="mono">urban_origin</span>, and <span class="mono">ai_fixed</span>.
+              Original metadata are preserved. AI-reviewed values are stored alongside them as proposals such as <span class="mono">final_country</span>, <span class="mono">final_city</span>, and <span class="mono">final_assay_class</span>, plus review flags such as <span class="mono">metadata_sufficient</span> and <span class="mono">urban_origin</span>. Proposals are shown with the record but never change counts, filters or the accepted location.
             </div>
             <div class="info-item">
               <strong>Caching</strong>
@@ -328,8 +334,8 @@
               If the original public submission is incomplete or inconsistent, UMDB can expose that inconsistency but cannot fully repair it automatically.
             </div>
             <div class="info-item">
-              <strong>Geographic resolution is best-effort</strong>
-              Country and city values may originate from structured BioSample fields or parsed location text and should be interpreted as practical, not absolute, harmonization.
+              <strong>Geographic validation has limits</strong>
+              Locations are validated against ISO 3166 and GeoNames, but the input is still free text written by submitters. Places smaller than 500 inhabitants, districts within cities and sites described only by a facility name are not resolved to a place, and the submitter's country is taken at face value unless precise coordinates contradict it.
             </div>
             <div class="info-item">
               <strong>Assay classes are summary labels</strong>

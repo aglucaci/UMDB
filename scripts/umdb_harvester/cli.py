@@ -149,6 +149,14 @@ def build_argparser() -> argparse.ArgumentParser:
     sub.add_parser("export", help="rebuild data/umdb.sqlite and the website data in docs/db (offline)")
     sub.add_parser("db-build", help="(re)build data/umdb.sqlite from the catalog and caches")
     sub.add_parser("db-info", help="show database build metadata and sample tiers")
+    g = sub.add_parser("geo", help="GeoNames reference files and location checks")
+    gsub = g.add_subparsers(dest="geo_cmd", required=True)
+    gf = gsub.add_parser("fetch", help="download the GeoNames reference files (about 14 MB) into data/reference/geonames")
+    gf.add_argument("--force", action="store_true", help="download again even if the files exist")
+    gc = gsub.add_parser("check", help="resolve one location string, e.g. 'USA: Portland, ME'")
+    gc.add_argument("location")
+    gc.add_argument("--lat", type=float, default=None)
+    gc.add_argument("--lon", type=float, default=None)
     rel = sub.add_parser("release", help="write a versioned Parquet/TSV release from data/umdb.sqlite")
     rel.add_argument("--version", default="", help="release version (default: today's date, YYYY.MM.DD)")
     rel.add_argument("--rebuild-db", action="store_true", help="rebuild the database first")
@@ -233,6 +241,28 @@ def run():
         from .database import build_database
         header("umdb db build")
         build_database()
+        return
+    if args.cmd == "geo":
+        from . import geo
+        if args.geo_cmd == "fetch":
+            header("umdb geo fetch")
+            src = geo.fetch_geonames(force=args.force)
+            for name, f in src["files"].items():
+                log(f"  {name:22} {f['bytes'] / 1e6:6.1f} MB  sha256 {f['sha256'][:16]}…")
+            log(f"Saved to {geo.GEONAMES_DIR}/ ({src['license']}). Rebuild with `umdb export`.")
+            return
+        if not geo.gazetteer_available():
+            geo.fetch_geonames()
+        gaz = geo.Gazetteer()
+        country = args.location.split(":", 1)[0] if ":" in args.location else args.location.split(",", 1)[0]
+        a = geo.Resolver(gaz).resolve(args.location, country, "biosample", args.lat, args.lon)
+        place = gaz.place_record(a.pop("place_index")) if a.get("place_index") is not None else None
+        a.pop("place_index", None)
+        for k, v in a.items():
+            log(f"  {k:16} {v}")
+        if place:
+            log(f"  {'place':16} {place['name']} (GeoNames {place['geonames_id']}, {place['feature_code']}, "
+                f"population {num(place['population'])}, {place['lat']:.4f}, {place['lon']:.4f})")
         return
     if args.cmd == "db-info":
         from .database import db_info, DB_PATH

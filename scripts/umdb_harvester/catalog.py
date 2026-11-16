@@ -46,6 +46,9 @@ def catalog_files() -> List[str]:
     files = sorted(glob.glob(os.path.join(DATA_DIR, "srr_catalog_*.jsonl")))
     files += sorted(glob.glob(os.path.join(CACHE_DIR, "*.json")))
     files += sorted(p for p in glob.glob(os.path.join(DATA_DIR, "seen_*.txt")))
+    # The GeoNames extract used to validate locations, so a restored catalog
+    # rebuilds with the same gazetteer (see geo.py).
+    files += sorted(glob.glob(os.path.join(DATA_DIR, "reference", "geonames", "*")))
     return [f for f in files if os.path.getsize(f) > 0 or f.endswith(".txt")]
 
 
@@ -174,6 +177,10 @@ def _merge_into_local(tmp: str, manifest: Dict[str, Any]) -> int:
             if extra:
                 with open(dst, "a", encoding="utf-8") as fh:
                     fh.write("\n".join(extra) + "\n")
+        elif os.sep + "reference" + os.sep in dst or "/reference/" in dst:
+            if not os.path.exists(dst):               # keep the local gazetteer; add it if missing
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                shutil.copy2(src, dst)
         elif dst.endswith(".json"):
             with open(src, encoding="utf-8") as fh:
                 remote = json.load(fh)

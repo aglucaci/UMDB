@@ -653,7 +653,7 @@
           <tbody>
             ${rows.map((item) => `
               <tr>
-                <td>${item.name}</td>
+                <td>${window.UMDBDB.escapeHtml(item.name)}</td>
                 <td class="mono">${fmt(item.count)}</td>
                 <td class="mono">${pct(item.count, total)}</td>
               </tr>
@@ -662,6 +662,11 @@
         </table>
       `;
     }
+
+    // BioSample counts per project come from projects.json (exact); the
+    // run-level records used for charts carry no BioSample identifiers.
+    let projectSamples = new Map();
+    window.UMDBDB.fetchProjectsIndex().then((m) => { projectSamples = m; }).catch(() => {});
 
     function renderProjectTable(projects, searchValue) {
       const needle = (searchValue || "").toLowerCase().trim();
@@ -687,12 +692,12 @@
           <tbody>
             ${rows.map((p) => `
               <tr>
-                <td class="mono">${p.accession}</td>
-                <td>${p.title || "Untitled project"}</td>
+                <td class="mono">${window.UMDBDB.escapeHtml(p.accession)}</td>
+                <td>${window.UMDBDB.escapeHtml(p.title || "Untitled project")}</td>
                 <td class="mono">${fmt(p.runs.size)}</td>
-                <td class="mono">${fmt(p.biosamples.size)}</td>
-                <td>${Array.from(p.countries).filter(Boolean).slice(0, 3).join(", ") || "(unknown)"}</td>
-                <td>${Array.from(p.assays).filter(Boolean).slice(0, 3).join(", ") || "Unknown"}</td>
+                <td class="mono">${fmt(projectSamples.get(p.accession)?.samples ?? 0)}</td>
+                <td>${window.UMDBDB.escapeHtml(Array.from(p.countries).filter(Boolean).slice(0, 3).join(", ") || "(unknown)")}</td>
+                <td>${window.UMDBDB.escapeHtml(Array.from(p.assays).filter(Boolean).slice(0, 3).join(", ") || "Unknown")}</td>
               </tr>
             `).join("") || `<tr><td colspan="6" class="muted">No BioProjects match the current filter.</td></tr>`}
           </tbody>
@@ -945,7 +950,7 @@
         // BioSamples across groups, and carries no download paths).
         try {
           const exact = await window.UMDBDB.fetchSummary();
-          for (const k of ["totalRuns", "totalBioSamples", "downloadableRuns", "geoResolvedRuns"]) {
+          for (const k of ["totalRuns", "totalBioSamples", "totalProjects", "totalCountries", "totalCities", "downloadableRuns", "geoResolvedRuns"]) {
             if (exact && exact[k] != null) summary[k] = exact[k];
           }
         } catch (e) { /* keep computed values */ }
@@ -968,8 +973,8 @@
           <div class="metric"><span class="label">SRR Records</span><span class="value">${fmt(summary.totalRuns)}</span><span class="note">Run-level records in the current public release</span></div>
           <div class="metric"><span class="label">BioProjects</span><span class="value">${fmt(summary.totalProjects)}</span><span class="note">Distinct project groups represented in the database</span></div>
           <div class="metric"><span class="label">BioSamples</span><span class="value">${fmt(summary.totalBioSamples)}</span><span class="note">Unique BioSample accessions observed across loaded runs</span></div>
-          <div class="metric"><span class="label">Resolved Countries</span><span class="value">${fmt(summary.totalCountries)}</span><span class="note">Distinct non-unknown country labels in the current release</span></div>
-          <div class="metric"><span class="label">Resolved Cities</span><span class="value">${fmt(summary.totalCities)}</span><span class="note">Distinct non-unknown city labels in the current release</span></div>
+          <div class="metric"><span class="label">Resolved Countries</span><span class="value">${fmt(summary.totalCountries)}</span><span class="note">Countries validated against ISO 3166</span></div>
+          <div class="metric"><span class="label">Resolved Cities</span><span class="value">${fmt(summary.totalCities)}</span><span class="note">Validated GeoNames cities and towns</span></div>
           <div class="metric"><span class="label">Geo Completeness</span><span class="value">${geoPct}%</span><span class="note">Runs with both country and city currently resolved</span></div>
           <div class="metric"><span class="label">Download Paths</span><span class="value">${downloadPct}%</span><span class="note">Runs carrying a source download path in the loaded metadata</span></div>
           <div class="metric"><span class="label">Largest BioProject</span><span class="value">${largestProject ? fmt(largestProject.runs.size) : "0"}</span><span class="note">${largestProject ? largestProject.accession : "Unavailable"}</span></div>
