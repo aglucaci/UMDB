@@ -263,8 +263,8 @@
     map.getSource("small-countries").setData({ type: "FeatureCollection", features: smalls });
 
     // Reported coordinates of matching samples (all filters applied).
-    const pts = (result.points || []).map((p) => ({ type: "Feature", geometry: { type: "Point", coordinates: [p.lon, p.lat] },
-      properties: { n: p.n, ctx: p.ctx, color: (CTX[p.ctx] || CTX[""])[1] } }));
+    const pts = (result.points || []).map((p, i) => ({ type: "Feature", geometry: { type: "Point", coordinates: [p.lon, p.lat] },
+      properties: { n: p.n, ctx: p.ctx, pi: i, color: (CTX[p.ctx] || CTX[""])[1] } }));
     map.getSource("sites").setData({ type: "FeatureCollection", features: pts });
     map.getSource("env").setData({ type: "FeatureCollection", features: pts });
 
@@ -313,6 +313,51 @@
     if (geometry.type === "Polygon") return { ...geometry, coordinates: geometry.coordinates.map(fixRing) };
     if (geometry.type === "MultiPolygon") return { ...geometry, coordinates: geometry.coordinates.map((poly) => poly.map(fixRing)) };
     return geometry;
+  }
+
+  // "40.75° N, 73.99° W" for a [lon, lat] pair.
+  function coordText([lon, lat], digits){
+    const d = digits ?? 2;
+    return `${Math.abs(lat).toFixed(d)}° ${lat >= 0 ? "N" : "S"}, ${Math.abs(lon).toFixed(d)}° ${lon >= 0 ? "E" : "W"}`;
+  }
+
+  // Click on a site: load the studies whose samples are there and list the
+  // matching BioSamples with their exact submitted coordinates.
+  let sitePopup = null;
+  async function showSite(feature, lngLat){
+    const pt = (result.points || [])[feature.properties.pi];
+    if (!pt) return;
+    if (sitePopup) sitePopup.remove();
+    sitePopup = new maplibregl.Popup({ maxWidth: "420px" }).setLngLat(lngLat)
+      .setHTML(`<strong>${coordText([pt.lon, pt.lat])}</strong> (rounded to 0.01°)<br>${fmt(pt.n)} BioSamples · loading…`).addTo(map);
+    const projects = [...pt.projects].slice(0, 12);
+    const rows = [];
+    const same = (v, w) => v != null && Math.round(v * 100) / 100 === w;
+    for (const acc of projects){
+      try {
+        const { samples, runs } = await U.fetchProject(acc);
+        const assays = new Map();
+        runs.forEach((r) => { const k = r._sample.accession; if (!assays.has(k)) assays.set(k, []); assays.get(k).push(r.assay.assay_class); });
+        for (const smp of samples){
+          if (!smp.accession || !same(smp.lat, pt.lat) || !same(smp.lon, pt.lon)) continue;
+          if ((smp.urban_context || "") !== pt.ctx) continue;
+          if (!E.sampleMatches(filters, smp, assays.get(smp.accession))) continue;
+          rows.push({ acc: smp.accession, project: acc, lat: smp.lat, lon: smp.lon, place: [smp.city, smp.country].filter(Boolean).join(", "),
+                      status: smp.location_status || "unresolved", date: smp.collection_date || "" });
+        }
+      } catch (err) { /* skip a study that fails to load */ }
+    }
+    if (!sitePopup.isOpen()) return;
+    const shown = rows.slice(0, 25);
+    sitePopup.setHTML(`<strong>${coordText([pt.lon, pt.lat])}</strong> (rounded to 0.01°)<br>${fmt(pt.n)} BioSamples${pt.projects.size > projects.length ? `, from ${fmt(pt.projects.size)} studies (first ${projects.length} loaded)` : ""}
+      <div style="max-height:240px;overflow:auto;margin-top:6px"><table style="min-width:0;font-size:12px">
+      <thead><tr><th style="padding:4px 6px">BioSample</th><th style="padding:4px 6px">Latitude, longitude</th><th style="padding:4px 6px">Place</th></tr></thead>
+      <tbody>${shown.map((r) => `<tr><td style="padding:4px 6px" class="mono"><a href="https://www.ncbi.nlm.nih.gov/biosample/${encodeURIComponent(r.acc)}" target="_blank" rel="noopener">${esc(r.acc)}</a></td>
+        <td style="padding:4px 6px" class="mono">${esc(String(r.lat))}, ${esc(String(r.lon))}</td>
+        <td style="padding:4px 6px">${esc(r.place || "—")}</td></tr>`).join("")}</tbody></table></div>
+      ${rows.length > shown.length ? `<div class="note">Showing 25 of ${fmt(rows.length)}.</div>` : ""}
+      ${!rows.length ? `<div class="note">No samples could be listed for this point.</div>` : ""}
+      <div class="note" style="margin-top:4px">Coordinates as submitted to NCBI BioSample (decimal degrees).</div>`);
   }
 
   function bboxOf(feature){
@@ -394,9 +439,11 @@
       });
       hover("small-countries", (f) => `<strong>${esc(f.properties.name)}</strong><br>${fmt(f.properties.n)} BioSamples`);
       hover("sites-clusters", (f) => `${fmt(f.properties.n)} BioSamples<br><span class="note">Click to zoom in</span>`);
-      hover("sites-single", (f) => `${fmt(f.properties.n)} BioSamples at this site`);
-      hover("env-points", (f) => `${esc((CTX[f.properties.ctx] || CTX[""])[0])}<br>${fmt(f.properties.n)} BioSamples`);
-      hover("place", (f) => `<strong>${esc(f.properties.name)}</strong><br>Validated place (GeoNames)`);
+      hover("sites-single", (f) => `${coordText(f.geometry.coordinates)}<br>${fmt(f.properties.n)} BioSamples<br><span class="note">Click to list them</span>`);
+      hover("env-points", (f) => `${esc((CTX[f.properties.ctx] || CTX[""])[0])}<br>${coordText(f.geometry.coordinates)}<br>${fmt(f.properties.n)} BioSamples<br><span class="note">Click to list them</span>`);
+      hover("place", (f) => `<strong>${esc(f.properties.name)}</strong><br>${coordText(f.geometry.coordinates, 4)}<br>Validated place (GeoNames)`);
+      map.on("click", "sites-single", (e) => { popup.remove(); showSite(e.features[0], e.lngLat); });
+      map.on("click", "env-points", (e) => { popup.remove(); showSite(e.features[0], e.lngLat); });
 
       map.on("click", "sites-clusters", async (e) => {
         const f = e.features[0];
