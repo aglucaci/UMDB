@@ -195,7 +195,7 @@
       <div class="panel export-panel" id="export-panel" hidden></div>
 
       <div class="panel x-results" style="margin-top:10px">
-        <div id="results"><div class="x-empty">Loading the catalogue…</div></div>
+        <div id="results"><div class="x-empty">Loading the catalog…</div></div>
       </div>
     </main>
   </div>
@@ -349,7 +349,7 @@
     if (filters.tier.length) probe("With every urban status", { tier: [] });
     return `<div class="x-empty"><strong>No records match these filters.</strong>
       ${tries.length ? `<p>Loosening one filter would help:</p><ul>${tries.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>`
-                     : "<p>The catalogue has no records with this combination of metadata.</p>"}</div>`;
+                     : "<p>The catalog has no records with this combination of metadata.</p>"}</div>`;
   }
 
   function renderStudies(){
@@ -678,7 +678,7 @@
     update();
     if (filters.project) openDrawer(filters.project);
   }).catch((err) => {
-    $("results").innerHTML = `<div class="x-empty"><strong>The catalogue could not be loaded.</strong><p>${esc(err.message)}</p></div>`;
+    $("results").innerHTML = `<div class="x-empty"><strong>The catalog could not be loaded.</strong><p>${esc(err.message)}</p></div>`;
   });
 })();
 </script>
