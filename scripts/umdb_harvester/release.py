@@ -1,19 +1,28 @@
 """Versioned UMDB data releases from the SQLite database.
 
-Writes, into dist/releases/<version>/:
+Writes dist/releases/<version>/:
 
-  projects.parquet, samples.parquet, experiments.parquet, runs.parquet,
-  project_samples.parquet, ai_annotations.parquet   normalized tables
-  umdb_samples.parquet   one row per BioSample with its accepted context
-  umdb_runs.parquet      one row per run joined to sample and experiment
-  umdb_samples.tsv.gz, umdb_runs.tsv.gz              the same, for any tool
-  schema.json            columns and types of every file
-  manifest.json          version, build metadata, row counts, sizes, checksums
-  checksums.sha256       `shasum -a 256 -c checksums.sha256` verifies the files
+  manifest.json            version, build metadata, licences, row counts, sizes, SHA-256 of every file
+  schema.json              columns and types of every table
+  checksums.sha256         `shasum -a 256 -c checksums.sha256` verifies the release
+  .zenodo.json             deposit metadata for a versioned Zenodo record (DOI)
+  umdb.sqlite.zst          the query database (.gz when zstd is unavailable)
+  parquet/                 normalized tables: projects, samples, experiments, runs, project_samples,
+                           ai_annotations, countries, admin1, places, sample_locations; the
+                           convenience views umdb_samples and umdb_runs; and three curated layers:
+                             studies           one row per BioProject with sample/run counts and years
+                             locations         each sample's accepted country/region/place with names
+                             curation_evidence each sample's tier, context, reason and evidence
+                             environmental_metadata  MIxS/environment fields and submitted attributes
+  tsv/                     umdb_samples.tsv.gz, umdb_runs.tsv.gz for any tool
+  indexes/                 summary.json, coverage.json (per country, with population), projects.json
+  collections/             collections.json and <slug>.tsv.gz run lists (see cohorts.py)
+  documentation/           DATA_DICTIONARY.md, ARCHITECTURE.md, INCLUSION_CRITERIA.md, CURATION.md, LICENSE
 
 Parquet needs pyarrow (pip install -r requirements-release.txt). Everything
 else in UMDB stays standard-library only. Releases are not committed to git:
-attach the folder to a GitHub Release or deposit it in Zenodo for a DOI.
+attach the folder to a GitHub Release, upload it to object storage, or deposit
+it in Zenodo for a DOI.
 """
 from __future__ import annotations
 
@@ -23,6 +32,7 @@ import gzip
 import hashlib
 import json
 import os
+import shutil
 import sqlite3
 import time
 from typing import Any, Dict, List
@@ -40,6 +50,41 @@ TABLES = ["projects", "samples", "experiments", "runs", "project_samples", "ai_a
           "countries", "admin1", "places", "sample_locations"]
 VIEWS = ["umdb_samples", "umdb_runs"]
 TSV_VIEWS = ["umdb_samples", "umdb_runs"]
+# Curated layers, defined as queries so the release does not depend on new tables.
+DERIVED = {
+    "studies": """
+        SELECT p.accession AS bioproject, p.title, p.center_name, p.data_type, p.submission_date,
+               count(DISTINCT r.sample_accession) AS biosamples, count(r.accession) AS runs,
+               sum(r.bases) AS bases, min(r.release_year) AS first_release_year, max(r.release_year) AS last_release_year
+        FROM projects p LEFT JOIN runs r ON r.project_accession = p.accession
+        GROUP BY p.accession""",
+    "locations": """
+        SELECT l.sample_accession AS biosample, l.country_iso2, co.name AS country, l.country_status,
+               l.admin1_code, a1.name AS region, l.place_id, pl.name AS place, pl.population AS place_population,
+               pl.lat AS place_lat, pl.lon AS place_lon, l.status AS place_status, l.method, l.distance_km,
+               l.coord_decimals, s.lat AS reported_lat, s.lon AS reported_lon, s.geo_loc_raw AS submitted_text,
+               l.geo_rules_version
+        FROM sample_locations l JOIN samples s ON s.accession = l.sample_accession
+        LEFT JOIN countries co ON co.iso2 = l.country_iso2
+        LEFT JOIN admin1 a1 ON a1.code = l.admin1_code
+        LEFT JOIN places pl ON pl.geonames_id = l.place_id""",
+    "curation_evidence": """
+        SELECT accession AS biosample, urban_status, urban_context, urban_contexts, environmental_sample,
+               eligibility_reason, eligibility_evidence, rules_version
+        FROM samples""",
+    "environmental_metadata": """
+        SELECT accession AS biosample, isolation_source, env_broad_scale, env_local_scale, env_medium, host,
+               collection_date_raw, collection_date, collection_year, attributes_json
+        FROM samples""",
+}
+DOCS = ["DATA_DICTIONARY.md", "ARCHITECTURE.md", "INCLUSION_CRITERIA.md", "CURATION.md", "LICENSE"]
+LICENSES = {
+    "umdb_curation": "CC-BY-NC-SA-4.0: UMDB's annotations, eligibility tiers, validated locations, collections, "
+                     "derived tables, code and documentation",
+    "upstream_records": "Sequence data and submitter metadata remain governed by the INSDC policies of their source "
+                        "archives (NCBI SRA/BioSample/BioProject, ENA, DDBJ); UMDB redistributes metadata only",
+    "geonames": "Place names and identifiers from GeoNames, CC BY 4.0",
+}
 
 
 def _sha256(path: str) -> str:
@@ -97,39 +142,78 @@ def write_release(version: str = "", db_path: str = DB_PATH, out_root: str = REL
     files: Dict[str, Dict[str, Any]] = {}
     log(f"Writing release {paint(version, 'num')} to {out}/ from {db_path}")
 
-    for name in TABLES + VIEWS:
-        cols = [(c, t) for c, t in _column_types(con, name) if c not in DROP_COLUMNS.get(name, set())]
+    os.makedirs(os.path.join(out, "parquet"), exist_ok=True)
+    os.makedirs(os.path.join(out, "tsv"), exist_ok=True)
+
+    def write_table(name: str, cols: List[tuple], rows: List[tuple]) -> None:
         names = [c for c, _ in cols]
-        rows = con.execute(f"SELECT {', '.join(names)} FROM {name}").fetchall()
         arrays = []
         for i, (col, decl) in enumerate(cols):
             typ = _arrow_type(pa, col, decl)
             values = [r[i] for r in rows]
             if typ == pa.date32():
-                values = [dt.date.fromisoformat(v) if v else None for v in values]
+                values = [_date(v) for v in values]
             arrays.append(pa.array(values, type=typ))
-        table = pa.Table.from_arrays(arrays, names=names)
-        path = os.path.join(out, f"{name}.parquet")
-        pq.write_table(table, path, compression="zstd")
+        rel = f"parquet/{name}.parquet"
+        pq.write_table(pa.Table.from_arrays(arrays, names=names), os.path.join(out, rel), compression="zstd")
         schema[name] = {"rows": len(rows), "columns": [{"name": c, "type": str(_arrow_type(pa, c, t))} for c, t in cols]}
-        files[f"{name}.parquet"] = {"rows": len(rows)}
-        log(f"  {name}.parquet: {num(len(rows))} rows, {os.path.getsize(path) / 1e6:.1f} MB")
-
+        files[rel] = {"rows": len(rows)}
+        log(f"  {rel}: {num(len(rows))} rows, {os.path.getsize(os.path.join(out, rel)) / 1e6:.1f} MB")
         if name in TSV_VIEWS:
-            tsv = os.path.join(out, f"{name}.tsv.gz")
-            with gzip.open(tsv, "wt", encoding="utf-8", newline="") as fh:
+            trel = f"tsv/{name}.tsv.gz"
+            with gzip.open(os.path.join(out, trel), "wt", encoding="utf-8", newline="") as fh:
                 w = csv.writer(fh, delimiter="\t", lineterminator="\n")
                 w.writerow(names)
                 w.writerows([["" if v is None else v for v in r] for r in rows])
-            files[f"{name}.tsv.gz"] = {"rows": len(rows)}
-            log(f"  {name}.tsv.gz: {os.path.getsize(tsv) / 1e6:.1f} MB")
+            files[trel] = {"rows": len(rows)}
+
+    for name in TABLES + VIEWS:
+        cols = [(c, t) for c, t in _column_types(con, name) if c not in DROP_COLUMNS.get(name, set())]
+        rows = con.execute(f"SELECT {', '.join(c for c, _ in cols)} FROM {name}").fetchall()
+        write_table(name, cols, rows)
+    for name, sql in DERIVED.items():
+        cur = con.execute(sql)
+        rows = cur.fetchall()
+        cols = [(d[0], _infer(rows, i)) for i, d in enumerate(cur.description)]
+        write_table(name, cols, rows)
+
+    # ---- web indexes and collections (the same files the website loads)
+    from .site import SITE_DB_DIR
+    from .cohorts import build_collections
+    os.makedirs(os.path.join(out, "indexes"), exist_ok=True)
+    for fname in ("summary.json", "projects.json", "geo.json"):
+        src = os.path.join(SITE_DB_DIR, fname)
+        if os.path.exists(src):
+            shutil.copyfile(src, os.path.join(out, "indexes", fname))
+            files[f"indexes/{fname}"] = {}
+    with open(os.path.join(out, "indexes", "coverage.json"), "w", encoding="utf-8") as fh:
+        json.dump(_coverage(con), fh, indent=1)
+    files["indexes/coverage.json"] = {}
+    coll = build_collections(con, os.path.join(out, "collections_tmp"))
+    shutil.move(os.path.join(out, "collections_tmp", "collections"), os.path.join(out, "collections"))
+    shutil.move(os.path.join(out, "collections_tmp", "collections.json"), os.path.join(out, "collections", "collections.json"))
+    shutil.rmtree(os.path.join(out, "collections_tmp"))
+    for c in coll["collections"]:
+        files[f"collections/{c['slug']}.tsv.gz"] = {"rows": c["summary"]["runs"]}
+    files["collections/collections.json"] = {}
+
+    # ---- documentation and the database itself
+    os.makedirs(os.path.join(out, "documentation"), exist_ok=True)
+    for doc in DOCS:
+        if os.path.exists(doc):
+            shutil.copyfile(doc, os.path.join(out, "documentation", doc))
+            files[f"documentation/{doc}"] = {}
     con.close()
+    dbrel = _compress_db(db_path, out)
+    files[dbrel] = {}
 
     with open(os.path.join(out, "schema.json"), "w", encoding="utf-8") as fh:
         json.dump({"schema_version": SCHEMA_VERSION, "tables": schema}, fh, indent=2)
-    for fname in list(files) + ["schema.json"]:
+    files["schema.json"] = {}
+    for fname in files:
         p = os.path.join(out, fname)
-        files.setdefault(fname, {}).update({"bytes": os.path.getsize(p), "sha256": _sha256(p)})
+        files[fname].update({"bytes": os.path.getsize(p), "sha256": _sha256(p)})
+    counts = {k[len("count_"):]: int(v) for k, v in meta.items() if k.startswith("count_")}
     manifest = {
         "name": "UMDB: Urban Microbiome Database",
         "version": version,
@@ -138,15 +222,92 @@ def write_release(version: str = "", db_path: str = DB_PATH, out_root: str = REL
         "database_built_utc": meta.get("built_utc"),
         "query_profiles_version": meta.get("query_profiles_version"),
         "eligibility_rules_version": meta.get("rules_version"),
+        "geo_rules_version": meta.get("geo_rules_version"),
         "license": "CC-BY-NC-SA-4.0",
-        "counts": {k[len("count_"):]: int(v) for k, v in meta.items() if k.startswith("count_")},
+        "licenses": LICENSES,
+        "counts": counts,
+        "collections": [c["slug"] for c in coll["collections"]],
         "files": files,
     }
     with open(os.path.join(out, "manifest.json"), "w", encoding="utf-8") as fh:
         json.dump(manifest, fh, indent=2)
+    with open(os.path.join(out, ".zenodo.json"), "w", encoding="utf-8") as fh:
+        json.dump(_zenodo(version, meta, counts), fh, indent=2)
     with open(os.path.join(out, "checksums.sha256"), "w", encoding="utf-8") as fh:
-        for fname in sorted(files) + ["manifest.json"]:
+        for fname in sorted(files) + ["manifest.json", ".zenodo.json"]:
             fh.write(f"{_sha256(os.path.join(out, fname))}  {fname}\n")
-    total = sum(os.path.getsize(os.path.join(out, f)) for f in os.listdir(out)) / 1e6
+    total = sum(os.path.getsize(os.path.join(d, f)) for d, _, fs in os.walk(out) for f in fs) / 1e6
     log(f"{paint('Release ready', 'good')}: {out}/ ({total:.1f} MB) in {fmt_duration(time.time() - t0)}")
     return out
+
+
+def _date(v: Any):
+    try:
+        return dt.date.fromisoformat(v) if v else None
+    except ValueError:
+        return None
+
+
+def _infer(rows: List[tuple], i: int) -> str:
+    kinds = {type(r[i]).__name__ for r in rows[:5000] if r[i] is not None}
+    if kinds == {"int"}:
+        return "INTEGER"
+    if kinds and kinds <= {"int", "float"}:
+        return "REAL"
+    return "TEXT"
+
+
+def _compress_db(db_path: str, out: str) -> str:
+    """umdb.sqlite.zst (Python 3.14+ compression.zstd) or umdb.sqlite.gz."""
+    try:
+        from compression import zstd  # type: ignore[import-not-found]
+        rel, opener = "umdb.sqlite.zst", lambda p: zstd.open(p, "wb", level=10)
+    except ImportError:
+        rel, opener = "umdb.sqlite.gz", lambda p: gzip.open(p, "wb", compresslevel=6)
+    with open(db_path, "rb") as src, opener(os.path.join(out, rel)) as dst:
+        shutil.copyfileobj(src, dst, 1 << 20)
+    log(f"  {rel}: {os.path.getsize(os.path.join(out, rel)) / 1e6:.1f} MB")
+    return rel
+
+
+def _coverage(con: sqlite3.Connection) -> Dict[str, Any]:
+    """Urban BioSamples, BioProjects and places per validated country (population added by site.py's reader)."""
+    from .site import _country_population
+    pop = _country_population()
+    rows = con.execute("""
+        SELECT l.country_iso2, co.name, co.continent,
+               count(DISTINCT s.accession) AS biosamples,
+               count(DISTINCT CASE WHEN s.urban_status IN ('confirmed_urban','probable_urban')
+                                   THEN s.accession END) AS urban_biosamples,
+               count(DISTINCT ps.project_accession) AS bioprojects,
+               count(DISTINCT CASE WHEN l.status IN ('verified','probable') THEN l.place_id END) AS places
+        FROM sample_locations l JOIN samples s ON s.accession = l.sample_accession
+        JOIN countries co ON co.iso2 = l.country_iso2
+        LEFT JOIN project_samples ps ON ps.sample_accession = s.accession
+        WHERE l.country_status IN ('verified','probable')
+        GROUP BY l.country_iso2 ORDER BY biosamples DESC""").fetchall()
+    out = []
+    for iso, name, cont, n, u, bp, pl in rows:
+        p = pop.get(iso)
+        out.append({"iso2": iso, "name": name, "continent": cont, "biosamples": n, "urban_biosamples": u,
+                    "bioprojects": bp, "places": pl, "population": p,
+                    "urban_biosamples_per_million": round(u / p * 1e6, 3) if p else None})
+    return {"unit": "BioSamples with a validated country", "countries": out}
+
+
+def _zenodo(version: str, meta: Dict[str, str], counts: Dict[str, int]) -> Dict[str, Any]:
+    return {
+        "title": f"UMDB: Urban Microbiome Database, release {version}",
+        "upload_type": "dataset",
+        "version": version,
+        "creators": [{"name": "Lucaci, Alexander G."}],
+        "description": (f"Versioned release of UMDB, a rule-screened catalog of public urban microbiome sequencing "
+                        f"metadata: {counts.get('runs', 0):,} runs, {counts.get('samples', 0):,} BioSamples and "
+                        f"{counts.get('projects', 0):,} BioProjects. Database built {meta.get('built_utc')}, "
+                        f"eligibility rules {meta.get('rules_version')}. Includes Parquet tables, the SQLite "
+                        f"database, web indexes, curated collections and documentation."),
+        "license": "cc-by-nc-sa-4.0",
+        "keywords": ["urban microbiome", "metagenomics", "wastewater", "built environment", "SRA", "metadata"],
+        "related_identifiers": [{"identifier": "https://github.com/aglucaci/UMDB", "relation": "isSupplementTo",
+                                 "scheme": "url"}],
+    }

@@ -15,6 +15,23 @@ https://aglucaci.github.io/UMDB/
 
 > **From catalog to science.** [`pipeline/`](pipeline/README.md) is a Nextflow pipeline (UMDB-SCIENCE) that tests pre-specified hypotheses on a frozen snapshot of the catalog. It covers the research enterprise now, from the database alone: coverage inequality, development, COVID-19, habitat bias, metadata completeness and technology diffusion. It also selects a balanced shotgun cohort and reprocesses it uniformly to test ecological principles: habitat vs geography, functional convergence, scaling laws, prediction in unsampled cities, mobility, connectivity, discovery, seasonality and resistomes. Results so far: [manuscript/catalog_findings](manuscript/catalog_findings/README.md). Programme: [manuscript/research_program.md](manuscript/research_program.md).
 
+## The platform (v1.0)
+
+UMDB is built to take a researcher from a scientific question to an analysis-ready cohort without writing code, and to let a computational biologist do the same programmatically.
+
+| Product | Where | What you can do |
+| --- | --- | --- |
+| **Catalog** | [Explorer](https://aglucaci.github.io/UMDB/explorer.html) and a page for every [study](https://aglucaci.github.io/UMDB/study.html?acc=PRJNA271013), BioSample, run, city, country and habitat | Filter by place, habitat, assay, dates and quality; see submitted next to normalized metadata, curation evidence and quality flags |
+| **Atlas** | [global-map.html](https://aglucaci.github.io/UMDB/global-map.html) | Sample and study density, habitats, samples per capita with surveillance gaps, location confidence; export the visible area |
+| **Analytics** | [analytics.html](https://aglucaci.github.io/UMDB/analytics.html) | Coverage, growth, study concentration, release delay, library sizes, completeness; download any chart as CSV, SVG or PNG |
+| **Workspace** | [workspace.html](https://aglucaci.github.io/UMDB/workspace.html) | Save cohorts, combine them (union, intersection, difference), compare them for imbalance, balance them by city and study with a seed, and download a research package |
+| **Collections** | [collections.html](https://aglucaci.github.io/UMDB/collections.html) | Curated cohorts (global wastewater, transit, urban air, greenspace, virome, resistome) with inclusion criteria and run lists |
+| **Profiles** | v2.0 | Taxonomic and functional profiles from the [UMDB-SCIENCE pipeline](pipeline/README.md) |
+
+A research package contains `cohort.json` (definition, seed and database build), `metadata.tsv`, `runs.tsv` (also the pipeline's `--cohort` input), `accessions.txt`, `download_fastq.sh`, an nf-core/taxprofiler `samplesheet.csv`, `cohort_summary.json`, starter `analysis.py` and `analysis.R`, and `CITATION.bib`. The browser and `umdb cohort export` produce the same samples. Status, design decisions and what is left before v1.0.0: [ROADMAP.md](ROADMAP.md).
+
+**Licensing.** UMDB's curation, annotations, collections and derived tables are CC BY-NC-SA 4.0. Sequence data and submitter metadata remain governed by the INSDC policies of their source archives (NCBI, ENA, DDBJ).
+
 ## Documentation
 
 | Document | For |
@@ -27,6 +44,7 @@ https://aglucaci.github.io/UMDB/
 | [CURATION.md](CURATION.md) | Inclusion criteria, annotation rules, AI review, known limitations |
 | [pipeline/README.md](pipeline/README.md) | **Research pipeline (Nextflow)**: hypotheses, methods, decision rules, parameters, how to add a test |
 | [manuscript/research_program.md](manuscript/research_program.md) | The research programme built on UMDB: hypotheses, papers, flagship analysis, external data |
+| [ROADMAP.md](ROADMAP.md) | The v1.0 platform: products, routes, design decisions, performance targets, what is left |
 | [CHANGELOG.md](CHANGELOG.md) | What changed, including effects on catalog counts |
 | [SECURITY.md](SECURITY.md) | Reporting vulnerabilities, handling API keys |
 | [CITATION.cff](CITATION.cff) | How to cite UMDB |
@@ -50,7 +68,8 @@ umdb serve                                # preview at http://localhost:8000
 | `umdb compact` | Rewrite `data/` keeping only the newest record per run |
 | `umdb scrub` | Remove `api_key=` / `email=` from stored NCBI URLs in `data/`, `docs/` and `logs/` |
 | `umdb db build` / `info` / `shell` / `query "SQL"` | Build and query the SQLite database `data/umdb.sqlite` (normalized, indexed, full-text search) |
-| `umdb release [--version V]` | Write a versioned Parquet + TSV release with schema, manifest and checksums (`pip install -r requirements-release.txt`) |
+| `umdb release [--version V]` | Write a versioned release: Parquet tables, TSV, compressed SQLite, indexes, collections, documentation, schema, manifest, checksums and Zenodo metadata (`pip install -r requirements-release.txt`) |
+| `umdb cohort list` / `collection SLUG` / `export cohort.json` | Research packages for curated collections or for cohorts saved in the website Workspace (`--max-per-cell`, `--max-per-project`, `--target`, `--seed` to balance) |
 | `umdb export` | Rebuild `data/umdb.sqlite` and the website data in `docs/db/` offline (re-applies geo, assay and eligibility rules) |
 | `umdb catalog pull` / `push` | Restore or upload the harvested catalog (`data/`), which lives in GitHub Release assets, not git |
 | `umdb repair` | Re-fetch BioProjects cached under the wrong accession |
@@ -75,15 +94,13 @@ Rather than operating as a traditional server-backed application, the repository
 
 The published site includes:
 
-- a searchable BioProject explorer
-- expandable SRR-level detail views
-- filter controls for geography, assay class, center, and year
-- search-derived dataset bundling for matched SRR cohorts
-- exportable SRR accession lists and FASTQ download scripts
-- downloadable JSON artifacts under `docs/db/`
-- reviewer-facing pages such as `About`, `Methodology`, and `Data Access`
-- summary analytics across countries, cities, years, centers, and assay classes
-- a global map view of country-level coverage
+- a home page that resolves BioProject, BioSample and run accessions straight to their pages
+- the Explorer: studies, BioSamples and runs filtered by validated place, habitat, assay, collection and release year, eligibility tier and location quality, with every filter in the page address
+- record pages for studies, BioSamples, runs, cities, countries and habitats, showing submitted and normalized metadata side by side with evidence, quality flags, provenance and downloads
+- the Atlas: country coverage, sampling sites, habitats, study density, samples per capita with surveillance gaps, and location confidence
+- Analytics with downloadable charts (CSV, SVG, PNG)
+- the Workspace and Collections (see above)
+- reviewer-facing pages: `About`, `Methodology`, `Data Access`
 
 ## How The Repository Works
 
@@ -169,21 +186,24 @@ UMDB/
 │   ├── srr_catalog_<YEAR>*.jsonl
 │   └── umdb.sqlite
 ├── docs/
-│   ├── index.html
-│   ├── about.html
-│   ├── methodology.html
-│   ├── data.html
-│   ├── analytics.html
-│   ├── global-map.html
+│   ├── index.html, explorer.html, global-map.html (Atlas), analytics.html
+│   ├── study.html, sample.html, run.html, city.html, country.html, habitat.html
+│   ├── collections.html, workspace.html, 404.html (short routes)
+│   ├── about.html, methodology.html, data.html
 │   ├── latest_srr.json
 │   ├── assets/
-│   │   ├── db.js
+│   │   ├── db.js            query engine shared by every page
+│   │   ├── ui.js            labels, charts, workspace storage
+│   │   ├── entity.js, collections.js, workspace.js
+│   │   ├── cohort-templates.json
 │   │   └── site.css
 │   └── db/
 │       ├── summary.json
 │       ├── cube.json
 │       ├── projects.json
-│       ├── manifest.json
+│       ├── manifest.json, analytics.json, population.json, collections.json
+│       ├── collections/<slug>.tsv.gz
+│       ├── ix/<NN>.json      accession -> project lookup
 │       └── p/<BioProject>.json
 ├── logo/
 ├── manuscript/                 resource-paper draft, research programme, catalog findings

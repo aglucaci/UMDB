@@ -329,7 +329,7 @@
       opts = opts || {};
       const c = compile(f);
       const facets = { country: new Map(), region: new Map(), city: new Map(), tier: new Map(), context: new Map(),
-                       assay: new Map(), loc: new Map(), cyear: new Map(), year: new Map() };
+                       assay: new Map(), loc: new Map(), cyear: new Map(), year: new Map(), countryProjects: new Map() };
       const out = { samples: 0, runs: 0, gbases: 0, samplesNoCyear: 0, samplesNoCountry: 0, samplesNoPlace: 0,
                     projSamples: new Map(), projRuns: new Map(), points: opts.points ? new Map() : null };
       const one = (m, bit) => m === 0 || m === (1 << bit);
@@ -356,7 +356,14 @@
             target.tiers.set(tiers[row[s.tier]], (target.tiers.get(tiers[row[s.tier]]) || 0) + n);
           }
         }
-        if (one(m, F.country) && row[s.country] != null) bump(facets.country, row[s.country], "samples", n);
+        if (one(m, F.country) && row[s.country] != null){
+          bump(facets.country, row[s.country], "samples", n);
+          if (opts.countryProjects){
+            let set = facets.countryProjects.get(row[s.country]);
+            if (!set){ set = new Set(); facets.countryProjects.set(row[s.country], set); }
+            for (const p of SD.projsets[row[s.proj]]) set.add(p);
+          }
+        }
         if (one(m, F.region) && row[s.admin1] != null) bump(facets.region, row[s.admin1], "samples", n);
         if (one(m, F.city) && row[s.place] != null) bump(facets.city, row[s.place], "samples", n);
         if (one(m, F.tier)) bump(facets.tier, tiers[row[s.tier]], "samples", n);
@@ -423,13 +430,97 @@
       return tiersOk && ctxOk && countryOk && placeOk && regionOk && locOk && cyOk && assayOk;
     }
 
+    // Sample-cube rows matching the filters, as a 0/1 mask. Each BioSample is in
+    // exactly one row, so masks combine exactly: union, intersection, difference.
+    function rowMask(f){
+      const c = compile(f);
+      const m = new Uint8Array(S.length);
+      for (let i = 0; i < S.length; i += 1) if (sampleMask(c, S[i]) === 0) m[i] = 1;
+      return m;
+    }
+    function combineMasks(op, a, b){
+      const m = new Uint8Array(a.length);
+      for (let i = 0; i < a.length; i += 1){
+        m[i] = op === "union" ? (a[i] | b[i]) : op === "intersection" ? (a[i] & b[i]) : (a[i] & (1 - b[i]));
+      }
+      return m;
+    }
+    // Exact BioSample totals and distributions for a row mask (runs are not in the sample cube).
+    function summarizeMask(mask){
+      const out = { samples: 0, projects: new Map(), habitat: new Map(), assay: new Map(), country: new Map(),
+                    continent: new Map(), cyear: new Map(), tier: new Map(), loc: new Map(), place: new Map() };
+      const add = (map, k, n) => map.set(k, (map.get(k) || 0) + n);
+      for (let i = 0; i < S.length; i += 1){
+        if (!mask[i]) continue;
+        const row = S[i], n = row[s.n];
+        out.samples += n;
+        for (const p of SD.projsets[row[s.proj]]) add(out.projects, p, n);
+        add(out.habitat, contexts[row[s.ctx]] || "", n);
+        for (const a of SD.assaysets[row[s.assays]]) add(out.assay, assays[a], n);
+        const ctry = row[s.country] == null ? null : geo.countries[row[s.country]];
+        add(out.country, ctry ? ctry.iso2 : "", n);
+        add(out.continent, ctry ? ctry.continent : "", n);
+        add(out.cyear, row[s.cyear] == null ? "" : String(row[s.cyear]), n);
+        add(out.tier, tiers[row[s.tier]], n);
+        add(out.loc, geo.statuses[row[s.loc]], n);
+        if (row[s.place] != null) add(out.place, geo.places[row[s.place]].geonames_id, n);
+      }
+      return out;
+    }
+    // Does one sample from a project file satisfy every filter, including the
+    // project-level ones (text search, project) and the release-year range?
+    function sampleMatchesFull(f, sample, runAssays, projectAccession, releaseYear){
+      if (!sampleMatches(f, sample, runAssays)) return false;
+      if (f.project && projectAccession !== f.project) return false;
+      const q = norm(f.q).toLowerCase();
+      if (q){
+        const pi = projectAcc.indexOf(projectAccession);
+        const text = pi >= 0 ? searchText[pi] : "";
+        if (!q.split(/\s+/).filter(Boolean).every((w) => text.includes(w))) return false;
+      }
+      return inRange(releaseYear, f.ymin, f.ymax);
+    }
+
     return {
       geo, projects, projectAcc, projectInfo, assays, tiers, contexts,
-      query, sampleMatches, emptyFilters,
+      query, sampleMatches, sampleMatchesFull, emptyFilters, rowMask, combineMasks, summarizeMask,
       countryName: (iso) => geo.countryByIso.get(iso)?.name || iso,
       placeName: (id) => geo.placeById.get(String(id))?.name || String(id)
     };
   }
+
+  // ---------------------------------------------------------------- accession lookup
+  // docs/db/ix/<NN>.json maps every BioSample and run accession to its project
+  // (an index into projects.json rows), split by the accession's last two digits.
+  function ixBucket(acc){
+    const d = norm(acc).replace(/\D/g, "");
+    return d ? d.slice(-2).padStart(2, "0") : "xx";
+  }
+  let projectOrderPromise = null;
+  function projectOrder(){
+    if (!projectOrderPromise){
+      projectOrderPromise = fetchJson(URLS.projects).then((doc) => doc.rows.map((r) => r[0]))
+        .catch((err) => { projectOrderPromise = null; throw err; });
+    }
+    return projectOrderPromise;
+  }
+  async function lookupAccession(acc){
+    const a = norm(acc).toUpperCase();
+    if (/^PRJ[A-Z]{1,2}\d+$/.test(a)) return { kind: "study", project: a };
+    const [ix, order] = await Promise.all([fetchJson(`./db/ix/${ixBucket(a)}.json`).catch(() => ({ entries: {} })), projectOrder()]);
+    const i = (ix.entries || {})[a];
+    if (i == null) return null;
+    const kind = /^(SAM|SAMN|SAMEA|SAMD)/.test(a) ? "sample" : "run";
+    return { kind, project: order[i] };
+  }
+  function accessionKind(acc){
+    const a = norm(acc).toUpperCase();
+    if (/^PRJ[A-Z]{1,2}\d+$/.test(a)) return "study";
+    if (/^SAM[A-Z]{0,2}\d+$/.test(a)) return "sample";
+    if (/^[SED]RR\d+$/.test(a)) return "run";
+    return "";
+  }
+  const fetchCollections = () => fetchJson("./db/collections.json");
 
   // ---------------------------------------------------------------- legacy API
   // The Analytics page still works on record-shaped groups (one per run-cube
@@ -562,6 +653,7 @@
   const api = {
     fetchManifest, fetchSummary, fetchGeo, fetchSampleCube, fetchCube, fetchProjectsIndex, fetchProject, shardName,
     openIndex, emptyFilters, filtersFromURL, filtersToParams, filtersToURL, DEFAULT_TIERS, FILTER_KEYS,
+    lookupAccession, accessionKind, fetchCollections,
     fetchGroups, fetchAllRuns, groupProjects, summarize, topItems, formatNumber, escapeHtml, yearFromRecord,
     getCountry, getCity, getAssay, getCenter, getBioProject, getBioSample, getAiCuration
   };

@@ -47,6 +47,23 @@ The site loads `summary.json`, `geo.json`, `samples.json`, `cube.json` and `proj
 
 `docs/assets/db.js` turns these into a query engine shared by the Explorer and the Map. A single pass over each cube computes the totals and, for every filter, the counts it would have with all other filters applied, so cascading country → region → city lists only offer combinations that exist. Filters live in the page address (`?country=US&region=US.NY&city_id=5128581&cyear=2018-2020`), so a selection on one page opens identically on the other. A test checks the cube totals against `COUNT(DISTINCT …)` in SQLite. Built by `site.py`; unchanged files are left untouched. Field reference: [DATA_DICTIONARY.md](DATA_DICTIONARY.md#published-files-docs).
 
+### v1.0 platform pages
+
+The site is static (no build step, no server). Every page reads the files above through `docs/assets/db.js`:
+
+| Page | Route | What it reads |
+| --- | --- | --- |
+| Explorer, Atlas | `explorer.html`, `global-map.html` | the cubes (`samples.json`, `cube.json`), `geo.json`, `population.json` (per-capita layer) |
+| Study, BioSample, run | `study.html?acc=`, `sample.html?acc=`, `run.html?acc=` | `p/<ACC>.json`; BioSamples and runs are found through `ix/<NN>.json` |
+| City, country, habitat | `city.html?id=`, `country.html?iso=`, `habitat.html?id=` | the cubes, filtered like the Explorer |
+| Collections | `collections.html[?slug=]` | `collections.json`, `collections/<slug>.tsv.gz` |
+| Workspace | `workspace.html` | the cubes (exact set operations over sample-cube rows) and project files (export) |
+| Analytics | `analytics.html` | `cube.json`, `summary.json`, `analytics.json` |
+
+`404.html` maps the routes `/study/<acc>`, `/sample/<acc>`, `/run/<acc>`, `/city/<id>`, `/country/<iso>`, `/habitat/<slug>` and `/collection/<slug>` to these pages on GitHub Pages. `assets/ui.js` holds shared labels, charts (each downloadable as CSV, and SVG charts as SVG or PNG) and Workspace storage (`localStorage`, key `umdb.workspace.v1`).
+
+Because each BioSample is in exactly one sample-cube row, a cohort is a 0/1 mask over rows, and union, intersection and difference of cohorts are exact. Exporting a cohort loads the project files it touches and applies the same filters per sample (`sampleMatchesFull`); `scripts/umdb_harvester/cohorts.py` implements the same filters in SQL, and the same seeded balancing, so `umdb cohort export cohort.json` gives the same samples as the browser.
+
 ## Location validation
 
 Raw `geo_loc_name` text is free-form ("USA: New York, NY", "China:Hanzhou", "R10016"). `geo.py` resolves every sample at build time, offline, against GeoNames (cities500, admin1 codes, countryInfo): country → ISO 3166-1, region → admin1 code, place → GeoNames id, checked against reported coordinates. Each distinct location string is resolved once (about 7 s for 406,000 samples). The output is one row per sample in `sample_locations` with a status (verified, probable, ambiguous, conflicting, unresolved), the method and the evidence; see [DATA_DICTIONARY.md](DATA_DICTIONARY.md#validated-locations). Maps, filters, summaries and exports use only this table. Rules worth knowing:
@@ -117,7 +134,7 @@ pip install -r requirements-release.txt     # pyarrow (+ duckdb for analysis); o
 umdb release --version 1.0.0                # or omit --version for today's date
 ```
 
-This writes `dist/releases/1.0.0/`:
+This writes `dist/releases/1.0.0/` (normalized tables under `parquet/`, plus `studies`, `locations`, `curation_evidence` and `environmental_metadata` layers, `tsv/`, `indexes/`, `collections/`, `documentation/`, the compressed database, `.zenodo.json`; the table below lists the core files):
 
 | File | Contents |
 | --- | --- |
@@ -132,7 +149,7 @@ Parquet files use Zstandard compression, typed integers, floats and dates, and N
 
 ```sql
 SELECT urban_context, count(*) AS samples
-FROM read_parquet('dist/releases/1.0.0/umdb_samples.parquet')
+FROM read_parquet('dist/releases/1.0.0/parquet/umdb_samples.parquet')
 WHERE urban_status IN ('confirmed_urban', 'probable_urban')
 GROUP BY 1 ORDER BY samples DESC;
 ```

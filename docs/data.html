@@ -28,12 +28,13 @@
       <div class="site-links">
         <a href="./index.html">Home</a>
         <a href="./explorer.html">Explorer</a>
+        <a href="./global-map.html">Atlas</a>
+        <a href="./analytics.html">Analytics</a>
+        <a href="./collections.html">Collections</a>
+        <a href="./workspace.html">Workspace</a>
+        <a class="is-active" href="./data.html">Downloads</a>
+        <a href="./methodology.html">Methods</a>
         <a href="./about.html">About</a>
-        <a href="./methodology.html">Methodology</a>
-        <a class="is-active" href="./data.html">Data Access</a>
-        <a href="./analytics.html">Analytics</a>
-        <a href="./analytics.html">Analytics</a>
-        <a href="./global-map.html">Global Map</a>
       </div>
     </nav>
 
@@ -137,6 +138,49 @@
           Search for a cohort in the explorer, export the matched SRR bundle, and then run the generated shell script on a machine with
           SRA Toolkit installed. This gives UMDB a practical bridge from searchable metadata to raw FASTQ retrieval.
         </p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>Versioned Releases And Programmatic Access</h2>
+        <p>Every release is an immutable folder with checksums, suitable for a DOI. Query it with DuckDB, Python, R or SQLite; build cohorts from the command line exactly as the Workspace does.</p>
+      </div>
+      <div class="split">
+        <div class="panel">
+          <div class="kicker">Release layout</div>
+          <pre class="mono" style="white-space:pre;overflow:auto;font-size:12.5px;margin:0">releases/&lt;version&gt;/
+├── manifest.json          versions, licences, counts, SHA-256
+├── schema.json            every column and type
+├── checksums.sha256
+├── .zenodo.json           deposit metadata (DOI)
+├── umdb.sqlite.zst        the query database
+├── parquet/               projects, samples, experiments, runs,
+│                          locations, studies, curation_evidence,
+│                          environmental_metadata, umdb_samples, umdb_runs …
+├── tsv/                   umdb_samples.tsv.gz, umdb_runs.tsv.gz
+├── indexes/               summary, coverage (per country), projects, geo
+├── collections/           curated collections and their run lists
+└── documentation/         data dictionary, methods, inclusion criteria</pre>
+        </div>
+        <div class="panel">
+          <div class="kicker">Query it</div>
+          <pre class="mono" style="white-space:pre-wrap;font-size:12.5px;margin:0">-- DuckDB: confirmed-urban wastewater metagenomes by country
+SELECT country_name, count(*) AS samples
+FROM read_parquet('parquet/umdb_samples.parquet')
+WHERE urban_status = 'confirmed_urban'
+  AND urban_context = 'municipal_wastewater'
+  AND assay_classes LIKE '%WGS%'
+GROUP BY 1 ORDER BY 2 DESC;
+
+# A reproducible research package from the command line
+umdb cohort collection global-wastewater --max-per-cell 25 --seed 20261119
+umdb cohort export my_cohort.cohort.json   # saved from the Workspace</pre>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:16px">
+        <div class="kicker">Licensing</div>
+        <p style="margin:0">UMDB's own work (eligibility tiers, habitat annotations, validated locations, collections, derived tables, code and documentation) is licensed CC BY-NC-SA 4.0. The underlying sequence data and submitter metadata are not UMDB's: they remain governed by the INSDC policies of their source archives (NCBI SRA, BioSample and BioProject; ENA; DDBJ). Place names and identifiers come from GeoNames (CC BY 4.0).</p>
       </div>
     </section>
 

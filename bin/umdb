@@ -94,6 +94,13 @@ Database and releases:
   umdb release [--version V]     write a Parquet/TSV release to dist/releases/<V>/
                                  (needs: pip install -r requirements-release.txt)
 
+Cohorts and collections:
+  umdb cohort list               the curated collections
+  umdb cohort export cohort.json [-o DIR]
+                                 research package for a cohort saved in the website Workspace
+  umdb cohort collection SLUG [-o DIR] [--max-per-cell N --max-per-project N --target N --seed S]
+                                 research package for a curated collection
+
 Data and site:
   umdb export                    rebuild docs/db from data/ (offline)
   umdb serve [port]              preview the website (default port 8000)
@@ -185,6 +192,9 @@ case "$cmd" in
     ;;
   release)
     harvester release "$@"
+    ;;
+  cohort|cohorts)
+    harvester cohort "$@"
     ;;
   catalog)
     harvester catalog "${@:-status}"

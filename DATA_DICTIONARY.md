@@ -107,6 +107,12 @@ The website loads a compact index built from `data/umdb.sqlite` (`umdb export`, 
 | `docs/db/cube.json` | Runs aggregated by the same dimensions |
 | `docs/db/projects.json` | One row per BioProject |
 | `docs/db/p/<ACC>.json` | One BioProject's samples and runs (`_none.json` for runs without a BioProject) |
+| `docs/db/ix/<NN>.json` | Accession lookup: every BioSample and run accession → its BioProject (index into `projects.json` rows), split into 100 files by the accession's last two digits (`xx` if it has none). Lets `sample.html` and `run.html` find the right project file |
+| `docs/db/collections.json` | Curated collections: definition (Explorer filters), inclusion criteria, suggested use and workflow, and summary statistics |
+| `docs/db/collections/<slug>.tsv.gz` | One collection's runs: run, biosample, project, assay, layout, platform, bases, country, GeoNames id, city, habitat, collection date |
+| `docs/db/population.json` | Every country's population (GeoNames), for per-capita map layers, including countries with no samples |
+| `docs/db/analytics.json` | Precomputed catalog structure for the Analytics page: study concentration (Lorenz curve, Gini), collection-to-release delay, library sizes by assay, metadata completeness by assay |
+| `docs/assets/cohort-templates.json` | README, download script and starter analyses of a research package; written by `cohorts.py` so the browser and the CLI export the same files |
 | `docs/db/manifest.json` | Build time, schema, rule, query and gazetteer versions, counts, file sizes |
 | `docs/db/srr_records_manifest.json` | Kept for older loaders: `generated_utc`, `total_records`, empty `parts` |
 | `docs/latest_srr.json` | Runs added by the most recent harvest |
@@ -116,7 +122,7 @@ Unchanged files are not rewritten, so a harvest changes only the projects it tou
 
 ### `geo.json`
 
-`countries` rows (`country_cols`: iso2, numeric, name, continent), `admin1` rows (code, index into `countries`, name) and `places` rows (geonames_id, name, index into `countries`, index into `admin1` or null, lat, lon, population). `statuses` lists the location statuses that `loc` columns index into. `attribution` carries the GeoNames credit.
+`countries` rows (`country_cols`: iso2, numeric, name, continent, population), `admin1` rows (code, index into `countries`, name) and `places` rows (geonames_id, name, index into `countries`, index into `admin1` or null, lat, lon, population). `statuses` lists the location statuses that `loc` columns index into. `attribution` carries the GeoNames credit.
 
 ### `samples.json` (unit: BioSamples)
 
@@ -164,6 +170,22 @@ Columns `project`, `year` (run release year), `cyear`, `country`, `admin1`, `pla
 | `cities` | Top 200 `[{geonames_id, name, country, biosamples, runs, count}]` |
 | `centers` | `[{name, count}]` runs per submitting centre |
 | `largestProject`, `topProjects` | Largest BioProjects by runs |
+
+### Research packages (cohorts)
+
+The Workspace (`workspace.html`) and `umdb cohort export|collection` write the same package. A cohort is defined by a JSON document: either `{"filters": {…}}`, with the Explorer's filters (`tier`, `context`, `assay`, `country`, `region`, `city`, `loc`, `cmin`/`cmax` collection years, `ymin`/`ymax` release years, `project`, `q`), or a set operation `{"op": "union" | "intersection" | "difference", "a": …, "b": …}`. Optional `balance`: `max_per_cell` (per city × habitat; country when no city), `max_per_project`, `target`, `seed`. Balancing sorts samples by accession, shuffles them with a seeded mulberry32 generator and keeps samples while the caps allow, identically in Python and JavaScript.
+
+| File | Contents |
+| --- | --- |
+| `cohort.json` | `name`, `release` (database build time and rule versions), `definition` (filters or set operation, balance, seed), `counts`, file list |
+| `metadata.tsv` | One row per BioSample: biosample, bioproject (lowest accession if several), urban_status, habitat, country_iso2, country, region, place_id, city, lat, lon, location_status, collection_date (full ISO dates only), collection_year, collection_date_raw, assays, n_runs |
+| `runs.tsv` | run, biosample, project, library_layout, bases, spots, instrument_model, assay_class, platform, library_strategy, release_date. Runs are limited to the assays the cohort filters on. Also the `--cohort` input of the UMDB-SCIENCE pipeline |
+| `accessions.txt` | Run accessions |
+| `download_fastq.sh` | SRA Toolkit download of every run into `fastq/` |
+| `samplesheet.csv` | nf-core/taxprofiler format (`sample,run_accession,instrument_platform,fastq_1,fastq_2,fasta`) |
+| `cohort_summary.json` | Counts by habitat, country, collection year, assay and layout |
+| `analysis.py`, `analysis.R`, `CITATION.bib`, `README.md` | Starter analyses, citation and a description of the package |
+| `metadata.parquet` | CLI only, when pyarrow is installed |
 
 ---
 

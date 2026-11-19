@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>UMDB — Global Map</title>
+  <title>UMDB — Atlas</title>
   <meta name="description" content="Where UMDB's urban microbiome samples come from: country coverage from validated locations, reported sampling sites and environments, with filters shared with the Explorer." />
   <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon_16.png" />
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon_32.png" />
@@ -97,8 +97,10 @@
     <div class="site-links">
       <a href="./index.html">Home</a>
       <a href="./explorer.html">Explorer</a>
-      <a class="is-active" href="./global-map.html">Map</a>
+      <a class="is-active" href="./global-map.html">Atlas</a>
       <a href="./analytics.html">Analytics</a>
+      <a href="./collections.html">Collections</a>
+      <a href="./workspace.html">Workspace</a>
       <a href="./data.html">Downloads</a>
       <a href="./methodology.html">Methods</a>
       <a href="./about.html">About</a>
@@ -106,7 +108,7 @@
   </nav>
 
   <div class="m-head">
-    <h1>Global map</h1>
+    <h1>Global atlas</h1>
     <p>Where the samples come from. Country shading counts BioSamples with a validated country; site points are the coordinates submitters reported. Click a country to see its regions and cities, then open the same selection in the Explorer.</p>
   </div>
 
@@ -141,7 +143,11 @@
           <button type="button" data-mode="coverage" aria-pressed="true">Country coverage</button>
           <button type="button" data-mode="sites" aria-pressed="false">Sampling sites</button>
           <button type="button" data-mode="env" aria-pressed="false">Environments</button>
+          <button type="button" data-mode="studies" aria-pressed="false">Studies</button>
+          <button type="button" data-mode="percapita" aria-pressed="false">Per capita &amp; gaps</button>
+          <button type="button" data-mode="confidence" aria-pressed="false">Location confidence</button>
         </div>
+        <button type="button" class="btn" id="export-visible" title="Download the sampling sites in the current map view">Export visible sites</button>
         <div class="m-stats" aria-live="polite">
           <span><b id="st-samples">…</b> BioSamples</span>
           <span><b id="st-runs">…</b> runs</span>
@@ -189,7 +195,11 @@
   let E, map, world, mapReady = false;
   let filters = U.filtersFromURL();
   const qp = new URLSearchParams(location.search);
-  let mode = ["coverage", "sites", "env"].includes(qp.get("map")) ? qp.get("map") : "coverage";
+  const MODES = ["coverage", "sites", "env", "studies", "percapita", "confidence"];
+  const SHADED = new Set(["coverage", "studies", "percapita", "confidence"]);
+  const GAP = "#5a2a31";                 // populated country with no matching sample
+  let mode = MODES.includes(qp.get("map")) ? qp.get("map") : "coverage";
+  let population = null, placed = null;
   let result = null;
 
   function syncURL(){
@@ -270,13 +280,30 @@
   function updateMap(){
     if (!mapReady) return;
     const G = E.geo, F = result.facets;
-    // Country shading: BioSamples per validated country (all filters but country/region/city).
+    // Country shading (all filters but country/region/city), by mode:
+    //   coverage   BioSamples per validated country (log scale)
+    //   studies    independent BioProjects per country (log scale)
+    //   percapita  BioSamples per million people; populated countries with none are gaps
+    //   confidence share of BioSamples with an accepted (verified or probable) city or town
     const counts = new Map([...F.country.entries()].map(([i, c]) => [G.countries[i].iso2, c.samples]));
-    const max = Math.max(1, ...counts.values());
+    const value = new Map();
+    if (mode === "studies") for (const [i, set] of F.countryProjects) value.set(G.countries[i].iso2, set.size);
+    else if (mode === "percapita") for (const [iso, n] of counts){ const pop = G.countryByIso.get(iso).population; if (pop) value.set(iso, n / pop * 1e6); }
+    else if (mode === "confidence"){
+      const pl = new Map([...placed.facets.country.entries()].map(([i, c]) => [G.countries[i].iso2, c.samples]));
+      for (const [iso, n] of counts) if (n) value.set(iso, (pl.get(iso) || 0) / n);
+    } else for (const [iso, n] of counts) value.set(iso, n);
+    const max = Math.max(1, ...value.values());
+    const shade = (v) => mode === "confidence" ? (v == null ? null : SHADES[Math.min(SHADES.length - 1, Math.floor(v * SHADES.length))])
+      : mode === "percapita" ? (v ? SHADES[Math.max(0, Math.min(SHADES.length - 1, Math.floor((Math.log10(v) + 1) / 4 * SHADES.length)))] : null)
+      : choroplethColor(v, max);
     for (const f of world.features){
       const c = G.countryByNumeric.get(String(f.id));
-      const n = c ? counts.get(c.iso2) || 0 : 0;
-      map.setFeatureState({ source: "countries", id: f.id }, { n, color: choroplethColor(n, max) || "#121e2e", selected: !!(c && c.iso2 === filters.country) });
+      const v = c ? value.get(c.iso2) : undefined;
+      let color = v != null ? shade(v) : null;
+      if (!color && mode === "percapita" && population && (population.get(String(f.id)) || 0) >= 1e6) color = GAP;
+      map.setFeatureState({ source: "countries", id: f.id }, { n: c ? counts.get(c.iso2) || 0 : 0, v: v ?? null, color: color || "#121e2e",
+                                                               selected: !!(c && c.iso2 === filters.country) });
     }
     // Countries too small for the shapes (Hong Kong, Singapore …) as markers.
     const shaped = new Set(world.features.map((f) => G.countryByNumeric.get(String(f.id))?.iso2).filter(Boolean));
@@ -302,21 +329,28 @@
       geometry: { type: "Point", coordinates: [place.lon, place.lat] }, properties: { name: place.name } }] : [] });
 
     const vis = (id, on) => map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
-    vis("small-countries", mode === "coverage");
+    vis("small-countries", SHADED.has(mode));
     ["sites-clusters", "sites-single"].forEach((id) => vis(id, mode === "sites"));
     vis("env-points", mode === "env");
     // Country shading fades out as the street basemap fades in (zoom 3 -> 5).
-    const base = mode === "coverage" ? 0.95 : 0.35;
-    map.setPaintProperty("countries-fill", "fill-opacity", ["interpolate", ["linear"], ["zoom"], 3, base, 5.5, mode === "coverage" ? 0.18 : 0.06]);
+    const base = SHADED.has(mode) ? 0.95 : 0.35;
+    map.setPaintProperty("countries-fill", "fill-opacity", ["interpolate", ["linear"], ["zoom"], 3, base, 5.5, SHADED.has(mode) ? 0.18 : 0.06]);
 
     const withXY = (result.points || []).reduce((a, p) => a + p.n, 0);
-    $("map-note").textContent = mode === "coverage"
+    const notes = {
+      studies: "Shading counts independent studies (BioProjects) with matching samples in each country (log scale). Many samples from one study count once.",
+      percapita: `Matching BioSamples per million people (GeoNames population, log scale). Dark red: countries of over a million people with no matching sample, the surveillance gaps.`,
+      confidence: "Share of each country's matching BioSamples whose city or town was validated against GeoNames. Low values mean samples are mapped at country level only.",
+    };
+    $("map-note").textContent = notes[mode] || (mode === "coverage"
       ? `Shading counts ${fmt([...counts.values()].reduce((a, b) => a + b, 0))} BioSamples with a validated country (log scale).`
-      : `${fmt(withXY)} of ${fmt(result.samples)} matching BioSamples report coordinates; the rest are not drawn as points. Points are rounded to 0.01° (about 1 km), so at street level they mark a neighborhood, not an exact site.`;
+      : `${fmt(withXY)} of ${fmt(result.samples)} matching BioSamples report coordinates; the rest are not drawn as points. Points are reported sampling coordinates rounded to 0.01° (about 1 km), never city centroids inferred from place names; a validated city is drawn only when selected, as a yellow ring.`);
     $("legend").innerHTML = mode === "env"
       ? Object.entries(CTX).filter(([k]) => E.contexts.includes(k)).map(([, [label, color]]) => `<span><i class="dot" style="background:${color}"></i>${esc(label)}</span>`).join("")
-      : mode === "coverage"
-        ? `<span>Fewer</span>${SHADES.map((c) => `<i style="background:${c}"></i>`).join("")}<span>More BioSamples</span>`
+      : mode === "confidence" ? `<span>0%</span>${SHADES.map((c) => `<i style="background:${c}"></i>`).join("")}<span>100% with a validated city</span>`
+      : mode === "percapita" ? `<span><i style="background:${GAP}"></i>No sample (≥1 M people)</span><span>0.1</span>${SHADES.map((c) => `<i style="background:${c}"></i>`).join("")}<span>1,000+ per million</span>`
+      : SHADED.has(mode)
+        ? `<span>Fewer</span>${SHADES.map((c) => `<i style="background:${c}"></i>`).join("")}<span>More ${mode === "studies" ? "studies" : "BioSamples"}</span>`
         : `<span><i class="dot" style="background:#73a7ff"></i>Cluster of sites (size = BioSamples)</span><span><i class="dot" style="background:#ffcf70"></i>Validated city (selected)</span>`;
   }
 
@@ -540,8 +574,12 @@
       };
       hover("countries-fill", (f) => {
         const c = E.geo.countryByNumeric.get(String(f.id));
-        const n = map.getFeatureState({ source: "countries", id: f.id }).n || 0;
-        return `<strong>${esc(c ? c.name : f.properties.name)}</strong><br>${fmt(n)} BioSamples`;
+        const st = map.getFeatureState({ source: "countries", id: f.id });
+        const n = st.n || 0, v = st.v;
+        const extra = mode === "studies" && v != null ? `<br>${fmt(v)} studies`
+          : mode === "percapita" ? (v != null ? `<br>${v.toFixed(v < 10 ? 2 : 0)} per million people` : (population?.get(String(f.id)) ? "<br>No matching sample" : ""))
+          : mode === "confidence" && v != null ? `<br>${(100 * v).toFixed(0)}% with a validated city` : "";
+        return `<strong>${esc(c ? c.name : f.properties.name)}</strong><br>${fmt(n)} BioSamples${extra}${c ? `<br><a href="./country.html?iso=${c.iso2}" style="color:#73a7ff">Country page</a>` : ""}`;
       });
       hover("small-countries", (f) => `<strong>${esc(f.properties.name)}</strong><br>${fmt(f.properties.n)} BioSamples`);
       hover("sites-clusters", (f) => `${fmt(f.properties.n)} BioSamples<br><span class="note">Click to zoom in</span>`);
@@ -557,7 +595,7 @@
         map.easeTo({ center: f.geometry.coordinates, zoom });
       });
       map.on("click", "countries-fill", (e) => {
-        if (mode !== "coverage" && map.queryRenderedFeatures(e.point, { layers: ["sites-clusters", "sites-single", "env-points"] }).length) return;
+        if (!SHADED.has(mode) && map.queryRenderedFeatures(e.point, { layers: ["sites-clusters", "sites-single", "env-points"] }).length) return;
         const c = E.geo.countryByNumeric.get(String(e.features[0].id));
         if (c) selectCountry(c.iso2);
       });
@@ -575,7 +613,8 @@
   }
 
   function update(){
-    result = E.query(filters, { points: true });
+    result = E.query(filters, { points: true, countryProjects: true });
+    placed = mode === "confidence" ? E.query({ ...filters, loc: "place" }) : null;
     $("st-samples").textContent = fmt(result.samples);
     $("st-runs").textContent = fmt(result.runs);
     $("st-projects").textContent = fmt(result.projects.length);
@@ -616,6 +655,22 @@
     $("table-body").addEventListener("click", pick);
     $("table-body").addEventListener("keydown", (e) => { if (e.key === "Enter") pick(e); });
     document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => { mode = b.dataset.mode; update(); }));
+    $("export-visible").addEventListener("click", () => {
+      if (!map) return;
+      const bb = map.getBounds();
+      const pts = (result.points || []).filter((p) => bb.contains([p.lon, p.lat]));
+      const rows = pts.map((p) => ({ latitude: p.lat, longitude: p.lon, biosamples: p.n, habitat: p.ctx,
+        countries: [...p.countries].map((i) => E.geo.countries[i].iso2).join(";"),
+        places: [...p.places.keys()].map((i) => E.geo.places[i].geonames_id).join(";"), studies: [...p.projects].join(";") }));
+      const view = { bounds: bb.toArray(), filters, exported_utc: new Date().toISOString(), sites: rows.length,
+                     biosamples: rows.reduce((a, r) => a + r.biosamples, 0) };
+      const cols = ["latitude", "longitude", "biosamples", "habitat", "countries", "places", "studies"];
+      const csv = `# UMDB sampling sites in view ${JSON.stringify(view)}\n` + [cols.join(","), ...rows.map((r) => cols.map((c) => `"${String(r[c]).replace(/"/g, '""')}"`).join(","))].join("\n") + "\n";
+      const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+      const a = Object.assign(document.createElement("a"), { href: url, download: "umdb_visible_sites.csv" });
+      document.body.appendChild(a); a.click(); a.remove();
+      $("map-note").textContent = `Exported ${fmt(rows.length)} sites (${fmt(view.biosamples)} BioSamples with reported coordinates) in the current view. Open the listed studies in the Explorer for run-level exports.`;
+    });
     $("sidebar").addEventListener("click", (e) => {
       const b = e.target.closest("[data-sb],[data-sample]");
       if (!b) return;
@@ -626,8 +681,10 @@
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("sidebar").hidden) closeSidebar(); });
   }
 
-  Promise.all([U.openIndex(), fetch("./assets/world-110m.json").then((r) => r.json())]).then(([engine, topo]) => {
+  Promise.all([U.openIndex(), fetch("./assets/world-110m.json").then((r) => r.json()),
+               fetch("./db/population.json").then((r) => (r.ok ? r.json() : null)).catch(() => null)]).then(([engine, topo, pop]) => {
     E = engine;
+    population = pop ? new Map(pop.rows.map((r) => [String(parseInt(r[0], 10)), r[4]])) : null;
     world = topojson.feature(topo, topo.objects.countries);
     // Antarctica's outline wraps the whole globe and has no samples; drop it.
     world.features = world.features.filter((f) => f.id != null && String(f.id) !== "010")

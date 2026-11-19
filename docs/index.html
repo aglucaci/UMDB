@@ -28,29 +28,43 @@
       <div class="site-links">
         <a class="is-active" href="./index.html">Home</a>
         <a href="./explorer.html">Explorer</a>
-        <a href="./about.html">About</a>
-        <a href="./methodology.html">Methodology</a>
-        <a href="./data.html">Data Access</a>
+        <a href="./global-map.html">Atlas</a>
         <a href="./analytics.html">Analytics</a>
-        <a href="./global-map.html">Global Map</a>
+        <a href="./collections.html">Collections</a>
+        <a href="./workspace.html">Workspace</a>
+        <a href="./data.html">Downloads</a>
+        <a href="./methodology.html">Methods</a>
+        <a href="./about.html">About</a>
       </div>
     </nav>
 
     <section class="hero">
-      <h1>UMDB is a searchable urban microbiome database built for discovery, comparison, and reuse.</h1>
+      <div class="eyebrow">Urban Microbiome Database</div>
+      <h1>Explore the microbial world of cities.</h1>
       <p>
-        UMDB turns public repository metadata into a browsable and downloadable resource for urban metagenomics and related
-        environmental sequencing studies. It combines BioProject-level search, SRR-level provenance, database summaries, geography views,
-        and cohort export workflows in one public release.
+        A global, rule-screened catalog of public urban environmental sequencing data. Go from a scientific question to an
+        analysis-ready cohort without writing code, or do the same programmatically from versioned Parquet releases.
       </p>
-      <div class="hero-actions">
-        <a class="button-link primary" href="./explorer.html">Open BioProject Explorer</a>
-        <a class="button-link" href="./analytics.html">Database Analytics</a>
-        <a class="button-link" href="./data.html">Data Access</a>
-      </div>
+      <form class="search-hero" id="home-search" role="search">
+        <input type="search" id="home-q" placeholder="Search studies, or paste a BioProject, BioSample or run accession…" aria-label="Search UMDB" autocomplete="off" />
+        <button type="submit" class="btn primary">Search</button>
+      </form>
+      <div class="sub" id="home-hint" style="margin-top:6px">Try <a href="./study.html?acc=PRJNA271013">PRJNA271013</a>, “subway”, or browse a <a href="./habitat.html?id=municipal-wastewater">habitat</a>.</div>
       <div class="hero-stats" id="heroStats">
         <div class="metric"><span class="label">Loading</span><span class="value">...</span><span class="note">Reading the current public release</span></div>
       </div>
+    </section>
+
+    <section class="section">
+      <div class="product-grid">
+        <a class="product" href="./explorer.html"><strong>Catalog</strong><span>Search and filter studies, BioSamples and runs by place, habitat, assay, date and quality.</span><span class="tag">Explorer →</span></a>
+        <a class="product" href="./global-map.html"><strong>Atlas</strong><span>Sample and study density, habitats, per-capita gaps and location confidence on a global map.</span><span class="tag">Atlas →</span></a>
+        <a class="product" href="./analytics.html"><strong>Analytics</strong><span>Coverage, growth, concentration, library sizes and metadata completeness, with downloadable figures.</span><span class="tag">Analytics →</span></a>
+        <a class="product" href="./workspace.html"><strong>Workspace</strong><span>Save, combine, compare and balance cohorts, then download a reproducible research package.</span><span class="tag">Workspace →</span></a>
+        <a class="product" href="./collections.html"><strong>Collections</strong><span>Curated cohorts: global wastewater, transit, urban air, greenspace, virome and resistome.</span><span class="tag">Collections →</span></a>
+        <a class="product" href="./data.html"><strong>Data</strong><span>Versioned releases (Parquet, SQLite, TSV), schema, checksums and programmatic access.</span><span class="tag">Downloads →</span></a>
+      </div>
+      <p class="sub" style="margin-top:10px">Coming in UMDB 2.0: <strong>Profiles</strong>, standardized taxonomic and functional abundance profiles from uniformly reprocessed shotgun metagenomes (the UMDB-SCIENCE pipeline).</p>
     </section>
 
     <section class="section">
@@ -123,7 +137,7 @@
           </p>
           <div class="hero-actions" style="margin-top:14px">
             <a class="button-link primary" href="./analytics.html">Analytics</a>
-            <a class="button-link" href="./global-map.html">Global Map</a>
+            <a class="button-link" href="./global-map.html">Atlas</a>
           </div>
         </article>
       </div>
@@ -253,7 +267,7 @@
             [
               "Top Country Bucket",
               countries[0] ? `${countries[0].name} with ${window.UMDBDB.formatNumber(countries[0].count)} runs` : "Unavailable",
-              `<a href="./global-map.html">Global Map</a>`
+              `<a href="./global-map.html">Atlas</a>`
             ],
             [
               "Top City Bucket",
@@ -279,6 +293,16 @@
         renderTable(snapshotTable, ["Feature", "What It Means", "Where To Explore It"], [], err.message);
       }
     })();
+  </script>
+  <script src="./assets/ui.js"></script>
+  <script>
+  document.getElementById("home-search").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const q = document.getElementById("home-q").value.trim();
+    if (!q) return;
+    document.getElementById("home-hint").textContent = "Looking up…";
+    location.href = await window.UMDBUI.resolveSearch(q);
+  });
   </script>
 </body>
 </html>
