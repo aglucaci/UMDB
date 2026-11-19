@@ -1,7 +1,7 @@
 {
   "site_schema_version": "3.0.0",
   "database_schema_version": "1.1.0",
-  "generated_utc": "2026-11-16T14:00:55+00:00",
+  "generated_utc": "2026-11-19T14:20:38+00:00",
   "database_built_utc": "2026-11-16T14:00:32+00:00",
   "query_profiles_version": "2026.11.2",
   "eligibility_rules_version": "2026.11.6",
@@ -19,7 +19,7 @@
       "bytes": 44689
     },
     "geo.json": {
-      "bytes": 165163
+      "bytes": 166425
     },
     "samples.json": {
       "bytes": 1990720
@@ -32,11 +32,29 @@
     },
     "srr_records_manifest.json": {
       "bytes": 123
+    },
+    "population.json": {
+      "bytes": 9687
+    },
+    "analytics.json": {
+      "bytes": 5899
     }
   },
   "project_shards": {
     "dir": "p/",
     "count": 11367,
     "bytes": 260255619
-  }
+  },
+  "accession_index": {
+    "dir": "ix/",
+    "files": 100
+  },
+  "collections": [
+    "global-wastewater",
+    "global-transit",
+    "urban-air",
+    "urban-greenspace",
+    "urban-virome",
+    "urban-resistome"
+  ]
 }
