@@ -46,12 +46,36 @@ and 176,347 report coordinates. Amplicon sequencing makes up the
 largest share of experiments, followed by shotgun metagenomes and
 metatranscriptomes.
 
+**Use.** To show what the catalog supports, a companion Nextflow pipeline
+(UMDB-SCIENCE) tests pre-specified hypotheses on a frozen snapshot. Public urban
+sequencing is highly concentrated relative to population (concentration index
+0.82, 95% CI 0.62–0.91): Africa contributes 0.06 times its population share,
+and 224 of 573 cities of more than a million people have no urban sample within
+50 km. Samples per person rise 1.27% for each 1% of GDP per capita (95% CI
+0.86–1.69; 159 countries). Metadata completeness depends strongly on assay type.
+The same pipeline selects a balanced cohort of 9,221 shotgun metagenomes from
+774 cities for uniform reprocessing.
+
 **Availability.** UMDB is distributed as a web explorer with filters by place,
 assay, year and eligibility tier; a SQLite database; and versioned Parquet and
 TSV releases with checksums. It is freely available under CC BY-NC-SA 4.0 at
 https://aglucaci.github.io/UMDB/.
 
 ## Notes for revision
+
+- **Research results.** The "Use" paragraph comes from Track A of `pipeline/`
+  (`manuscript/catalog_findings/README.md`, same database build). Full
+  programme: `manuscript/research_program.md`. Rerun with
+  `nextflow run pipeline --fetch_worldbank` after any catalog refresh and update
+  the numbers together.
+- **Expert benchmark now has a sheet.** Hypothesis C8 writes a stratified,
+  blinded labeling sheet of 500 BioSamples (`hypotheses/C8/labeling_sheet.tsv`);
+  two raters plus `--labels` give catalog-weighted precision and recall for the
+  eligibility screen. This would replace the recall caveat below.
+- **Data-quality numbers for the Limitations section** (C0): 43.2% of urban
+  BioSamples have no resolved place, 21.0% no collection date, and 180 samples have
+  impossible collection dates (111 in the future, 47 after the data were released,
+  22 before 1950).
 
 - **Recall caveat.** The 98% / 95% figures measure retrieval against an earlier
   UMDB catalog, not an independent gold standard. Plan an external benchmark,

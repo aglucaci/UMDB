@@ -139,6 +139,21 @@ GROUP BY 1 ORDER BY samples DESC;
 
 Publish a release by attaching the folder to a GitHub Release, or deposit it in Zenodo for a DOI and add the DOI to [CITATION.cff](CITATION.cff) (see [MAINTAINING.md](MAINTAINING.md#releases)).
 
+## Research pipeline
+
+`pipeline/` is a Nextflow (DSL2) workflow that reads `data/umdb.sqlite`, never `data/` or `docs/`, so it depends only on the derived database and its rule versions:
+
+```
+data/umdb.sqlite ──SNAPSHOT──▶ samples.tsv.gz, runs.tsv.gz, snapshot.json (DB SHA-256, rule versions)
+data/reference/geonames ─┐
+World Bank WDI (API) ────┼─COVARIATES─▶ country/city covariates, city air routes, covariates_manifest.json
+OpenFlights (optional) ──┘
+snapshot ──SELECT_COHORT──▶ cohort_runs.tsv ──(Track B: SRA → fastp → seqtk → sylph/MetaPhlAn, HUMAnN, KMA, geNomad)──▶ matrices
+snapshot + covariates (+ matrices) ──HYPOTHESIS × registry──▶ hypotheses/<ID>/summary.json ──REPORT──▶ report.md
+```
+
+`pipeline/assets/hypotheses.csv` lists every hypothesis with its script and required inputs; the pipeline runs those whose inputs exist and the report lists the rest. Each script shares one command-line interface (`bin/umdb_common.py`) and writes `summary.json` with a status, its result and caveats. The test profile runs everything on a synthetic fixture (`pipeline/tests/data/`) whose planted effects each test should recover. Details: [pipeline/README.md](pipeline/README.md).
+
 ## Not yet built
 
 - **Discovery provenance:** which query profile found each experiment, and when (a `discovery_hits` table).

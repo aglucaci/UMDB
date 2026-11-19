@@ -1,0 +1,24 @@
+id	track	program	title	status	result
+C0	catalog	UMDB resource	Data-quality audit	descriptive	43.2% of urban BioSamples lack a resolved place; 106,803 have a place and a plausible full date. 180 samples have impossible collection dates and are excluded from temporal tests.
+C1	catalog	UMDB resource	Global blind spots of urban genomic surveillance	supported	Concentration index 0.82 (95% CI 0.62–0.91); 224 of 573 cities of ≥1 M people have no urban sample within 50 km.
+C2	catalog	UMDB resource	Surveillance capacity and economic development	supported	A 1% higher GDP per capita goes with 1.27% more urban samples per person (95% CI 0.86–1.69, p=1.7e-09), across 159 countries.
+C3	catalog	UMDB resource	COVID-19 and the structure of urban sequencing	not_supported	Level change at 2020-03: 30% (p=0.46); trend change -2%/yr (p=0.87). Wastewater share 67% → 84%.
+C4	catalog	UMDB resource	Habitat representation	supported	Habitat evenness 0.51; municipal wastewater holds 71% of urban samples. Least-studied: transit, surfaces_infrastructure, built_environment. Habitat mix differs by continent (χ²=277, p=6.1e-39).
+C5	catalog	UMDB resource	Metadata completeness	supported	Joint Wald tests of the assay terms: has_place (p=5.6e-07), has_coordinates (p=1.8e-10), has_collection_date (p=2.1e-08), has_env_broad_scale (p=3.3e-08)
+C6	catalog	UMDB resource	Concentration in few centres	not_supported	The top 1% of 1,491 submitting centres (15) hold 43% of urban samples; the top 10 hold 38%.
+C7	catalog	UMDB resource	Diffusion of sequencing technologies	supported	long_read: 48/66 countries adopted, median lag 3 y; illumina_novaseq: 55/66 countries adopted, median lag 4 y; dnbseq_bgi: 13/66 countries adopted, median lag 0 y
+C8	catalog	UMDB resource	Eligibility-screen benchmark	inconclusive	Labeling sheet of 500 BioSamples written. Label them (two raters, blind to the tier in labeling_key.tsv) and rerun with --labels.
+H1	ecology	UMDB-ECO	Universal ecological structure	not_run	Not run: needs species.
+H2	ecology	UMDB-ECO	Functional convergence	not_run	Not run: needs species;functions.
+H3	ecology	UMDB-SCALE	Scaling laws	not_run	Not run: needs species.
+H4	ecology	UMDB-AI	Prediction in unsampled cities	not_run	Not run: needs species.
+H5	ecology	UMDB-ECO	Human mobility and biogeography	not_run	Not run: needs species;routes.
+H6	ecology	UMDB-ECO	Cross-habitat connectivity	not_run	Not run: needs species.
+H7	roadmap	UMDB-EVO	Convergent molecular evolution	planned	Not implemented yet; see pipeline/README.md (roadmap).
+H8	roadmap	UMDB-VIR	Predictability of viral persistence	planned	Not implemented yet; see pipeline/README.md (roadmap).
+H9	ecology	UMDB-ECO	Undiscovered diversity	not_run	Not run: needs species.
+H10	ecology	UMDB-ECO	Seasonality across climate zones	not_run	Not run: needs species.
+H11	ecology	UMDB-AMR	Urban AMR ecology	not_run	Not run: needs arg.
+H12	roadmap	UMDB-ECO	Urbanization-driven homogenization	planned	Not implemented yet; see pipeline/README.md (roadmap).
+H13	roadmap	UMDB-ECO	Resilience to disturbance	planned	Not implemented yet; see pipeline/README.md (roadmap).
+H14	roadmap	UMDB-ECO	Climate change and redistribution	planned	Not implemented yet; see pipeline/README.md (roadmap).

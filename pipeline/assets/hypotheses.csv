@@ -1,0 +1,24 @@
+id,track,script,requires,program,title,question
+C0,catalog,umdb_c0_audit.py,,UMDB resource,Data-quality audit,How much of the catalog is usable for spatial and temporal inference?
+C1,catalog,umdb_c1_coverage.py,,UMDB resource,Global blind spots of urban genomic surveillance,Is urban sequencing coverage geographically unequal relative to where people live?
+C2,catalog,umdb_c2_development.py,worldbank,UMDB resource,Surveillance capacity and economic development,Do richer countries contribute more public urban sequencing per person?
+C3,catalog,umdb_c3_covid.py,,UMDB resource,COVID-19 and the structure of urban sequencing,Did the pandemic cause a level or trend break and a shift toward wastewater?
+C4,catalog,umdb_c4_habitats.py,,UMDB resource,Habitat representation,Are some urban habitats systematically under-sampled?
+C5,catalog,umdb_c5_completeness.py,,UMDB resource,Metadata completeness,Does completeness vary by assay region and release period?
+C6,catalog,umdb_c6_centers.py,,UMDB resource,Concentration in few centres,Do few research centres produce most urban sequencing data?
+C7,catalog,umdb_c7_diffusion.py,,UMDB resource,Diffusion of sequencing technologies,Do new technologies reach countries at different times and does lag track wealth?
+C8,catalog,umdb_c8_benchmark.py,,UMDB resource,Eligibility-screen benchmark,How accurate is the urban eligibility screen against expert labels?
+H1,ecology,umdb_h1_structure.py,species,UMDB-ECO,Universal ecological structure,Does habitat explain more community variation than the city sampled?
+H2,ecology,umdb_h2_functional.py,species;functions,UMDB-ECO,Functional convergence,Are habitats more alike across cities in function than in taxonomy?
+H3,ecology,umdb_h3_scaling.py,species,UMDB-SCALE,Scaling laws,Does effort-standardised richness scale as a power law of city population?
+H4,ecology,umdb_h4_predict.py,species,UMDB-AI,Prediction in unsampled cities,Do environmental and demographic features predict communities in held-out cities?
+H5,ecology,umdb_h5_mobility.py,species;routes,UMDB-ECO,Human mobility and biogeography,Are cities linked by air travel more alike than distance and climate predict?
+H6,ecology,umdb_h6_connectivity.py,species,UMDB-ECO,Cross-habitat connectivity,Do a city's habitats share taxa in non-random patterns?
+H7,roadmap,,mags,UMDB-EVO,Convergent molecular evolution,Do independent lineages in similar urban habitats show recurrent adaptive signatures? (MAGs + HyPhy selection scans)
+H8,roadmap,,votus,UMDB-VIR,Predictability of viral persistence,Do viral genomic features host and context predict repeated detection over time? (vOTU occupancy models)
+H9,ecology,umdb_h9_discovery.py,species,UMDB-ECO,Undiscovered diversity,Are discovery curves unsaturated with the largest gains in under-sampled regions?
+H10,ecology,umdb_h10_seasonality.py,species,UMDB-ECO,Seasonality across climate zones,Do communities follow the local (hemisphere-aligned) season?
+H11,ecology,umdb_h11_resistome.py,arg,UMDB-AMR,Urban AMR ecology,Do resistomes differ by habitat within cities and track taxonomy and development?
+H12,roadmap,,species,UMDB-ECO,Urbanization-driven homogenization,Are urban communities less beta-diverse than non-urban ones of the same habitat? (needs a non-urban comparator cohort)
+H13,roadmap,,species,UMDB-ECO,Resilience to disturbance,Do communities return to baseline after floods heatwaves or lockdowns? (event-aligned time series)
+H14,roadmap,,species,UMDB-ECO,Climate change and redistribution,Are taxa shifting poleward or upslope over time? (ERA5-linked range models)

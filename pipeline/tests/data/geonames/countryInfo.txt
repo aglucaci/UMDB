@@ -1,0 +1,8 @@
+# synthetic fixture
+#ISO	ISO3	ISO-Numeric	fips	Country	Capital	Area	Population	Continent
+US	USA	000	US	United States		9629091	331000000	NA	.x
+GB	GBR	000	GB	United Kingdom		244820	67000000	EU	.x
+JP	JPN	000	JP	Japan		377835	125000000	AS	.x
+BR	BRA	000	BR	Brazil		8511965	213000000	SA	.x
+ZA	ZAF	000	ZA	South Africa		1219912	60000000	AF	.x
+AU	AUS	000	AU	Australia		7686850	26000000	OC	.x
