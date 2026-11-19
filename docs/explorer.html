@@ -99,8 +99,10 @@
     <div class="site-links">
       <a href="./index.html">Home</a>
       <a class="is-active" href="./explorer.html">Explorer</a>
-      <a href="./global-map.html">Map</a>
+      <a href="./global-map.html">Atlas</a>
       <a href="./analytics.html">Analytics</a>
+      <a href="./collections.html">Collections</a>
+      <a href="./workspace.html">Workspace</a>
       <a href="./data.html">Downloads</a>
       <a href="./methodology.html">Methods</a>
       <a href="./about.html">About</a>
@@ -188,6 +190,7 @@
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <a class="btn" id="open-map" href="./global-map.html">Show on map</a>
           <button type="button" class="btn" id="copy-link">Copy link</button>
+          <button type="button" class="btn" id="save-ws">Save to Workspace</button>
           <button type="button" class="btn primary" id="export-btn">Export cohort</button>
         </div>
       </div>
@@ -210,6 +213,7 @@
 <div id="drawer-root"></div>
 
 <script src="./assets/db.js"></script>
+<script src="./assets/ui.js"></script>
 <script>
 (() => {
   const U = window.UMDB;
@@ -505,16 +509,17 @@
           <label class="f-check"><input type="checkbox" id="only-match"${onlyMatching ? " checked" : ""}> Only records matching the filters</label>
           <button type="button" class="btn" id="dl-project">Download this study (TSV)</button>
           <button type="button" class="btn" id="filter-project">Filter to this study</button>
+          ${project.accession ? `<a class="btn" href="./study.html?acc=${encodeURIComponent(project.accession)}">Open study page</a>` : ""}
         </div>
         <h3>BioSamples (${fmt(list.length)})</h3>
         <div class="table-shell"><table><thead><tr><th>BioSample</th><th>Accepted location</th><th>Collected</th><th>Urban status</th><th>Environment</th><th>Isolation source</th></tr></thead>
-        <tbody>${list.slice(0, 500).map((s) => `<tr><td class="mono"><a href="https://www.ncbi.nlm.nih.gov/biosample/${encodeURIComponent(s.accession)}" target="_blank" rel="noopener">${esc(s.accession)}</a><span class="x-sub">${esc(s.title || "")}</span></td>
+        <tbody>${list.slice(0, 500).map((s) => `<tr><td class="mono"><a href="./sample.html?acc=${encodeURIComponent(s.accession)}">${esc(s.accession)}</a><span class="x-sub">${esc(s.title || "")}</span></td>
           <td>${locCell(s)}</td><td>${esc(s.collection_date || "")}</td><td>${esc(TIER_LABEL[s.urban_status] || s.urban_status || "")}<span class="x-sub">${esc(s.eligibility_reason || "")}</span></td>
           <td>${esc(CTX_LABEL[s.urban_context || ""] || s.urban_context || "")}</td><td>${esc(s.isolation_source || "")}</td></tr>`).join("")}</tbody></table></div>
         ${list.length > 500 ? `<div class="x-note">Showing 500 of ${fmt(list.length)}; download the study for all of them.</div>` : ""}
         <h3>Runs (${fmt(runList.length)})</h3>
         <div class="table-shell"><table><thead><tr><th>Run</th><th>BioSample</th><th>Assay</th><th>Library</th><th>Platform</th><th>Released</th><th class="num">Gbases</th></tr></thead>
-        <tbody>${runList.slice(0, 500).map((r) => `<tr><td class="mono"><a href="${esc(r.ncbi.srr_url)}" target="_blank" rel="noopener">${esc(r.srr)}</a></td>
+        <tbody>${runList.slice(0, 500).map((r) => `<tr><td class="mono"><a href="./run.html?acc=${encodeURIComponent(r.srr)}">${esc(r.srr)}</a></td>
           <td class="mono">${esc(r._sample.accession || "")}</td><td>${esc(r.assay.assay_class)}</td>
           <td>${esc([r.runinfo_row.LibraryStrategy, r.runinfo_row.LibrarySource, r.runinfo_row.LibraryLayout].filter(Boolean).join(" · "))}</td>
           <td>${esc(r.runinfo_row.Model || r.runinfo_row.Platform)}</td><td>${esc((r._run.release_date || "").slice(0, 10))}</td>
@@ -667,6 +672,14 @@
       try { await navigator.clipboard.writeText(location.href); $("copy-link").textContent = "Link copied"; }
       catch { $("copy-link").textContent = "Copy from the address bar"; }
       setTimeout(() => { $("copy-link").textContent = "Copy link"; }, 1800);
+    };
+    $("save-ws").onclick = () => {
+      const name = prompt("Name this cohort", window.UMDBUI.describeFilters(filters, E).slice(0, 80) || "UMDB cohort");
+      if (!name) return;
+      const id = window.UMDBUI.addCohort(name.trim(), { filters: JSON.parse(JSON.stringify(filters)) });
+      const b = $("save-ws");
+      b.textContent = id ? "Saved ✓ (open Workspace)" : "Browser storage blocked";
+      if (id) b.onclick = () => { location.href = `./workspace.html#${id}`; };
     };
     $("export-btn").onclick = () => exportCohort().catch((err) => { $("export-panel").hidden = false; $("export-panel").textContent = `Export failed: ${err.message}`; });
   }

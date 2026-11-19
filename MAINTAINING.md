@@ -175,8 +175,10 @@ cd dist/releases/1.0.0 && shasum -a 256 -c checksums.sha256
 git tag v1.0.0 && git push origin v1.0.0
 ```
 
-1. Attach the files in `dist/releases/1.0.0/` to a GitHub Release for tag `v1.0.0` (or `gh release create v1.0.0 dist/releases/1.0.0/*`).
-2. For a DOI, connect the repository to Zenodo (it archives each GitHub Release), then add the DOI to [CITATION.cff](CITATION.cff).
+A release is a folder: `manifest.json`, `schema.json`, `checksums.sha256`, `.zenodo.json`, `umdb.sqlite.zst` (or `.gz`), `parquet/` (normalized tables, the `umdb_samples`/`umdb_runs` views, and the curated layers `studies`, `locations`, `curation_evidence`, `environmental_metadata`), `tsv/`, `indexes/` (`summary.json`, `coverage.json`, `projects.json`, `geo.json`), `collections/` and `documentation/`. It is about 230 MB, mostly the compressed SQLite database.
+
+1. Attach the folder to a GitHub Release for tag `v1.0.0` (`gh release create v1.0.0 dist/releases/1.0.0/**`), or upload it to object storage (for example Cloudflare R2, which serves Parquet with HTTP range requests for DuckDB).
+2. For a DOI, deposit the folder in Zenodo; `.zenodo.json` holds the title, description, creators, licence and keywords. Add the DOI to [CITATION.cff](CITATION.cff).
 3. Record the version, `QUERY_PROFILES_VERSION`, eligibility `RULES_VERSION` and counts (all in `manifest.json`) in [CHANGELOG.md](CHANGELOG.md).
 
 `dist/` is git-ignored; releases are never committed.

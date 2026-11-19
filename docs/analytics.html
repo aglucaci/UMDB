@@ -264,11 +264,13 @@
       <div class="site-links">
         <a href="./index.html">Home</a>
         <a href="./explorer.html">Explorer</a>
-        <a href="./about.html">About</a>
-        <a href="./methodology.html">Methodology</a>
-        <a href="./data.html">Data Access</a>
+        <a href="./global-map.html">Atlas</a>
         <a class="is-active" href="./analytics.html">Analytics</a>
-        <a href="./global-map.html">Global Map</a>
+        <a href="./collections.html">Collections</a>
+        <a href="./workspace.html">Workspace</a>
+        <a href="./data.html">Downloads</a>
+        <a href="./methodology.html">Methods</a>
+        <a href="./about.html">About</a>
       </div>
     </nav>
 
@@ -282,7 +284,7 @@
       </p>
       <div class="hero-actions">
         <a class="button-link primary" href="./data.html">Data Access</a>
-        <a class="button-link" href="./global-map.html">Open Global Map</a>
+        <a class="button-link" href="./global-map.html">Open Atlas</a>
       </div>
     </section>
 
@@ -378,6 +380,21 @@
             </div>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>Catalog Structure</h2>
+        <p class="muted" style="margin:4px 0 0;font-size:14px">Precomputed from the full database at each release. Every chart downloads as CSV (data) and SVG or PNG (figure).</p>
+      </div>
+      <div class="grid-2">
+        <div class="panel" id="a-lorenz"></div>
+        <div class="panel" id="a-delay"></div>
+      </div>
+      <div class="grid-2" style="margin-top:16px">
+        <div class="panel" id="a-bases"></div>
+        <div class="panel" id="a-complete"></div>
       </div>
     </section>
 
@@ -540,6 +557,7 @@
     }
 
     function renderVerticalBarChart(svg, items, options = {}) {
+      svg.__umdbData = items;
       const width = options.width || 860;
       const height = options.height || 340;
       const left = options.left || 56;
@@ -625,6 +643,7 @@
     }
 
     function renderHorizontalBarChart(svg, items, options = {}) {
+      svg.__umdbData = items;
       const width = options.width || 620;
       const rowHeight = options.rowHeight || 28;
       const top = 20;
@@ -658,6 +677,7 @@
     }
 
     function renderDonutChart(svg, items, options = {}) {
+      svg.__umdbData = items;
       const width = options.width || 560;
       const height = options.height || 340;
       const cx = width / 2;
@@ -797,6 +817,7 @@
     }
 
     function lineChart(svg, items) {
+      svg.__umdbData = items;
       const width = 860;
       const height = 340;
       const left = 54;
@@ -1240,6 +1261,81 @@
         liveMetrics.innerHTML = `<div class="metric"><span class="label">Status</span><span class="value">Unavailable</span><span class="note">${err.message}</span></div>`;
       }
     })();
+  </script>
+  <script src="./assets/ui.js"></script>
+  <script>
+  (() => {
+    // Downloads for every chart (CSV of its data, SVG, PNG) and every table (CSV).
+    const X = window.UMDBUI;
+    const slug = (s) => (s || "umdb").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    function tools(host, onCsv, svg){
+      if (!host || host.querySelector(".chart-tools")) return;
+      const box = document.createElement("div");
+      box.className = "chart-tools";
+      box.innerHTML = `<button type="button" data-k="csv">CSV</button>${svg ? '<button type="button" data-k="svg">SVG</button><button type="button" data-k="png">PNG</button>' : ""}`;
+      box.addEventListener("click", (e) => {
+        const k = e.target.dataset.k, name = slug(host.querySelector("h2,h3")?.textContent);
+        if (k === "csv") onCsv(name);
+        if (k === "svg") X.download(`${name}.svg`, X.svgText(svg), "image/svg+xml");
+        if (k === "png"){
+          const { width, height } = svg.viewBox.baseVal, img = new Image();
+          img.onload = () => { const c = Object.assign(document.createElement("canvas"), { width: width * 2, height: height * 2 });
+            const g = c.getContext("2d"); g.scale(2, 2); g.drawImage(img, 0, 0, width, height); c.toBlob((b) => X.download(`${name}.png`, b), "image/png"); };
+          img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(X.svgText(svg));
+        }
+      });
+      (host.querySelector(".chart-head, .section-header") || host).appendChild(box);
+    }
+    function itemsCSV(items){
+      if (!Array.isArray(items) || !items.length) return "name,value\n";
+      const cols = Object.keys(items[0]).filter((k) => typeof items[0][k] !== "object");
+      return X.toCSV(items, cols);
+    }
+    function tableCSV(table){
+      const rows = [...table.querySelectorAll("tr")].map((tr) => [...tr.children].map((td) => `"${td.textContent.trim().replace(/"/g, '""')}"`).join(","));
+      return rows.join("\n") + "\n";
+    }
+    function attach(){
+      document.querySelectorAll("svg.chart-svg").forEach((svg) => {
+        const host = svg.closest(".panel");
+        tools(host, (name) => X.download(`${name}.csv`, itemsCSV(svg.__umdbData), "text/csv"), svg);
+      });
+      document.querySelectorAll(".panel table").forEach((table) => {
+        const host = table.closest(".panel");
+        if (host.querySelector("svg.chart-svg")) return;
+        tools(host, (name) => X.download(`${name}.csv`, tableCSV(table), "text/csv"));
+      });
+    }
+    setTimeout(attach, 1500); setTimeout(attach, 5000);
+
+    // Catalog structure (docs/db/analytics.json, built by site.py)
+    fetch("./db/analytics.json").then((r) => r.json()).then((A) => {
+      const lz = A.study_concentration;
+      const lorenz = document.getElementById("a-lorenz");
+      const W = 520, H = 260, L = 44, B = 30;
+      const pts = lz.lorenz.map(([x, y]) => `${L + x * (W - L - 10)},${H - B - y * (H - B - 10)}`).join(" ");
+      lorenz.innerHTML = `<div class="chart-head"><h3>Study concentration (Lorenz curve)</h3></div>
+        <svg class="chart-svg" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto" role="img" aria-label="Lorenz curve of urban BioSamples across studies">
+          <line x1="${L}" y1="${H - B}" x2="${W - 10}" y2="10" stroke="#98a8c0" stroke-dasharray="4 4"/>
+          <polyline fill="none" stroke="#4ec5a8" stroke-width="2" points="${pts}"/>
+          <text x="${(W + L) / 2}" y="${H - 6}" text-anchor="middle" font-size="11" fill="#98a8c0">Share of studies (smallest first)</text>
+          <text x="12" y="${H / 2}" transform="rotate(-90 12 ${H / 2})" text-anchor="middle" font-size="11" fill="#98a8c0">Share of urban BioSamples</text>
+        </svg><div class="sub">Gini ${lz.gini.toFixed(2)} across ${X.fmt(lz.studies)} studies; the largest 1% hold ${(100 * lz.top1pct_share).toFixed(0)}% and the largest 10 hold ${(100 * lz.top10_share).toFixed(0)}% of urban BioSamples.</div>`;
+      lorenz.querySelector("svg").__umdbData = lz.lorenz.map(([x, y]) => ({ share_of_studies: x, share_of_samples: y }));
+      X.columns(document.getElementById("a-delay"), "Collection-to-release delay (years)", A.release_delay.bins.map((b) => ({ label: b.label, value: b.samples })),
+        { note: `Median ${A.release_delay.median_years.toFixed(1)} years over ${X.fmt(A.release_delay.samples)} BioSamples with a full collection date. ${X.fmt(A.release_delay.negative)} were collected after release (date errors).`, color: "#73a7ff" });
+      const b = A.library_size;
+      X.columns(document.getElementById("a-bases"), `Library size, log10 bases per run (${b.assay})`, b.bins.map((x) => ({ label: x.label, value: x.runs })),
+        { note: `Shotgun runs only; median ${(b.median_bases / 1e9).toFixed(2)} Gbp. Other assays are in analytics.json.` });
+      const c = A.completeness;
+      const cols = c.fields;
+      document.getElementById("a-complete").innerHTML = `<div class="chart-head"><h3>Metadata completeness by assay (urban BioSamples)</h3></div>
+        <div class="table-shell"><table class="data-table"><thead><tr><th>Assay</th><th class="num">Samples</th>${cols.map((f) => `<th class="num">${X.esc(f.replace("has_", "").replace(/_/g, " "))}</th>`).join("")}</tr></thead>
+        <tbody>${c.rows.map((r) => `<tr><td>${X.esc(r.assay)}</td><td class="num">${X.fmt(r.samples)}</td>${cols.map((f) => { const v = r[f];
+          return `<td class="num" style="background:rgba(78,197,168,${(v / 100 * 0.45).toFixed(2)})">${v.toFixed(0)}%</td>`; }).join("")}</tr>`).join("")}</tbody></table></div>`;
+      attach();
+    }).catch(() => {});
+  })();
   </script>
 </body>
 </html>

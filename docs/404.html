@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8" /><title>UMDB</title>
+<script>
+// GitHub Pages serves this page for unknown paths. Map UMDB's record routes
+// (/study/PRJNA271013, /sample/SAMN…, /run/SRR…, /city/5128581, /country/US,
+// /habitat/municipal-wastewater, /collection/global-wastewater) to the static pages.
+(function(){
+  var routes = { study: ["study.html", "acc"], sample: ["sample.html", "acc"], run: ["run.html", "acc"], city: ["city.html", "id"],
+                 country: ["country.html", "iso"], habitat: ["habitat.html", "id"], collection: ["collections.html", "slug"] };
+  var parts = location.pathname.split("/").filter(Boolean);
+  for (var i = 0; i < parts.length - 1; i++){
+    var r = routes[parts[i]];
+    if (r){
+      var base = "/" + parts.slice(0, i).join("/") + (i ? "/" : "");
+      location.replace(base + r[0] + "?" + r[1] + "=" + encodeURIComponent(decodeURIComponent(parts[i + 1])));
+      return;
+    }
+  }
+  document.addEventListener("DOMContentLoaded", function(){ document.getElementById("msg").hidden = false; });
+})();
+</script>
+<link rel="stylesheet" href="/UMDB/assets/site.css" /></head>
+<body><div class="site-shell"><p id="msg" hidden>Page not found. <a href="/UMDB/">UMDB home</a> · <a href="/UMDB/explorer.html">Explorer</a></p></div></body></html>

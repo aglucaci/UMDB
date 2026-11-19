@@ -1,5 +1,5 @@
 from __future__ import annotations
-import argparse, datetime as dt, json
+import argparse, datetime as dt, json, re
 from typing import Any, Dict, List
 
 from .config import (
@@ -161,6 +161,20 @@ def build_argparser() -> argparse.ArgumentParser:
     rel.add_argument("--version", default="", help="release version (default: today's date, YYYY.MM.DD)")
     rel.add_argument("--rebuild-db", action="store_true", help="rebuild the database first")
 
+    co = sub.add_parser("cohort", help="reproducible research cohorts and curated collections")
+    cosub = co.add_subparsers(dest="cohort_cmd", required=True)
+    cosub.add_parser("list", help="list the curated collections")
+    ce = cosub.add_parser("export", help="write a research package for a cohort.json (from the website Workspace)")
+    ce.add_argument("cohort", help="cohort.json: {name, filters, balance} or a set operation {op, a, b}")
+    ce.add_argument("-o", "--out", default="", help="output directory (default: cohort-<name>)")
+    cc = cosub.add_parser("collection", help="write the research package of a curated collection")
+    cc.add_argument("slug")
+    cc.add_argument("-o", "--out", default="", help="output directory (default: collection-<slug>)")
+    cc.add_argument("--max-per-cell", type=int, default=0, help="balance: at most N samples per city and habitat")
+    cc.add_argument("--max-per-project", type=int, default=0, help="balance: at most N samples per BioProject")
+    cc.add_argument("--target", type=int, default=0, help="balance: stop at N samples")
+    cc.add_argument("--seed", type=int, default=20261119)
+
     a = sub.add_parser("curate-ai")
     a.add_argument("--model", default=OPENAI_MODEL)
     a.add_argument("--max-records", type=int, default=0)
@@ -283,6 +297,34 @@ def run():
                 build_database()
             write_release(args.version)
         except (RuntimeError, FileNotFoundError, FileExistsError) as exc:
+            from .utils import error
+            error(str(exc))
+            raise SystemExit(1)
+        return
+
+    if args.cmd == "cohort":
+        from . import cohorts
+        if args.cohort_cmd == "list":
+            for c in cohorts.COLLECTIONS:
+                log(f"  {paint(c['slug'].ljust(20), 'num')} {c['title']}: {c['subtitle']}")
+            return
+        try:
+            if args.cohort_cmd == "export":
+                with open(args.cohort, encoding="utf-8") as fh:
+                    doc = json.load(fh)
+                cohort = doc.get("definition", doc)  # accepts a package's cohort.json too
+                cohort.setdefault("name", doc.get("name", "UMDB cohort"))
+                slug = re.sub(r"[^a-z0-9]+", "-", cohort["name"].lower()).strip("-") or "cohort"
+                out = args.out or f"cohort-{slug}"
+            else:
+                cohort = cohorts.collection_cohort(args.slug)
+                if args.max_per_cell or args.max_per_project or args.target:
+                    cohort["balance"] = {"max_per_cell": args.max_per_cell, "max_per_project": args.max_per_project,
+                                         "target": args.target, "seed": args.seed}
+                out = args.out or f"collection-{args.slug}"
+            header(f"umdb cohort {args.cohort_cmd}: {cohort['name']}")
+            cohorts.export_cohort(cohort, out)
+        except (KeyError, FileNotFoundError, ValueError) as exc:
             from .utils import error
             error(str(exc))
             raise SystemExit(1)

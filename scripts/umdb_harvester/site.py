@@ -16,6 +16,11 @@ one project's details only when someone opens it:
                            region, place, assay, tier, context and AI review
   docs/db/projects.json    one row per BioProject (title, centre, counts)
   docs/db/p/<ACC>.json     one project's samples and runs, loaded on demand
+  docs/db/ix/<NN>.json     accession lookup: BioSample and run accession -> row
+                           of projects.json, split by the accession's last two
+                           digits, so a /sample or /run page finds its project file
+  docs/db/collections.json curated collections with statistics, and
+  docs/db/collections/<slug>.tsv.gz  their run lists (see cohorts.py)
   docs/db/manifest.json    build metadata and file list
 
 All geography comes from `sample_locations` (gazetteer-validated, see geo.py):
@@ -158,6 +163,7 @@ def build_site(db_path: str = DB_PATH, out_dir: str = SITE_DB_DIR) -> Dict[str, 
                        "place": r["place_id"] if (iso and r["status"] in ACCEPTED) else None,
                        "status": r["status"], "method": r["method"], "note": r["note"]}
     countries = {r["iso2"]: dict(r) for r in con.execute("SELECT iso2, iso_numeric, name, continent FROM countries")}
+    population = _country_population()
     admin1 = {r["code"]: dict(r) for r in con.execute("SELECT code, country_iso2, name FROM admin1")}
     places = {r["geonames_id"]: dict(r) for r in con.execute(
         "SELECT geonames_id, name, country_iso2, admin1_code, lat, lon, population, feature_code FROM places")}
@@ -175,8 +181,9 @@ def build_site(db_path: str = DB_PATH, out_dir: str = SITE_DB_DIR) -> Dict[str, 
         "attribution": "Place names and identifiers: GeoNames (https://www.geonames.org/), CC BY 4.0",
         "geo_rules_version": meta.get("geo_rules_version"),
         "statuses": LOCATION_STATUSES,
-        "country_cols": ["iso2", "numeric", "name", "continent"],
-        "countries": [[c, countries[c]["iso_numeric"], countries[c]["name"], countries[c]["continent"]] for c in used_c],
+        "country_cols": ["iso2", "numeric", "name", "continent", "population"],
+        "countries": [[c, countries[c]["iso_numeric"], countries[c]["name"], countries[c]["continent"],
+                       population.get(c)] for c in used_c],
         "admin1_cols": ["code", "country", "name"],
         "admin1": [[a, ci.get(admin1[a]["country_iso2"]), admin1[a]["name"]] for a in used_a],
         "place_cols": ["geonames_id", "name", "country", "admin1", "lat", "lon", "population"],
@@ -320,6 +327,14 @@ def build_site(db_path: str = DB_PATH, out_dir: str = SITE_DB_DIR) -> Dict[str, 
             removed += 1
 
     summary = _summary(con, project_rows)
+    ix_files = _write_accession_index(out_dir, by_project, [r[0] for r in project_rows])
+    files_extra = {"population.json": _dump({
+        "v": 1, "source": "GeoNames countryInfo.txt (CC BY 4.0)", "cols": ["numeric", "iso2", "name", "continent", "population"],
+        "rows": [[c["iso_numeric"], iso, c["name"], c["continent"], population.get(iso)]
+                 for iso, c in sorted(countries.items()) if population.get(iso)]})}
+    from .cohorts import build_collections, write_templates
+    collections = build_collections(con, out_dir)
+    write_templates(os.path.join(os.path.dirname(out_dir), "assets", "cohort-templates.json"))
 
     files = {
         "summary.json": _dump(summary),
@@ -334,6 +349,8 @@ def build_site(db_path: str = DB_PATH, out_dir: str = SITE_DB_DIR) -> Dict[str, 
     # Pages that only read generated_utc and the part count keep working.
     files["srr_records_manifest.json"] = _dump({"generated_utc": summary["generated_utc"], "total_records": len(runs),
                                                 "parts": [], "format": "compact-v3", "see": "manifest.json"})
+    files_extra["analytics.json"] = _dump(_analytics(con))
+    files.update(files_extra)
     for name, data in files.items():
         _write_if_changed(os.path.join(out_dir, name), data)
 
@@ -359,6 +376,8 @@ def build_site(db_path: str = DB_PATH, out_dir: str = SITE_DB_DIR) -> Dict[str, 
                    "run_cube_rows": len(run_rows)},
         "files": {n: {"bytes": b} for n, b in sizes.items()},
         "project_shards": {"dir": "p/", "count": len(keep), "bytes": shard_bytes},
+        "accession_index": {"dir": "ix/", "files": ix_files},
+        "collections": [c["slug"] for c in collections["collections"]],
     }
     _write_if_changed(os.path.join(out_dir, "manifest.json"), json.dumps(manifest, indent=2).encode())
     con.close()
@@ -373,6 +392,106 @@ def build_site(db_path: str = DB_PATH, out_dir: str = SITE_DB_DIR) -> Dict[str, 
     tiers = "  ".join(f"{t['name']} {t['biosamples']:,}" for t in summary["eligibility"])
     log(f"{paint('Website data ready', 'good')} in {fmt_duration(time.time() - t0)}  (BioSamples: {tiers})")
     return manifest
+
+
+def _country_population() -> Dict[str, int]:
+    """Country populations from GeoNames countryInfo.txt (shipped with the catalog), for per-capita map layers."""
+    from .config import DATA_DIR
+    path = os.path.join(DATA_DIR, "reference", "geonames", "countryInfo.txt")
+    out: Dict[str, int] = {}
+    if not os.path.exists(path):
+        return out
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            if line.startswith("#"):
+                continue
+            f = line.rstrip("\n").split("\t")
+            if len(f) > 7 and f[7].isdigit():
+                out[f[0]] = int(f[7])
+    return out
+
+
+def ix_bucket(accession: str) -> str:
+    """Lookup-index file for an accession: its last two digits (00-99), or 'xx'."""
+    digits = re.sub(r"\D", "", accession or "")
+    return digits[-2:].zfill(2) if digits else "xx"
+
+
+def _write_accession_index(out_dir: str, by_project: Dict[str, List[sqlite3.Row]], project_order: List[str]) -> int:
+    """docs/db/ix/<NN>.json: {accession: index into projects.json rows} for every BioSample and run."""
+    pos = {acc: i for i, acc in enumerate(project_order)}
+    buckets: Dict[str, Dict[str, int]] = defaultdict(dict)
+    for acc, rs in by_project.items():
+        i = pos.get(acc)
+        if i is None:
+            continue
+        for r in rs:
+            buckets[ix_bucket(r["accession"])][r["accession"]] = i
+            if r["sample"]:
+                b = buckets[ix_bucket(r["sample"])]
+                b[r["sample"]] = min(b.get(r["sample"], i), i)
+    ix_dir = os.path.join(out_dir, "ix")
+    os.makedirs(ix_dir, exist_ok=True)
+    for name, entries in buckets.items():
+        _write_if_changed(os.path.join(ix_dir, f"{name}.json"),
+                          _dump({"v": 1, "project_index": "projects.json rows", "entries": dict(sorted(entries.items()))}))
+    return len(buckets)
+
+
+def _analytics(con: sqlite3.Connection) -> Dict[str, Any]:
+    """Precomputed catalog-structure statistics for the Analytics page (docs/db/analytics.json)."""
+    import math
+    urban = "('confirmed_urban','probable_urban')"
+    # Study concentration: urban BioSamples per BioProject -> Lorenz curve, Gini, top shares
+    sizes = sorted(n for (n,) in con.execute(f"""
+        SELECT count(DISTINCT ps.sample_accession) FROM project_samples ps JOIN samples s ON s.accession = ps.sample_accession
+        WHERE s.urban_status IN {urban} GROUP BY ps.project_accession"""))
+    total = sum(sizes) or 1
+    cum, lorenz, acc = 0, [[0.0, 0.0]], 0
+    for i, n in enumerate(sizes, 1):
+        acc += n
+        if i == len(sizes) or i % max(1, len(sizes) // 100) == 0:
+            lorenz.append([round(i / len(sizes), 4), round(acc / total, 4)])
+    k = len(sizes)
+    gini = (2 * sum((i + 1) * n for i, n in enumerate(sizes)) / (k * total) - (k + 1) / k) if k else 0
+    top1 = max(1, math.ceil(0.01 * k))
+    conc = {"studies": k, "gini": round(gini, 4), "lorenz": lorenz,
+            "top1pct_share": round(sum(sizes[-top1:]) / total, 4), "top10_share": round(sum(sizes[-10:]) / total, 4)}
+    # Collection-to-release delay (years) for urban samples with a full collection date
+    delays = [d for (d,) in con.execute(f"""
+        SELECT (julianday(min(r.release_date)) - julianday(s.collection_date)) / 365.25
+        FROM samples s JOIN runs r ON r.sample_accession = s.accession
+        WHERE s.urban_status IN {urban} AND s.collection_date IS NOT NULL AND r.release_date IS NOT NULL
+        GROUP BY s.accession""") if d is not None]
+    neg = sum(1 for d in delays if d < 0)
+    pos = sorted(d for d in delays if d >= 0)
+    bins = [{"label": f"{y}" if y < 10 else "10+", "samples": sum(1 for d in pos if (y <= d < y + 1) or (y == 10 and d >= 10))}
+            for y in range(0, 11)]
+    delay = {"samples": len(delays), "negative": neg, "median_years": pos[len(pos) // 2] if pos else 0, "bins": bins}
+    # Library size: log10 bases per run, shotgun (WGS) runs
+    lib = {}
+    for assay in ("WGS", "16S", "Amplicon", "Metatranscriptomics"):
+        b = sorted(x for (x,) in con.execute("""SELECT r.bases FROM runs r JOIN experiments e ON e.accession = r.experiment_accession
+                                                WHERE e.assay_class = ? AND r.bases > 0""", (assay,)))
+        edges = [6 + 0.5 * i for i in range(13)]  # 1 Mbp .. 1 Tbp
+        hist = [{"label": f"{lo:g}", "runs": sum(1 for x in b if lo <= math.log10(x) < lo + 0.5)} for lo in edges]
+        lib[assay] = {"assay": assay, "runs": len(b), "median_bases": b[len(b) // 2] if b else 0, "bins": hist}
+    # Completeness by primary assay (urban samples; a sample counts under each assay it has)
+    fields = ["has_place", "has_coordinates", "has_collection_date", "has_env_broad_scale", "has_isolation_source"]
+    rows = []
+    for assay, n, place, coords, date, env, iso in con.execute(f"""
+        SELECT a.assay_class, count(*),
+               avg(l.status IN ('verified','probable')) * 100, avg(s.lat IS NOT NULL AND s.lon IS NOT NULL) * 100,
+               avg(s.collection_date IS NOT NULL) * 100, avg(s.env_broad_scale IS NOT NULL) * 100,
+               avg(s.isolation_source IS NOT NULL) * 100
+        FROM (SELECT DISTINCT r.sample_accession AS acc, coalesce(e.assay_class,'Unknown') AS assay_class
+              FROM runs r JOIN experiments e ON e.accession = r.experiment_accession) a
+        JOIN samples s ON s.accession = a.acc LEFT JOIN sample_locations l ON l.sample_accession = s.accession
+        WHERE s.urban_status IN {urban} GROUP BY a.assay_class ORDER BY count(*) DESC"""):
+        rows.append({"assay": assay, "samples": n, **{f: round(v or 0, 1) for f, v in zip(fields, (place, coords, date, env, iso))}})
+    return {"v": 1, "unit": "urban (confirmed or probable) BioSamples unless stated", "study_concentration": conc,
+            "release_delay": delay, "library_size": lib["WGS"], "library_size_by_assay": lib,
+            "completeness": {"fields": fields, "rows": rows}}
 
 
 def _summary(con: sqlite3.Connection, project_rows: List[List[Any]]) -> Dict[str, Any]:
