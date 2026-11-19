@@ -1,0 +1,36 @@
+{
+  "generated_utc": "2026-11-19T12:30:18Z",
+  "sources": {
+    "geonames_countryInfo": {
+      "file": "geonames/countryInfo.txt",
+      "sha256": "79f8f59ea01cbb40438bf1856dd6c2ff201f03f8fc72d0530b2646aaf603ef04"
+    },
+    "worldbank": {
+      "api": "https://api.worldbank.org/v2",
+      "retrieved_utc": "2026-11-19T12:30:18Z",
+      "indicators": {
+        "NY.GDP.PCAP.KD": "gdp_per_capita_usd2015",
+        "SP.URB.TOTL.IN.ZS": "urban_population_pct",
+        "SH.STA.SMSS.ZS": "sanitation_safely_managed_pct",
+        "GB.XPD.RSDV.GD.ZS": "rd_expenditure_pct_gdp",
+        "SP.POP.TOTL": "population_wb"
+      },
+      "years": "2010:2024",
+      "file": "worldbank_wdi.tsv",
+      "sha256": "ff53a2b1b7f87a01f4cdaf6361fe2ea4a9a3ec6d5e385855eb3c034d1c0ea2b5"
+    },
+    "geonames_cities500": {
+      "file": "geonames/cities500.zip",
+      "sha256": "40754836f9b58f2702e53e8d4c531aac2bc04a39d92d798a09afd3456ae661ca",
+      "min_population": 100000
+    },
+    "climate": {
+      "method": "latitude band proxy (tropical <23.44\u00b0, subtropical <35\u00b0, temperate <60\u00b0, boreal/polar)"
+    }
+  },
+  "rows": {
+    "countries": 252,
+    "cities_ge_min_pop": 6290,
+    "umdb_places": 2768
+  }
+}

@@ -14,6 +14,8 @@ Thanks for helping improve the Urban Microbiome Database. Contributions of every
 | Report a wrong country, city, assay or urban label | Open a **Metadata correction** issue with the run or BioSample accession and the evidence |
 | Report a website or pipeline bug | Open a **Bug report** issue |
 | Improve discovery, classification or exports | Open a pull request (see below) |
+| Add or improve a research hypothesis test | Follow [pipeline/README.md](pipeline/README.md#adding-a-hypothesis): a script in `pipeline/bin/`, a registry row, a planted effect in the fixture |
+| Label BioSamples for the eligibility benchmark | Fill in the C8 labeling sheet from `nextflow run pipeline` (`hypotheses/C8/labeling_sheet.tsv`) |
 
 ## Development setup
 
@@ -36,6 +38,13 @@ umdb test -v        # or: python3 -m unittest discover tests -v
 ```
 
 Tests are offline: NCBI calls are mocked. Please keep it that way, so tests never need credentials or network access.
+
+The research pipeline has its own tests, which need numpy, pandas and scipy (`pipeline/envs/analysis.yml`) and, for the end-to-end run, Nextflow:
+
+```bash
+python3 -m unittest discover pipeline/tests     # statistics helpers
+umdb science test                               # whole pipeline on the synthetic fixture
+```
 
 ### The `umdb` command
 
@@ -111,6 +120,8 @@ Changes to `assay.py`, `biosample.py`, `eligibility.py` (bump `RULES_VERSION`) o
 | --- | --- |
 | `scripts/umdb_harvester/` | Harvester package (discovery, enrichment, classification, export) |
 | `tests/` | Offline unit tests |
+| `pipeline/` | UMDB-SCIENCE Nextflow research pipeline (hypothesis tests, read profiling) |
+| `manuscript/` | Resource-paper draft, research programme, catalog findings |
 | `data/` | Working state: run catalog (JSONL), seen-ID lists, NCBI response caches |
 | `docs/` | Published GitHub Pages site and the `docs/db/` database release |
 | `.github/workflows/` | Scheduled crawl and on-demand AI curation |

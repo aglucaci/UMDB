@@ -13,6 +13,8 @@ https://aglucaci.github.io/UMDB/
 
 > **How does UMDB decide a study is urban?** A broad keyword search of NCBI SRA decides what enters the catalog. A strict, sample-level **eligibility screen** then labels every run `confirmed_urban`, `probable_urban`, `uncertain`, `non_urban` or `non_environmental`, with the evidence behind the label. A city name alone never confirms a sample. Nothing is deleted: filter by tier in the explorer or on `eligibility.status`. See **[INCLUSION_CRITERIA.md](INCLUSION_CRITERIA.md)** for the exact queries, rules and limitations.
 
+> **From catalog to science.** [`pipeline/`](pipeline/README.md) is a Nextflow pipeline (UMDB-SCIENCE) that tests pre-specified hypotheses on a frozen snapshot of the catalog. It covers the research enterprise now, from the database alone: coverage inequality, development, COVID-19, habitat bias, metadata completeness and technology diffusion. It also selects a balanced shotgun cohort and reprocesses it uniformly to test ecological principles: habitat vs geography, functional convergence, scaling laws, prediction in unsampled cities, mobility, connectivity, discovery, seasonality and resistomes. Results so far: [manuscript/catalog_findings](manuscript/catalog_findings/README.md). Programme: [manuscript/research_program.md](manuscript/research_program.md).
+
 ## Documentation
 
 | Document | For |
@@ -23,6 +25,8 @@ https://aglucaci.github.io/UMDB/
 | [ARCHITECTURE.md](ARCHITECTURE.md) | How data flows: JSONL source of truth → SQLite query database → Parquet releases and website JSON; schema and example queries |
 | [DATA_DICTIONARY.md](DATA_DICTIONARY.md) | What is pulled from NCBI (requests, volume, formats) and every field in the published files |
 | [CURATION.md](CURATION.md) | Inclusion criteria, annotation rules, AI review, known limitations |
+| [pipeline/README.md](pipeline/README.md) | **Research pipeline (Nextflow)**: hypotheses, methods, decision rules, parameters, how to add a test |
+| [manuscript/research_program.md](manuscript/research_program.md) | The research programme built on UMDB: hypotheses, papers, flagship analysis, external data |
 | [CHANGELOG.md](CHANGELOG.md) | What changed, including effects on catalog counts |
 | [SECURITY.md](SECURITY.md) | Reporting vulnerabilities, handling API keys |
 | [CITATION.cff](CITATION.cff) | How to cite UMDB |
@@ -54,6 +58,7 @@ umdb serve                                # preview at http://localhost:8000
 | `umdb serve [port]` | Preview the website |
 | `umdb status` | Release size, eligibility tiers, settings check |
 | `umdb queries` | Print the exact discovery queries |
+| `umdb science [opts]` / `umdb science test` | Run the Nextflow research pipeline on the catalog, or on its synthetic test fixture (needs Nextflow) |
 | `umdb test` | Run the test suite |
 
 `umdb` works from any directory. In an interactive terminal it prints a UMDB banner on stderr (never into pipes or files); set `UMDB_NO_BANNER=1` to hide it.
@@ -181,6 +186,15 @@ UMDB/
 │       ├── manifest.json
 │       └── p/<BioProject>.json
 ├── logo/
+├── manuscript/                 resource-paper draft, research programme, catalog findings
+├── pipeline/                   UMDB-SCIENCE Nextflow pipeline (see pipeline/README.md)
+│   ├── main.nf, nextflow.config
+│   ├── modules/local/          catalog.nf (snapshot, covariates, cohort, tests), reads.nf (SRA → profiles)
+│   ├── subworkflows/local/     profile_reads.nf
+│   ├── bin/                    one script per hypothesis (umdb_c*.py, umdb_h*.py) + shared statistics
+│   ├── assets/hypotheses.csv   the hypothesis registry
+│   ├── envs/analysis.yml
+│   └── tests/                  synthetic fixture with planted effects; unit tests
 ├── scripts/
 │   └── umdb_harvester/
 │       ├── ai_curation.py
@@ -378,6 +392,22 @@ From the main explorer, a user can:
 - export a shell script that uses `prefetch` and `fasterq-dump` from SRA Toolkit
 
 This makes it possible to go from a filtered UMDB search to raw FASTQ retrieval without manually collecting accessions one by one.
+
+## Research Pipeline
+
+UMDB's next step is to move from cataloging urban sequencing data to finding the ecological, evolutionary and biogeographical rules that govern microbial life in cities. The working hypothesis is that urbanization acts as a global ecological and evolutionary filter. The [UMDB-SCIENCE Nextflow pipeline](pipeline/README.md) is the infrastructure for testing it:
+
+```bash
+umdb science test                                  # synthetic fixture with planted effects (~2 min)
+umdb science -profile conda --fetch_worldbank      # catalog hypotheses + shotgun cohort audit
+umdb science -profile slurm,conda --run_reads --sylph_db … --resfinder_db …   # reprocess the cohort
+```
+
+- **Track A · catalog** (minutes, from `data/umdb.sqlite`): C0 data-quality audit; C1 coverage vs population and blind-spot cities; C2 development; C3 COVID-19 interrupted time series; C4 habitat representation; C5 metadata completeness; C6 centre concentration; C7 technology diffusion; C8 blinded expert benchmark of the eligibility screen.
+- **Track B · reads**: a habitat-, city- and study-balanced shotgun cohort is streamed from SRA, quality-controlled and depth-standardized, then profiled for species (sylph/GTDB or MetaPhlAn 4), functions (HUMAnN → KEGG orthologs), resistance genes (KMA/ResFinder) and viral contigs (MEGAHIT → geNomad).
+- **Track C · ecology**: H1 habitat vs geography; H2 functional convergence; H3 scaling laws; H4 prediction in held-out cities; H5 air-travel connectivity; H6 cross-habitat connectivity; H9 undiscovered diversity; H10 hemisphere-aligned seasonality; H11 resistome ecology. Evolution (MAGs + HyPhy), viral persistence, homogenization, resilience and climate redistribution are on the roadmap.
+
+Each test writes its decision rule in its docstring, uses one frozen catalog snapshot, and reports `supported`, `not_supported`, `inconclusive` or `descriptive` with caveats. External covariates (GeoNames, World Bank, OpenFlights, optionally Köppen–Geiger) are versioned with checksums. On the 2026-11-16 catalog, Track A found coverage strongly concentrated relative to population (concentration index 0.82) and tied to GDP per capita, wastewater dominating urban samples (71%), and assay-dependent metadata gaps. It also showed that the balanced shotgun cohort is 9,221 samples from 774 cities ([details](manuscript/catalog_findings/README.md)).
 
 ## Limitations
 

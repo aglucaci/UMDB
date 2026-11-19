@@ -28,3 +28,12 @@ data/seen_*.txt
 data/.catalog-state.json
 # GeoNames gazetteer (downloaded by `umdb geo fetch`; shipped in the catalog bundle)
 data/reference/
+
+# Nextflow research pipeline (pipeline/): work directories, run logs, results, conda cache
+pipeline/work/
+work/
+.nextflow/
+.nextflow.log*
+results/
+results-*/
+pipeline/.conda/

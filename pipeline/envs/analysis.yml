@@ -1,0 +1,12 @@
+# Environment for every UMDB-SCIENCE analysis step (snapshot, covariates, hypotheses, report).
+name: umdb-science-analysis
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - numpy>=2.0
+  - pandas>=2.2
+  - scipy>=1.13
+  - statsmodels>=0.14
+  - scikit-learn>=1.5
+  - matplotlib>=3.8

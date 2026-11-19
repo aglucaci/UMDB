@@ -100,6 +100,10 @@ Data and site:
   umdb queries                   print the exact discovery queries
   umdb status                    catalog size, eligibility tiers, settings check
 
+Research pipeline (Nextflow; see pipeline/README.md):
+  umdb science [opts]            hypothesis tests on the catalog (= nextflow run pipeline ...)
+  umdb science test              the same on the synthetic fixture (-profile test)
+
 Development:
   umdb test                      run the offline test suite
   umdb install [dir]             put "umdb" on your PATH (symlink; default ~/.local/bin)
@@ -215,6 +219,14 @@ print('Query profiles version :', c.QUERY_PROFILES_VERSION)
     ;;
   test|tests)
     exec "$PY" -m unittest discover tests "$@"
+    ;;
+  science)
+    command -v nextflow >/dev/null || { echo "nextflow not found: https://www.nextflow.io/docs/latest/install.html" >&2; exit 1; }
+    if [ "${1:-}" = "test" ]; then
+      shift
+      exec nextflow run "$REPO_ROOT/pipeline" -profile test "$@"
+    fi
+    exec nextflow run "$REPO_ROOT/pipeline" "$@"
     ;;
   install)
     target="${1:-$HOME/.local/bin}"

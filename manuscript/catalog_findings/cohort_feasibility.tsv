@@ -1,0 +1,31 @@
+urban_context	continent_name	eligible	selected
+air_dust	Africa	8	8
+air_dust	Asia	791	572
+air_dust	Europe	1129	408
+air_dust	North America	504	350
+air_dust	Oceania	2	2
+built_environment	Asia	210	170
+built_environment	North America	173	173
+municipal_wastewater	Africa	339	263
+municipal_wastewater	Asia	5549	2479
+municipal_wastewater	Europe	2283	1768
+municipal_wastewater	North America	2742	1580
+municipal_wastewater	Oceania	107	72
+municipal_wastewater	South America	234	220
+soil_greenspace	Africa	10	10
+soil_greenspace	Asia	100	100
+soil_greenspace	Europe	105	103
+soil_greenspace	North America	45	45
+soil_greenspace	Oceania	4	4
+soil_greenspace	South America	8	8
+surfaces_infrastructure	Asia	241	101
+surfaces_infrastructure	Europe	98	50
+surfaces_infrastructure	North America	100	51
+transit	Asia	293	83
+transit	North America	405	71
+water_drainage	Africa	15	15
+water_drainage	Asia	300	272
+water_drainage	Europe	37	37
+water_drainage	North America	227	182
+water_drainage	Oceania	12	12
+water_drainage	South America	12	12
