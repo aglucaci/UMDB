@@ -1,46 +1,108 @@
 {
   "project": "UMDB",
   "expanded_name": "Urban Microbiome Database",
-  "preferred_logo": "umdb-logo-primary-horizontal-transparent.png",
+  "preferred_logo": "umdb-logo-light.svg",
+  "preferred_logo_dark": "umdb-logo-dark.svg",
+  "generator": "logo/make_logo.py",
   "assets": [
     {
-      "file": "umdb-logo-primary-horizontal-transparent.png",
+      "file": "umdb-logo-light.svg",
       "role": "primary_logo",
       "background": "transparent",
-      "recommended_use": "websites, slides, posters, general press use"
+      "recommended_use": "light backgrounds: websites, documents, slides, posters"
     },
     {
-      "file": "umdb-logo-primary-horizontal-solid.png",
-      "role": "primary_logo_alt",
-      "background": "solid",
-      "recommended_use": "opaque export fallback"
-    },
-    {
-      "file": "umdb-logo-icon-preview.png",
-      "role": "small_format_preview",
+      "file": "umdb-logo-dark.svg",
+      "role": "primary_logo",
       "background": "transparent",
-      "recommended_use": "icon-scale preview and compact placements"
+      "recommended_use": "dark backgrounds"
+    },
+    {
+      "file": "umdb-logo-light.png",
+      "role": "primary_logo_png",
+      "background": "transparent",
+      "recommended_use": "tools without SVG support, light backgrounds"
+    },
+    {
+      "file": "umdb-logo-dark.png",
+      "role": "primary_logo_png",
+      "background": "transparent",
+      "recommended_use": "tools without SVG support, dark backgrounds"
+    },
+    {
+      "file": "umdb-logo-light-solid.png",
+      "role": "primary_logo_solid",
+      "background": "white",
+      "recommended_use": "tools without transparency"
+    },
+    {
+      "file": "umdb-logo-dark-solid.png",
+      "role": "primary_logo_solid",
+      "background": "#0d1117",
+      "recommended_use": "tools without transparency, dark layouts"
+    },
+    {
+      "file": "umdb-logo-compact-light.svg",
+      "role": "compact_logo",
+      "background": "transparent",
+      "recommended_use": "headers, badges, small placements on light backgrounds"
+    },
+    {
+      "file": "umdb-logo-compact-dark.svg",
+      "role": "compact_logo",
+      "background": "transparent",
+      "recommended_use": "headers, badges, small placements on dark backgrounds"
+    },
+    {
+      "file": "umdb-mark.svg",
+      "role": "emblem",
+      "background": "transparent",
+      "recommended_use": "the emblem alone"
+    },
+    {
+      "file": "umdb-mark-512.png",
+      "role": "emblem_png",
+      "background": "transparent",
+      "recommended_use": "the emblem alone, 512 px"
+    },
+    {
+      "file": "umdb-icon.svg",
+      "role": "icon",
+      "background": "white tile",
+      "recommended_use": "avatars, app icons, favicons"
+    },
+    {
+      "file": "umdb-icon-512.png",
+      "role": "icon_png",
+      "background": "white tile",
+      "recommended_use": "avatars, app icons, 512 px"
+    },
+    {
+      "file": "umdb-logo-primary-horizontal-transparent.png",
+      "role": "archive_previous_logo",
+      "background": "baked-in checkerboard",
+      "recommended_use": "historical reference only"
     },
     {
       "file": "umdb-logo-variant-sheet.png",
-      "role": "reference_sheet",
+      "role": "archive_reference",
       "background": "white",
-      "recommended_use": "internal comparison and archival reference"
+      "recommended_use": "historical reference only"
     },
     {
       "file": "umdb-logo-original-concept.png",
-      "role": "archival_concept",
+      "role": "archive_concept",
       "background": "white",
-      "recommended_use": "historical reference"
+      "recommended_use": "historical reference only"
     }
   ],
   "palette": {
-    "deep_navy": "#09111B",
-    "panel_navy": "#101A29",
-    "teal": "#4EC5A8",
-    "sky": "#73A7FF",
-    "amber": "#FFCF70",
-    "text_light": "#EDF3FF",
-    "text_muted": "#98A8C0"
+    "logo_teal": "#14A085",
+    "deep_teal": "#0D7A66",
+    "logo_amber": "#F2A33A",
+    "ink": "#14212B",
+    "site_navy": "#09111B",
+    "site_sky": "#73A7FF",
+    "text_light": "#EDF3FF"
   }
 }

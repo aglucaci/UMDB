@@ -5,11 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>UMDB — Press Kit</title>
   <meta name="description" content="Official UMDB logo downloads, brand guidance, palette, and media boilerplate." />
+  <link rel="icon" type="image/svg+xml" href="./assets/umdb-icon.svg" />
   <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon_16.png" />
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon_32.png" />
   <link rel="icon" href="./assets/favicon.ico" />
   <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
-  <meta property="og:image" content="./press/umdb-logo-primary-horizontal-transparent.png" />
+  <meta property="og:image" content="https://aglucaci.github.io/UMDB/assets/umdb-og.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -100,11 +101,7 @@
   <div class="site-shell">
     <nav class="site-nav">
       <a class="site-brand" href="./index.html">
-        <div class="site-brand-mark"><img src="./assets/umdb-logo.png" alt="UMDB logo" /></div>
-        <div class="site-brand-copy">
-          <strong>UMDB</strong>
-          <span>Urban Microbiome Database</span>
-        </div>
+        <img class="site-logo" src="./assets/umdb-logo-compact-dark.svg" alt="UMDB: Urban Microbiome Database" width="139" height="48" />
       </a>
       <div class="site-links">
         <a href="./index.html">Home</a>
@@ -121,15 +118,15 @@
 
     <section class="hero">
       <div class="eyebrow">Media Assets</div>
-      <h1>UMDB press kit with approved logos, palette, boilerplate, and usage guidance.</h1>
+      <h1>UMDB press kit: logo, palette, boilerplate and usage guidance.</h1>
       <p>
-        This page packages the current public-facing identity for articles, presentations, repository listings, talks, posters,
-        and general media use. The preferred file for most uses is the transparent horizontal logo.
+        The logo for articles, presentations, repository listings, talks and posters. Use the SVG files where you can (they stay sharp at any size);
+        PNG versions are provided for tools that need them. Pick the light or dark version to match the background.
       </p>
       <div class="hero-actions">
-        <a class="button-link primary" href="./press/umdb-logo-primary-horizontal-transparent.png">Download Primary Logo</a>
+        <a class="button-link primary" href="./press/umdb-logo-light.svg" download>Download Logo (SVG)</a>
         <a class="button-link" href="./press/umdb-press-kit.zip">Download Full Press Kit</a>
-        <a class="button-link" href="./press/brand-guide.md">Download Brand Guide</a>
+        <a class="button-link" href="./press/brand-guide.md">Brand Guide</a>
         <a class="button-link" href="./press/asset-manifest.json">Asset Manifest</a>
       </div>
     </section>
@@ -138,15 +135,20 @@
       <div class="press-grid">
         <div class="panel">
           <div class="section-header">
-            <h2>Primary Logo</h2>
-            <p>The recommended lockup for most editorial, web, and slide use.</p>
+            <h2>Logo</h2>
+            <p>The emblem is a culture dish around a city skyline, with microbes linked like records in a database above it.</p>
           </div>
-          <div class="asset-preview">
-            <img src="./press/umdb-logo-primary-horizontal-transparent.png" alt="UMDB primary logo" />
+          <div class="asset-preview" style="background:#ffffff;border-radius:14px;padding:22px">
+            <img src="./press/umdb-logo-light.svg" alt="UMDB logo for light backgrounds" />
+          </div>
+          <div class="asset-preview" style="background:#0d1117;border-radius:14px;padding:22px;margin-top:12px">
+            <img src="./press/umdb-logo-dark.svg" alt="UMDB logo for dark backgrounds" />
           </div>
           <div class="download-list">
-            <a class="download-link" href="./press/umdb-logo-primary-horizontal-transparent.png"><span>Transparent PNG</span><span>Preferred</span></a>
-            <a class="download-link" href="./press/umdb-logo-primary-horizontal-solid.png"><span>Solid-background PNG</span><span>Fallback</span></a>
+            <a class="download-link" href="./press/umdb-logo-light.svg" download><span>Light backgrounds · SVG</span><span>Preferred</span></a>
+            <a class="download-link" href="./press/umdb-logo-dark.svg" download><span>Dark backgrounds · SVG</span><span>Preferred</span></a>
+            <a class="download-link" href="./press/umdb-logo-light.png" download><span>Light backgrounds · PNG</span><span>Transparent</span></a>
+            <a class="download-link" href="./press/umdb-logo-dark.png" download><span>Dark backgrounds · PNG</span><span>Transparent</span></a>
           </div>
         </div>
         <div class="panel">
@@ -164,7 +166,11 @@
             </div>
             <div class="info-item">
               <strong>Preferred Asset</strong>
-              <span class="mono">umdb-logo-primary-horizontal-transparent.png</span>
+              <span class="mono">umdb-logo-light.svg</span> (or <span class="mono">umdb-logo-dark.svg</span> on dark backgrounds)
+            </div>
+            <div class="info-item">
+              <strong>Related</strong>
+              Released data are browsed in <a href="https://aglucaci.github.io/UMA/">UMA</a>; analyses come from <a href="https://github.com/aglucaci/STRIGA">STRIGA</a>.
             </div>
             <div class="info-item">
               <strong>Avoid</strong>
@@ -178,47 +184,54 @@
     <section class="section">
       <div class="section-header">
         <h2>Downloads</h2>
-        <p>Approved files for press, documentation, web embeds, and archival reference.</p>
+        <p>Every file is also in the ZIP. The SVGs are generated by <span class="mono">logo/make_logo.py</span> in the repository.</p>
       </div>
       <div class="asset-grid">
         <article class="panel">
           <div class="kicker">Bundle</div>
           <h3>Full Press Kit Archive</h3>
-          <p>Single ZIP containing the approved files, guide, manifest, and boilerplate.</p>
+          <p>All logo files, the brand guide, the manifest and the boilerplate.</p>
           <div class="download-list">
             <a class="download-link" href="./press/umdb-press-kit.zip"><span>ZIP</span><span>All Assets</span></a>
           </div>
         </article>
         <article class="panel">
-          <div class="kicker">Primary</div>
-          <h3>Transparent Horizontal Logo</h3>
-          <p>Best default choice for media and page layouts.</p>
+          <div class="kicker">Compact</div>
+          <h3>Emblem and UMDB</h3>
+          <p>Without the expanded name, for headers, badges and other small placements.</p>
           <div class="download-list">
-            <a class="download-link" href="./press/umdb-logo-primary-horizontal-transparent.png"><span>PNG</span><span>Transparent</span></a>
+            <a class="download-link" href="./press/umdb-logo-compact-light.svg" download><span>SVG</span><span>Light</span></a>
+            <a class="download-link" href="./press/umdb-logo-compact-dark.svg" download><span>SVG</span><span>Dark</span></a>
+          </div>
+        </article>
+        <article class="panel">
+          <div class="kicker">Emblem</div>
+          <h3>Mark and Icon</h3>
+          <p>The emblem alone, and on a white rounded tile for avatars, app icons and favicons.</p>
+          <div class="download-list">
+            <a class="download-link" href="./press/umdb-mark.svg" download><span>Mark · SVG</span><span>Transparent</span></a>
+            <a class="download-link" href="./press/umdb-mark-512.png" download><span>Mark · PNG</span><span>512 px</span></a>
+            <a class="download-link" href="./press/umdb-icon.svg" download><span>Icon · SVG</span><span>Tile</span></a>
+            <a class="download-link" href="./press/umdb-icon-512.png" download><span>Icon · PNG</span><span>512 px</span></a>
           </div>
         </article>
         <article class="panel">
           <div class="kicker">Fallback</div>
-          <h3>Solid Export</h3>
-          <p>Use when transparency is not supported by the target workflow.</p>
+          <h3>Solid Backgrounds</h3>
+          <p>For tools that do not support transparency.</p>
           <div class="download-list">
-            <a class="download-link" href="./press/umdb-logo-primary-horizontal-solid.png"><span>PNG</span><span>Solid</span></a>
-          </div>
-        </article>
-        <article class="panel">
-          <div class="kicker">Reference</div>
-          <h3>Variant Sheet</h3>
-          <p>Internal comparison view showing alternate directions explored for the mark.</p>
-          <div class="download-list">
-            <a class="download-link" href="./press/umdb-logo-variant-sheet.png"><span>PNG</span><span>Reference</span></a>
+            <a class="download-link" href="./press/umdb-logo-light-solid.png" download><span>PNG</span><span>White</span></a>
+            <a class="download-link" href="./press/umdb-logo-dark-solid.png" download><span>PNG</span><span>Dark</span></a>
           </div>
         </article>
         <article class="panel">
           <div class="kicker">Archive</div>
-          <h3>Original Concept</h3>
-          <p>Historical concept retained for project recordkeeping and design provenance.</p>
+          <h3>Previous Logo</h3>
+          <p>Earlier artwork, kept for the project record. Do not use it for new material.</p>
           <div class="download-list">
-            <a class="download-link" href="./press/umdb-logo-original-concept.png"><span>PNG</span><span>Archive</span></a>
+            <a class="download-link" href="./press/umdb-logo-primary-horizontal-transparent.png"><span>PNG</span><span>Previous</span></a>
+            <a class="download-link" href="./press/umdb-logo-variant-sheet.png"><span>PNG</span><span>Variants</span></a>
+            <a class="download-link" href="./press/umdb-logo-original-concept.png"><span>PNG</span><span>Concept</span></a>
           </div>
         </article>
       </div>
@@ -227,15 +240,15 @@
     <section class="section">
       <div class="section-header">
         <h2>Palette</h2>
-        <p>The logo and site currently lean on a navy, teal, blue, and amber scientific palette.</p>
+        <p>The logo colours, with the dark palette of this website.</p>
       </div>
       <div class="swatch-grid">
-        <div class="swatch"><div class="swatch-chip" style="background:#09111B"></div><div class="swatch-copy"><strong>Deep Navy</strong><br /><span class="mono">#09111B</span></div></div>
-        <div class="swatch"><div class="swatch-chip" style="background:#101A29"></div><div class="swatch-copy"><strong>Panel Navy</strong><br /><span class="mono">#101A29</span></div></div>
-        <div class="swatch"><div class="swatch-chip" style="background:#4EC5A8"></div><div class="swatch-copy"><strong>Teal</strong><br /><span class="mono">#4EC5A8</span></div></div>
-        <div class="swatch"><div class="swatch-chip" style="background:#73A7FF"></div><div class="swatch-copy"><strong>Sky</strong><br /><span class="mono">#73A7FF</span></div></div>
-        <div class="swatch"><div class="swatch-chip" style="background:#FFCF70"></div><div class="swatch-copy"><strong>Amber</strong><br /><span class="mono">#FFCF70</span></div></div>
-        <div class="swatch"><div class="swatch-chip" style="background:#EDF3FF"></div><div class="swatch-copy"><strong>Light Text</strong><br /><span class="mono">#EDF3FF</span></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#14A085"></div><div class="swatch-copy"><strong>Logo Teal</strong><br /><span class="mono">#14A085</span></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#0D7A66"></div><div class="swatch-copy"><strong>Deep Teal</strong><br /><span class="mono">#0D7A66</span></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#F2A33A"></div><div class="swatch-copy"><strong>Logo Amber</strong><br /><span class="mono">#F2A33A</span></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#14212B"></div><div class="swatch-copy"><strong>Ink</strong><br /><span class="mono">#14212B</span></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#09111B"></div><div class="swatch-copy"><strong>Site Navy</strong><br /><span class="mono">#09111B</span></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#73A7FF"></div><div class="swatch-copy"><strong>Site Sky</strong><br /><span class="mono">#73A7FF</span></div></div>
       </div>
     </section>
 
@@ -246,7 +259,7 @@
             <h2>Usage Notes</h2>
           </div>
           <div class="info-list">
-            <div class="info-item"><strong>Use clear space.</strong> Leave at least the height of the `U` around the mark.</div>
+            <div class="info-item"><strong>Use clear space.</strong> Leave at least the height of the <span class="mono">U</span> around the logo.</div>
             <div class="info-item"><strong>Scale proportionally.</strong> Do not stretch, crop, rotate, or stack the lockup into a different arrangement.</div>
             <div class="info-item"><strong>Preserve contrast.</strong> Avoid noisy or low-contrast placements that reduce legibility.</div>
             <div class="info-item"><strong>Keep the name stable.</strong> Use UMDB and Urban Microbiome Database consistently.</div>

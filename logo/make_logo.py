@@ -89,4 +89,9 @@ for variant, ink, muted, ring, dish in (("light", "#14212b", "#4b5a66", TEAL, "#
             f'\n  <path transform="translate(140 79)" fill="{ink}" d="{word}"/>'
             f'\n  <path transform="translate(141 110)" fill="{muted}" d="{sub}"/>')
     write(f"umdb-logo-{variant}.svg", body, W, 128, "UMDB: Urban Microbiome Database")
+    # compact: emblem and "UMDB" only, for small placements such as a site header
+    cw = int(140 + ww + 6)
+    body = (f'\n  <g transform="translate(4 4)">{mark(ring, dish)}</g>'
+            f'\n  <path transform="translate(140 87)" fill="{ink}" d="{word}"/>')
+    write(f"umdb-logo-compact-{variant}.svg", body, cw, 128, "UMDB: Urban Microbiome Database")
 print("wrote", sorted(os.listdir(OUT)), "width", W)
