@@ -55,12 +55,14 @@ img{max-width:100%;display:block}
   text-decoration:none;
 }
 
-.site-brand-mark{
-  display:none;
+.site-logo{
+  display:block;
+  height:36px;
+  width:auto;
+  margin-right:6px;
 }
-
-.site-brand-mark img{
-  display:none;
+@media (max-width:560px){
+  .site-logo{ height:30px; }
 }
 
 .site-brand-copy{
