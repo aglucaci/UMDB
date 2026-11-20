@@ -2,7 +2,7 @@
 
 A cohort is a JSON document that says which BioSamples to take from one UMDB
 release, using the same filters as the website Explorer (the `filters` object
-mirrors docs/assets/db.js in the UMA repository), plus optional balancing:
+mirrors docs/assets/db.js), plus optional balancing:
 
     {
       "name": "Temperate wastewater",
@@ -20,7 +20,8 @@ The website Workspace writes the same package in the browser; both use the same
 seeded shuffle (mulberry32), so a balanced cohort is identical either way.
 
 COLLECTIONS are curated, citable cohorts with written inclusion criteria; the
-release ships their statistics and run lists (collections/), which UMA shows.
+site build (docs/db/collections/) and every release (collections/) ship their
+statistics and run lists.
 """
 from __future__ import annotations
 
@@ -195,7 +196,7 @@ def filters_sql(f: Dict[str, Any]) -> Tuple[str, List[Any]]:
 # ----------------------------------------------------------------- seeded balancing
 
 def mulberry32(seed: int):
-    """The same 32-bit PRNG as UMA's docs/assets/workspace.js, so both shuffle identically."""
+    """The same 32-bit PRNG as docs/assets/workspace.js, so both shuffle identically."""
     state = seed & 0xFFFFFFFF
 
     def rand() -> float:
@@ -401,7 +402,7 @@ def package_files(cohort: Dict[str, Any], samples: List[Dict[str, Any]], runs: L
 
 README_TEMPLATE = """# {NAME}
 
-A research cohort from **UMDB (Urban Microbiome Database)**, https://aglucaci.github.io/UMA/
+A research cohort from **UMDB (Urban Microbiome Database)**, https://github.com/aglucaci/UMDB
 
 | | |
 | --- | --- |
@@ -459,7 +460,7 @@ def readme(name: str, cohort: Dict[str, Any], summ: Dict[str, Any], release: Dic
 
 
 def write_templates(path: str) -> None:
-    """documentation/cohort-templates.json in a release: the package templates UMA's Workspace uses."""
+    """The research-package templates the website Workspace uses (docs/assets/, and documentation/ in a release)."""
     doc = {"readme": README_TEMPLATE, "download": DOWNLOAD_SH, "py": ANALYSIS_PY, "r": ANALYSIS_R}
     os.makedirs(os.path.dirname(path), exist_ok=True)
     _write_if_changed(path, (json.dumps(doc, indent=1) + "\n").encode("utf-8"))
@@ -524,7 +525,7 @@ def citation_bib(release: Dict[str, Any]) -> str:
   title  = {{UMDB: Urban Microbiome Database}},
   author = {{Lucaci, Alexander G.}},
   year   = {{{built[:4] or '2026'}}},
-  url    = {{https://aglucaci.github.io/UMA/}},
+  url    = {{https://github.com/aglucaci/UMDB}},
   note   = {{Database built {built or 'unknown'}; eligibility rules {release.get('eligibility_rules_version', '?')}}}
 }}
 """

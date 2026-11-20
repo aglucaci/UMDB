@@ -58,10 +58,12 @@ The same pipeline selects a balanced cohort of 9,221 shotgun metagenomes from
 
 **Availability.** UMDB is distributed as versioned releases (Parquet and TSV
 tables, a SQLite database, curated collections and the STRIGA analyses of that
-release, with checksums), browsable in the UMA web browser with filters by
-place, assay, year and eligibility tier. The harvester (UMDB), the analysis
-pipeline (STRIGA) and the browser (UMA) are open source; data are freely
-available under CC BY-NC-SA 4.0 at https://aglucaci.github.io/UMA/.
+release, with checksums). The live catalog can be explored on the web with
+filters by place, assay, year and eligibility tier
+(https://aglucaci.github.io/UMDB/), and each release with its findings at
+https://aglucaci.github.io/UMA/. The harvester (UMDB), the analysis pipeline
+(STRIGA) and the release browser (UMA) are open source; data are freely
+available under CC BY-NC-SA 4.0.
 
 ## Notes for revision
 

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UMDB — Workspace</title>
+  <meta name="description" content="Build, combine, compare, balance and export reproducible research cohorts from UMDB in your browser, with no account." />
+  <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon_16.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon_32.png" />
+  <link rel="icon" href="./assets/favicon.ico" />
+  <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./assets/site.css" />
+</head>
+<body>
+<div class="site-shell">
+  <nav class="site-nav">
+    <a class="site-brand" href="./index.html"><div class="site-brand-copy"><strong>UMDB</strong><span>Urban Microbiome Database</span></div></a>
+    <div class="site-links">
+      <a href="./index.html">Home</a>
+      <a href="./explorer.html">Explorer</a>
+      <a href="./global-map.html">Atlas</a>
+      <a href="./analytics.html">Analytics</a>
+      <a href="./collections.html">Collections</a>
+      <a class="is-active" href="./workspace.html">Workspace</a>
+      <a href="./data.html">Downloads</a>
+      <a href="./methodology.html">Methods</a>
+      <a href="./about.html">About</a>
+    </div>
+  </nav>
+
+  <header class="x-head" style="margin-bottom:18px">
+    <div class="eyebrow">UMDB Workspace</div>
+    <h1 class="page-title">Reproducible research cohorts</h1>
+    <p class="page-lead">Save selections from the Explorer, combine them (union, intersection, difference), compare them for imbalance in habitat, geography, assay and time, balance them by city and study with a fixed random seed, and download a research package: metadata, run accessions, download script, nf-core samplesheet, starter analyses and a cohort.json that rebuilds the same cohort from the same release.</p>
+  </header>
+  <main id="workspace"><div class="panel empty">Loading the catalog…</div></main>
+
+  <footer class="site-footer">
+    UMDB annotations, collections and derived tables are CC BY-NC-SA 4.0. Sequence data and submitter metadata remain governed by the
+    INSDC policies of their source archives (NCBI, ENA, DDBJ). Place names: GeoNames, CC BY 4.0.
+  </footer>
+</div>
+<script src="./assets/db.js"></script>
+<script src="./assets/ui.js"></script>
+<script src="./assets/workspace.js"></script>
+</body>
+</html>

@@ -6,25 +6,26 @@ The work is split across three repositories joined by versioned releases:
 
 | Repository | Role | Hands on |
 | --- | --- | --- |
-| [UMDB](https://github.com/aglucaci/UMDB) | Harvesting, curation, the catalog and the **data releases** | `data/` (catalog) to STRIGA; releases (contract `umdb-release/1`) to UMA and users |
+| [UMDB](https://github.com/aglucaci/UMDB) | Harvesting, curation, the catalog, the **data releases**, and the **live-catalog browser** (aglucaci.github.io/UMDB) | `data/` (catalog) to STRIGA; releases (contract `umdb-release/1`) to UMA and users |
 | [STRIGA](https://github.com/aglucaci/STRIGA) | Analysis workflow: catalog tests, cohort selection, read profiling, ecological hypotheses, with outside data (World Bank, GeoNames, OpenFlights, …) | `striga_manifest.json` + results (contract `striga-results/1`), bundled into a release by `umdb release --analysis` |
-| [UMA](https://github.com/aglucaci/UMA) | The browser: Explorer, Atlas, Analytics and Findings, Collections, Workspace | Built from one release; every page names it |
+| [UMA](https://github.com/aglucaci/UMA) | The release browser (aglucaci.github.io/UMA): STRIGA findings and searchable records of one release | Built from one release; every page names it |
 
 ## Products
 
-| Product | What it is | Status |
+| Product | What it is | Where |
 | --- | --- | --- |
-| **Catalog** | Harmonized studies, BioSamples and runs: Explorer plus a persistent page for every study, sample, run, city, country and habitat | v1.0, implemented |
-| **Atlas** | Global map: sample and study density, habitats, per-capita coverage with surveillance gaps, location confidence, collection-year filter, export of the visible area | v1.0, implemented |
-| **Analytics** | Coverage, growth, assays, study concentration (Lorenz), collection-to-release delay, library sizes, metadata completeness; every chart downloadable (CSV, SVG, PNG) | v1.0, implemented |
-| **Workspace** | Browser-local cohorts: save from the Explorer, union/intersection/difference, comparison with imbalance flags, seeded balancing, research-package export | v1.0, implemented |
-| **Collections** | Curated, citable cohorts with inclusion criteria and run lists: global wastewater, transit, urban air, greenspace, virome, resistome | v1.0, implemented |
-| **Findings** | STRIGA's hypothesis results for the release on the UMA Analytics page, with caveats and the STRIGA version | Implemented (UMA), from the first release with `--analysis` |
-| **Profiles** | Standardized taxonomic and functional abundance profiles from uniformly reprocessed shotgun data (STRIGA Track B), shipped in `analysis/profiles/` of a release | v2.0 |
+| **Catalog** | Harmonized studies, BioSamples and runs: Explorer plus a persistent page for every study, sample, run, city, country and habitat | UMDB live browser |
+| **Atlas** | Global map: sample and study density, habitats, per-capita coverage with surveillance gaps, location confidence, collection-year filter, export of the visible area | UMDB live browser |
+| **Analytics** | Coverage, growth, assays, study concentration (Lorenz), collection-to-release delay, library sizes, metadata completeness; every chart downloadable (CSV, SVG, PNG) | UMDB live browser |
+| **Workspace** | Browser-local cohorts: save from the Explorer, union/intersection/difference, comparison with imbalance flags, seeded balancing, research-package export | UMDB live browser; `umdb cohort` |
+| **Collections** | Curated, citable cohorts with inclusion criteria and run lists: global wastewater, transit, urban air, greenspace, virome, resistome | UMDB live browser; every release (`collections/`) |
+| **Findings** | STRIGA's results for a release: every hypothesis with status, result, key numbers, caveats, figures and tables | UMA |
+| **Release records** | Search and record pages for studies, BioSamples, runs, places and countries as frozen in a release | UMA |
+| **Profiles** | Standardized taxonomic and functional abundance profiles from uniformly reprocessed shotgun data (STRIGA Track B), shipped in `analysis/profiles/` of a release | v2.0 (STRIGA, UMA) |
 
 Long-term: UMDB 1.0 discovery → 2.0 biology (species, genes, pathways, genomes, viruses) → 3.0 comparative ecological and evolutionary analyses → 4.0 AI-assisted hypothesis generation and prediction.
 
-## Routes (UMA)
+## Routes (UMDB live browser; UMA uses the same study/sample/run routes plus `/place/<id>`, `/country/<ISO>`, `/finding/<ID>`)
 
 | Entity | Page | Short route (via `404.html` on GitHub Pages) |
 | --- | --- | --- |
@@ -41,9 +42,10 @@ Every filter state is in the page address, so any Explorer, Atlas or record view
 
 ## Design decisions
 
-* **Releases are the contract.** STRIGA analyses a catalog and records its SHA-256; a release bundles the catalog with matching results only; UMA shows one release and says which. Harvests never change what users browse or cite until the next release.
-* **Static first.** The UMA site is static files with no server. Data generation (Python), storage (SQLite, Parquet, JSON) and presentation (browser) are separate; the browser never needs a running backend.
-* **Exact counts from small indexes.** The Explorer, Atlas, entity pages and Workspace share one query engine (UMA `docs/assets/db.js`) over two cubes in which every BioSample and run is counted exactly once. Details load per project on demand.
+* **Two browsers, two purposes.** UMDB's browser follows the live catalog (explore, build cohorts, check curation) and says it is unreleased; UMA shows one release (cite, read findings). Neither tries to be the other.
+* **Releases are the contract.** STRIGA analyses a catalog and records its SHA-256; a release bundles the catalog with matching results only; UMA shows one release and says which.
+* **Static first.** Both sites are static files with no server. Data generation (Python), storage (SQLite, Parquet, JSON) and presentation (browser) are separate; the browser never needs a running backend.
+* **Exact counts from small indexes.** The Explorer, Atlas, entity pages and Workspace share one query engine (UMDB `docs/assets/db.js`) over two cubes in which every BioSample and run is counted exactly once. Details load per project on demand.
 * **Reproducible cohorts.** A cohort is a JSON definition (filters or set operations, balancing, seed) tied to a database build. The browser and `umdb cohort export` implement the same filters and the same seeded shuffle; a test checks the PRNG against the browser's output, and on the real catalog both select identical samples.
 * **Honest maps.** Points are submitter-reported coordinates (rounded to about 1 km), never city centroids inferred from names; a validated city is drawn only when selected. A location-confidence layer shows where samples are mapped at country level only.
 * **Licensing.** UMDB's curation and derived assets are CC BY-NC-SA 4.0; sequence data and submitter metadata stay under the INSDC policies of their archives. Releases record both (`manifest.json` → `licenses`).
@@ -54,7 +56,7 @@ Every filter state is in the page address, so any Explorer, Atlas or record view
 | --- | --- | --- |
 | Independent eligibility benchmark | Required before tagging v1.0.0 | STRIGA C8 writes a blinded, stratified labeling sheet (500 BioSamples); needs two expert raters |
 | Fix invalid collection dates in the catalog | 180 BioSamples have future, post-release or pre-1950 dates | Flagged on sample pages and excluded from temporal analyses; not yet corrected or nulled in the database |
-| Hosting of website data | UMA's `docs/db/` is about 300 MB per release in git; history grows with each release | Keep pages on GitHub Pages; move `docs/db/p/` and releases to object storage (Cloudflare R2: free egress, range requests for Parquet), or squash UMA's data commits. Needs an account and a decision |
+| Hosting of website data | UMDB's `docs/db/` and UMA's `docs/data/` are each about 280 MB in git, and every rebuild adds history | Keep pages on GitHub Pages; move per-study files and releases to object storage (Cloudflare R2: free egress, range requests for Parquet), or squash data commits. Needs an account and a decision |
 | DuckDB-Wasm queries on Parquet | Arbitrary record-level queries in the browser | Possible once releases are served with range requests and CORS |
 | React/TypeScript port | Larger UI (virtualized tables, drawing selection areas on the map) | The current pages are framework-free; the data files and engine are designed so a port can reuse them |
 | Drawn geographic selections | Select samples by polygon | The Atlas exports the visible area today |

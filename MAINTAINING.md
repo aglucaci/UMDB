@@ -1,6 +1,6 @@
 # Maintaining UMDB
 
-Operational guide for whoever keeps the database running: workflows, secrets, releases, and what to do when something breaks. The website ([UMA](https://github.com/aglucaci/UMA)) and the analysis pipeline ([STRIGA](https://github.com/aglucaci/STRIGA)) have their own repositories; this guide covers how UMDB hands data to them. For setting up a development environment, see [CONTRIBUTING.md](CONTRIBUTING.md).
+Operational guide for whoever keeps the database running: workflows, secrets, releases, and what to do when something breaks. UMDB serves its own browser of the live catalog (`docs/`, GitHub Pages). The release browser ([UMA](https://github.com/aglucaci/UMA)) and the analysis pipeline ([STRIGA](https://github.com/aglucaci/STRIGA)) have their own repositories; this guide covers how UMDB hands data to them. For setting up a development environment, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## How a data update flows
 
@@ -14,24 +14,24 @@ umdb catalog pull (restore data/ from the catalog-latest release)
   → GeoNames validation of every location (data/reference/geonames, offline)
   → optional AI review (cached in data/cache/ai_curation.json)
   → append to data/srr_catalog_<YEAR>.jsonl
-  → rebuild data/umdb.sqlite
-  → commit reports/ (latest_srr.json, debug/latest_report.json)
+  → rebuild data/umdb.sqlite, then docs/db/ (the live-catalog website)
+  → commit docs/ and reports/ → GitHub Pages publishes aglucaci.github.io/UMDB
   → umdb catalog push (upload data/ to catalog-latest)
 
 and, when you decide to release:
 
   → STRIGA on data/  →  umdb release --version V --analysis results/
-  → GitHub Release v<V> (+ Zenodo DOI)  →  UMA rebuilds the website from it
+  → GitHub Release v<V> (+ Zenodo DOI)  →  UMA rebuilds from it
 ```
 
-Harvests change the catalog continuously; the website changes only when a versioned release is published, so what people browse and cite is always a release.
+Harvests change the catalog, and UMDB's own site, continuously; UMA changes only when a versioned release is published, so what people cite is always a release.
 
 ## Scheduled and manual workflows
 
 | Workflow | Trigger | What it does |
 | --- | --- | --- |
-| [`umdb_daily_crawl.yml`](.github/workflows/umdb_daily_crawl.yml) | Daily 13:00 UTC; manual | Small date-sorted crawl (stops after 25 new runs), pushes the catalog, rebuilds `data/umdb.sqlite`, commits `reports/` |
-| [`umdb_full_ai_curation.yml`](.github/workflows/umdb_full_ai_curation.yml) | Manual only | AI review of the whole catalog or one year, pushes the catalog, rebuilds the database, commits `reports/` |
+| [`umdb_daily_crawl.yml`](.github/workflows/umdb_daily_crawl.yml) | Daily 13:00 UTC; manual | Small date-sorted crawl (stops after 25 new runs), pushes the catalog, rebuilds `data/umdb.sqlite` and `docs/db`, commits `docs/` and `reports/` |
+| [`umdb_full_ai_curation.yml`](.github/workflows/umdb_full_ai_curation.yml) | Manual only | AI review of the whole catalog or one year, pushes the catalog, rebuilds the database and `docs/db`, commits `docs/` and `reports/` |
 
 Manual runs of the daily crawl can choose `crawl`, `daily` (recent N days) or `backfill-year`, along with query profiles, page size and optional AI curation.
 
@@ -89,7 +89,7 @@ Date searches use SRA's `pdat` (public release date). SRA ignores `edat`, and be
 
 ### Re-annotate the catalog after a rule change
 
-Changes to `assay.py` or `biosample.py` apply to the **whole** catalog on the next database build (`umdb db build`), because `exports.refresh_derived_annotations()` re-derives geo and assay from cached metadata. No re-harvest is needed: rebuild the database (`umdb db build`); the change reaches the website with the next release.
+Changes to `assay.py` or `biosample.py` apply to the **whole** catalog on the next database build (`umdb db build`), because `exports.refresh_derived_annotations()` re-derives geo and assay from cached metadata. No re-harvest is needed: `umdb export` rebuilds the database and the live site; the change reaches UMA with the next release.
 
 Records with no cached BioSample keep the geo values they were harvested with.
 
@@ -123,7 +123,7 @@ The harvested catalog (`data/srr_catalog_*.jsonl`, `data/cache/*.json`, `data/se
 ```bash
 umdb catalog status            # local files, last pull/push, what is published
 umdb catalog pull              # restore data/ from catalog-latest (verifies checksums)
-umdb deepest --commit          # harvest; commits only reports/ (the run reports)
+umdb deepest --commit          # harvest; commits docs/ and reports/ (site data and run reports)
 umdb catalog push              # upload data/ to catalog-latest
 umdb catalog push --snapshot   # also keep a dated catalog-YYYY.MM.DD release
 ```
@@ -141,6 +141,7 @@ Both workflows pull the catalog before harvesting and push it afterwards; if `ca
 | `data/cache/biosample.json`, `bioproject*.json` | NCBI response cache; also input to offline re-annotation | Re-fetched on demand (slow); offline re-annotation degrades |
 | `data/cache/ai_curation.json` | AI review results | AI reviews must be re-run (costs money) |
 | `reports/*` | Latest run reports (committed by the workflows) | Rewritten by the next harvest |
+| `docs/db/*` | Live-catalog website data | Regenerated by `umdb export` from `data/umdb.sqlite` |
 | `catalog-latest` release | Off-machine copy of everything in `data/` above | Push again from a checkout that has the catalog |
 | `data/umdb.sqlite` | Query database (git-ignored) | Rebuilt by `umdb db build` (a few minutes) |
 | `data/reference/geonames/` | GeoNames extract used to validate locations (git-ignored, in the catalog bundle) | Re-downloaded automatically on the next build (`umdb geo fetch`); a newer GeoNames extract can change a few place assignments |
@@ -150,7 +151,7 @@ Seen runs are skipped by default, so corrections NCBI submitters make to already
 ## Size limits
 
 - GitHub rejects files over 100 MB and warns over 50 MB; Pages sites should stay under 1 GB. The catalog is not in git (Release assets allow 2 GB per file). Catalog files are still split into 50 MB `_partNNN.jsonl` parts.
-- Website data size is UMA's concern (its `docs/db/` is built from a release).
+- The live site loads about 1 MB compressed at start; per-project files (`docs/db/p/`) total about 260 MB for 477,000 runs. UMA holds a similar amount per release.
 - Older history contains catalog and run-record files. Use `git clone --depth 1` when history is not needed.
 
 ## Troubleshooting
@@ -163,7 +164,8 @@ Seen runs are skipped by default, so corrections NCBI submitters make to already
 | `HTTP failed: https://eutils...` | NCBI rate limiting or an outage | Check that the API key is set; retry later. `http_get` already retries 6 times with backoff |
 | `OPENAI_API_KEY is required` | AI curation requested without a key | Add the secret or `.env` entry, or drop `--ai-curate` |
 | Push rejected: file too large | A part file exceeded 100 MB | Lower `MAX_OUTPUT_BYTES`, rebuild, amend the commit |
-| Site shows old numbers | UMA shows the latest *release*, not the latest harvest | Make a release (below) and rebuild UMA |
+| UMDB site shows old numbers | Pages build lag, or the browser cache | Wait a few minutes; hard-refresh |
+| UMA shows old numbers | UMA shows the latest *release*, not the latest harvest | Make a release (below) and rebuild UMA |
 | Push conflict in a workflow | Two workflows committed at once | Re-run; the daily crawl uses a concurrency group |
 
 Add `-v` to any `umdb` command to see each NCBI request (API key redacted) and cache hit as it happens. Per-run debug files: add `--debug` to write `data/debug/report_<tag>.json` and decision logs (not committed).

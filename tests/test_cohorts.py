@@ -9,6 +9,7 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 from umdb_harvester import cohorts  # noqa: E402
+from umdb_harvester.site import ix_bucket  # noqa: E402
 
 SCHEMA = """
 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
@@ -55,8 +56,7 @@ def fixture_db(path):
 
 class PrngTests(unittest.TestCase):
     def test_matches_javascript_mulberry32(self):
-        # Values printed by the browser implementation (UMA docs/assets/workspace.js) for seed 20261119;
-        # UMA's tests/test_build.py checks the same four values.
+        # Values printed by the browser implementation (docs/assets/workspace.js) for seed 20261119.
         r = cohorts.mulberry32(20261119)
         self.assertEqual([f"{r():.12f}" for _ in range(4)],
                          ["0.582067719661", "0.366967471316", "0.278875814751", "0.921800950775"])
@@ -131,6 +131,14 @@ class CohortTests(unittest.TestCase):
         self.assertIn("global-wastewater", slugs)
         with self.assertRaises(KeyError):
             cohorts.collection_cohort("nope")
+
+
+class IndexTests(unittest.TestCase):
+    def test_ix_bucket_matches_browser(self):
+        # docs/assets/db.js: last two digits of the accession, zero-padded; 'xx' without digits
+        self.assertEqual(ix_bucket("SAMN03270027"), "27")
+        self.assertEqual(ix_bucket("SRR5"), "05")
+        self.assertEqual(ix_bucket("ABC"), "xx")
 
 
 if __name__ == "__main__":

@@ -139,14 +139,14 @@ def build_argparser() -> argparse.ArgumentParser:
 
     sub.add_parser("compact", help="rewrite data/srr_catalog_*.jsonl keeping only the newest record per run")
     sub.add_parser("repair-bioprojects", help="re-fetch cached BioProjects stored under the wrong accession")
-    sub.add_parser("scrub-secrets", help="remove api_key=/email= from stored URLs in data/, reports/ and logs/")
+    sub.add_parser("scrub-secrets", help="remove api_key=/email= from stored URLs in data/, docs/, reports/ and logs/")
     cat = sub.add_parser("catalog", help="move the harvested catalog to/from GitHub Release assets")
     cat.add_argument("action", choices=["push", "pull", "status", "pack"])
     cat.add_argument("--tag", default="catalog-latest", help="release to pull from (default catalog-latest)")
     cat.add_argument("--merge", action="store_true", help="pull: keep local records and add published ones")
     cat.add_argument("--force", action="store_true", help="pull: replace local changes; push: overwrite a newer upload")
     cat.add_argument("--snapshot", action="store_true", help="push: also create a dated catalog-YYYY.MM.DD release")
-    sub.add_parser("export", help="rebuild data/umdb.sqlite from data/ (offline; same as `umdb db build`)")
+    sub.add_parser("export", help="rebuild data/umdb.sqlite and the live-catalog website data in docs/db (offline)")
     sub.add_parser("db-build", help="(re)build data/umdb.sqlite from the catalog and caches")
     sub.add_parser("db-info", help="show database build metadata and sample tiers")
     g = sub.add_parser("geo", help="GeoNames reference files and location checks")
@@ -201,10 +201,13 @@ def resolve_query_specs(args) -> List[Dict[str, str]]:
     return [{"name": "custom", "query": query}]
 
 def rebuild_database():
-    """Rebuild data/umdb.sqlite from the catalog. The website (UMA) is built from releases, not from here."""
+    """Rebuild data/umdb.sqlite from the catalog, then the live-catalog website data (docs/db)."""
     from .database import build_database
+    from .site import build_site
     header("Rebuilding the SQLite database (data/umdb.sqlite)")
     build_database()
+    header("Rebuilding the live-catalog website data (docs/db)")
+    build_site()
 
 
 def run():
@@ -696,7 +699,7 @@ def run():
         # site re-apply the rules from the caches on disk.
         save_caches()
         if getattr(args, "no_db", False):
-            warn("--no-db: skipped rebuilding data/umdb.sqlite (run `umdb db build` later)")
+            warn("--no-db: skipped rebuilding data/umdb.sqlite and docs/db (run `umdb export` later)")
         else:
             rebuild_database()
 

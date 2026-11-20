@@ -23,7 +23,7 @@ reads to build the website) and the bundle dist/releases/umdb-<version>.tar.gz:
   collections/             collections.json and <slug>.tsv.gz run lists (see cohorts.py)
   reference/geonames/      countryInfo.txt and cities500.zip used to validate locations (CC BY 4.0)
   documentation/           DATA_DICTIONARY.md, ARCHITECTURE.md, INCLUSION_CRITERIA.md, CURATION.md, LICENSE,
-                           cohort-templates.json (research-package templates used by UMA's Workspace)
+                           cohort-templates.json (research-package templates, as the website Workspace writes them)
   analysis/                STRIGA results (striga_manifest.json, report.md/json, hypotheses_status.tsv,
                            hypotheses/<ID>/, cohort/, covariates/ with the outside sources, profiles/),
                            only when --analysis is given. The analysed database must be this one:
@@ -235,7 +235,7 @@ def write_release(version: str = "", db_path: str = DB_PATH, out_root: str = REL
         cols = [(d[0], _infer(rows, i)) for i, d in enumerate(cur.description)]
         write_table(name, cols, rows)
 
-    # ---- coverage index and collections (UMA builds its own website indexes from this release)
+    # ---- coverage index and collections (UMA builds its own indexes from the database)
     from .cohorts import build_collections, write_templates
     os.makedirs(os.path.join(out, "indexes"), exist_ok=True)
     with open(os.path.join(out, "indexes", "coverage.json"), "w", encoding="utf-8") as fh:
@@ -259,7 +259,7 @@ def write_release(version: str = "", db_path: str = DB_PATH, out_root: str = REL
     files["documentation/cohort-templates.json"] = {}
     con.close()
 
-    # ---- the gazetteer the locations were validated against (STRIGA and UMA read it from the release)
+    # ---- the gazetteer the locations were validated against (STRIGA reads it from the release)
     for name in ("countryInfo.txt", "cities500.zip"):
         src = os.path.join(geonames_dir, name)
         if os.path.exists(src):

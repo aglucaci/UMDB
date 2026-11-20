@@ -3,7 +3,7 @@ import os, json, time, random, datetime as dt, re
 from typing import Any, Dict, Iterable, Iterator, List, Set
 
 from .config import (
-    DATA_DIR, REPORTS_DIR, CACHE_DIR, DEBUG_DIR, REPORTS_DEBUG_DIR, MAX_OUTPUT_BYTES
+    DATA_DIR, DOCS_DIR, REPORTS_DIR, CACHE_DIR, DEBUG_DIR, REPORTS_DEBUG_DIR, MAX_OUTPUT_BYTES
 )
 
 # --- Logging -----------------------------------------------------------------
@@ -106,7 +106,7 @@ def slim_record(rec: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def ensure_dirs():
-    for p in [DATA_DIR, REPORTS_DIR, CACHE_DIR, DEBUG_DIR, REPORTS_DEBUG_DIR]:
+    for p in [DATA_DIR, DOCS_DIR, REPORTS_DIR, CACHE_DIR, DEBUG_DIR, REPORTS_DEBUG_DIR]:
         os.makedirs(p, exist_ok=True)
 
 def utc_now() -> str:
@@ -163,7 +163,7 @@ def scrub_secrets(text: str) -> str:
 public_url = scrub_secrets
 
 
-def scrub_files(roots=("data", "reports", "logs")) -> Dict[str, int]:
+def scrub_files(roots=("data", "docs", "reports", "logs")) -> Dict[str, int]:
     """Remove api_key=/email= query parameters from every .json/.jsonl/.ndjson
     file under roots, in place (atomic per file). Returns {path: lines changed}."""
     changed: Dict[str, int] = {}

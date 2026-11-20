@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UMDB — Data Access</title>
+  <meta name="description" content="Download locations, schema guidance, and reuse notes for the UMDB database." />
+  <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon_16.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon_32.png" />
+  <link rel="icon" href="./assets/favicon.ico" />
+  <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
+  <meta property="og:image" content="./assets/umdb-logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./assets/site.css" />
+</head>
+<body>
+  <div class="site-shell">
+    <nav class="site-nav">
+      <a class="site-brand" href="./index.html">
+        <div class="site-brand-mark"><img src="./assets/umdb-logo.png" alt="UMDB logo" /></div>
+        <div class="site-brand-copy">
+          <strong>UMDB</strong>
+          <span>Urban Microbiome Database</span>
+        </div>
+      </a>
+      <div class="site-links">
+        <a href="./index.html">Home</a>
+        <a href="./explorer.html">Explorer</a>
+        <a href="./global-map.html">Atlas</a>
+        <a href="./analytics.html">Analytics</a>
+        <a href="./collections.html">Collections</a>
+        <a href="./workspace.html">Workspace</a>
+        <a class="is-active" href="./data.html">Downloads</a>
+        <a href="./methodology.html">Methods</a>
+        <a href="./about.html">About</a>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div class="eyebrow">Downloads And Schema</div>
+      <h1>UMDB exposes its database as browser-friendly pages and machine-readable public artifacts.</h1>
+      <p>
+        This page documents where the current release lives, what the main files contain, and how collaborators can reuse the public
+        records without reverse-engineering the website.
+      </p>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>Primary Public Files</h2>
+        <p>All links below are versioned with the repository and intended to support direct download, inspection, and local scripting.</p>
+      </div>
+      <div class="table-shell panel" id="primaryFilesTable" style="padding:0"></div>
+    </section>
+
+    <section class="section">
+      <div class="split">
+        <div class="panel">
+          <div class="kicker">Schema Guide</div>
+          <div class="info-list">
+            <div class="info-item">
+              <strong>Accession anchors</strong>
+              SRR, BioProject, and BioSample identifiers function as the main join points across records and external repository lookups.
+            </div>
+            <div class="info-item">
+              <strong>Run metadata</strong>
+              The nested <span class="mono">runinfo_row</span> object carries SRA-derived values such as run date, library strategy, center, and platform.
+            </div>
+            <div class="info-item">
+              <strong>Location metadata</strong>
+              The nested <span class="mono">geo</span> object stores parsed country and city labels and any raw string retained during enrichment.
+            </div>
+            <div class="info-item">
+              <strong>Assay metadata</strong>
+              The nested <span class="mono">assay</span> object stores UMDB’s higher-level assay classification for filtering and analytics.
+            </div>
+            <div class="info-item">
+              <strong>AI curation metadata</strong>
+              The optional nested <span class="mono">ai_curation</span> object stores AI-reviewed sufficiency, urban-origin decisions, and corrected final annotations alongside the original metadata.
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="kicker">Reuse Guidance</div>
+          <div class="info-list">
+            <div class="info-item">
+              <strong>Prefer manifest-driven loading</strong>
+              Scripts should read the manifest first so they can accommodate future chunk-count changes without hardcoding file names.
+            </div>
+            <div class="info-item">
+              <strong>Expect imperfect location data</strong>
+              Downstream analyses that depend on geographic precision should explicitly filter or manually verify unresolved or ambiguous entries.
+            </div>
+            <div class="info-item">
+              <strong>Retain accession provenance</strong>
+              When exporting subsets, keep the original accessions so any study can be traced back to its source repository pages.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>Downloading Raw FASTQ Files</h2>
+        <p>UMDB now supports search-derived dataset bundling so filtered results can be converted into raw-read download inputs.</p>
+      </div>
+      <div class="card-grid">
+        <article class="panel">
+          <h3>From the main explorer</h3>
+          <p>
+            Use the filters in the main database explorer, then export one of the dataset bundle options:
+            <span class="mono">Bundle matched runs (JSON)</span>,
+            <span class="mono">SRR accession list</span>, or
+            <span class="mono">FASTQ download script</span>.
+          </p>
+        </article>
+        <article class="panel">
+          <h3>FASTQ script output</h3>
+          <p>
+            The FASTQ script is generated from the current matched search results and uses SRA Toolkit commands
+            <span class="mono">prefetch</span> and <span class="mono">fasterq-dump</span> to retrieve raw reads for the exported SRR accessions.
+          </p>
+        </article>
+        <article class="panel">
+          <h3>Bundle reuse</h3>
+          <p>
+            The JSON bundle preserves the search filters, project summaries, and run-level accessions so a dataset cohort can be archived,
+            shared with collaborators, or re-used later without reconstructing the same search by hand.
+          </p>
+        </article>
+      </div>
+      <div class="panel" style="margin-top:16px">
+        <div class="kicker">Typical Workflow</div>
+        <p>
+          Search for a cohort in the explorer, export the matched SRR bundle, and then run the generated shell script on a machine with
+          SRA Toolkit installed. This gives UMDB a practical bridge from searchable metadata to raw FASTQ retrieval.
+        </p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>Versioned Releases And Programmatic Access</h2>
+        <p>Every release is an immutable folder with checksums, suitable for a DOI. Query it with DuckDB, Python, R or SQLite; build cohorts from the command line exactly as the Workspace does.</p>
+      </div>
+      <div class="split">
+        <div class="panel">
+          <div class="kicker">Release layout</div>
+          <pre class="mono" style="white-space:pre;overflow:auto;font-size:12.5px;margin:0">releases/&lt;version&gt;/
+├── manifest.json          versions, licences, counts, SHA-256
+├── schema.json            every column and type
+├── checksums.sha256
+├── .zenodo.json           deposit metadata (DOI)
+├── umdb.sqlite.zst        the query database
+├── parquet/               projects, samples, experiments, runs,
+│                          locations, studies, curation_evidence,
+│                          environmental_metadata, umdb_samples, umdb_runs …
+├── tsv/                   umdb_samples.tsv.gz, umdb_runs.tsv.gz
+├── indexes/               summary, coverage (per country), projects, geo
+├── collections/           curated collections and their run lists
+└── documentation/         data dictionary, methods, inclusion criteria</pre>
+        </div>
+        <div class="panel">
+          <div class="kicker">Query it</div>
+          <pre class="mono" style="white-space:pre-wrap;font-size:12.5px;margin:0">-- DuckDB: confirmed-urban wastewater metagenomes by country
+SELECT country_name, count(*) AS samples
+FROM read_parquet('parquet/umdb_samples.parquet')
+WHERE urban_status = 'confirmed_urban'
+  AND urban_context = 'municipal_wastewater'
+  AND assay_classes LIKE '%WGS%'
+GROUP BY 1 ORDER BY 2 DESC;
+
+# A reproducible research package from the command line
+umdb cohort collection global-wastewater --max-per-cell 25 --seed 20261119
+umdb cohort export my_cohort.cohort.json   # saved from the Workspace</pre>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:16px">
+        <div class="kicker">Licensing</div>
+        <p style="margin:0">UMDB's own work (eligibility tiers, habitat annotations, validated locations, collections, derived tables, code and documentation) is licensed CC BY-NC-SA 4.0. The underlying sequence data and submitter metadata are not UMDB's: they remain governed by the INSDC policies of their source archives (NCBI SRA, BioSample and BioProject; ENA; DDBJ). Place names and identifiers come from GeoNames (CC BY 4.0).</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>Suggested Citation And Use Statement</h2>
+        <p>The exact manuscript citation can be added later, but the site can still provide a reviewer-friendly placeholder now.</p>
+      </div>
+      <div class="panel">
+        <p>
+          Users of UMDB should cite both the UMDB resource and the original repositories or studies associated with any reused
+          BioProject, BioSample, or SRR accessions. UMDB reorganizes public metadata for discovery and comparison; it does not replace
+          the need to cite primary data generators.
+        </p>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      Direct file links on this page refer to the public release bundled with the site. Update the descriptions here whenever the schema or distribution layout changes.
+    </footer>
+  </div>
+
+  <script src="./assets/db.js"></script>
+  <script src="./assets/page-loading.js"></script>
+  <script>
+    (async () => {
+      const primaryFilesTable = document.getElementById("primaryFilesTable");
+
+      function renderTable(target, columns, rows, emptyMessage) {
+        const body = rows.length
+          ? rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join("")}</tr>`).join("")
+          : `<tr><td colspan="${columns.length}" class="muted">${emptyMessage}</td></tr>`;
+        target.innerHTML = `
+          <table>
+            <thead>
+              <tr>${columns.map((label) => `<th>${label}</th>`).join("")}</tr>
+            </thead>
+            <tbody>${body}</tbody>
+          </table>
+        `;
+      }
+
+      renderTable(primaryFilesTable, ["File", "Purpose", "Audience"], [], "Loading public files...");
+
+      try {
+        const files = [
+          ["db/summary.json", "Exact headline counts from the database, each labelled with its unit (runs, BioSamples, BioProjects): eligibility tiers, location validation status, countries and cities, assays, release and collection years, largest projects.", "Dashboards and quick status checks."],
+          ["db/geo.json", "The validated location hierarchy used by every filter and map: ISO 3166 countries, GeoNames first-order regions and GeoNames places (id, name, coordinates, population). Place data: GeoNames, CC BY 4.0.", "Joining UMDB counts to maps and gazetteers."],
+          ["db/samples.json", "BioSamples aggregated by project set, release and collection year, validated country, region and place, assay set, eligibility tier, context, location status and rounded coordinates. Each sample is counted once, so totals are exact.", "BioSample-level analysis; the explorer and map."],
+          ["db/cube.json", "Sequencing runs aggregated by the same dimensions (one assay and project per run), with gigabases.", "Run-level analysis; the explorer, analytics and map."],
+          ["db/projects.json", "One row per BioProject: title, centre, data type, submission date, run and BioSample counts, year span.", "Project-level browsing and linking."],
+          ["db/p/&lt;BioProject&gt;.json", "One project's BioSamples (accepted location with its validation status next to the submitted text, eligibility, environment fields) and runs (assay, library, platform, size), loaded when a project is opened.", "Per-project reuse without downloading the catalog."],
+          ["db/manifest.json", "Build time, schema, query-profile, eligibility-rule and location-rule versions, GeoNames download date, counts and file sizes.", "Provenance and release sanity checks."],
+          ["latest_srr.json", "Recently added runs.", "Status widgets and monitoring views."]
+        ];
+        renderTable(primaryFilesTable,
+          ["File", "Purpose", "Audience"],
+          files.map(([f, purpose, who]) => [
+            f.includes("&lt;") ? `<span class="mono">docs/${f}</span>` : `<a href="./${f}"><span class="mono">docs/${f}</span></a>`,
+            purpose, who
+          ]).concat([[
+            `<a href="https://github.com/aglucaci/UMDB/releases"><span class="mono">GitHub Releases</span></a>`,
+            "Versioned research releases: every table as Parquet and gzipped TSV with schema, manifest and checksums, plus the full harvested catalog (JSON Lines).",
+            "Analysis in DuckDB, R, Python or spreadsheets; reproducible snapshots."
+          ]]),
+          "No public file entries are available."
+        );
+      } catch (err) {
+        renderTable(primaryFilesTable, ["File", "Purpose", "Audience"], [], err.message);
+      }
+    })();
+  </script>
+</body>
+</html>

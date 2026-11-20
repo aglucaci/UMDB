@@ -244,7 +244,9 @@ DEFAULT_QUERY = QUERY_PROFILES["municipal_wastewater"]
 
 # Paths
 DATA_DIR = "data"
-# Small run reports committed to git by the scheduled workflows (the website lives in UMA).
+# The live-catalog website (GitHub Pages, rebuilt after every harvest) and the small run reports,
+# both committed by the scheduled workflows. Released data is browsed in UMA.
+DOCS_DIR = "docs"
 REPORTS_DIR = "reports"
 CACHE_DIR = f"{DATA_DIR}/cache"
 DEBUG_DIR = f"{DATA_DIR}/debug"

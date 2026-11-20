@@ -64,11 +64,11 @@ usage() {
   cat <<'EOF'
 umdb: Urban Microbiome Database command line (harvesting, curation, releases)
 
-UMDB is one of three repositories: UMDB builds the catalog and the versioned
-releases, STRIGA (github.com/aglucaci/STRIGA) analyses a catalog, and UMA
-(github.com/aglucaci/UMA) is the website that browses a release.
+UMDB is one of three repositories: UMDB builds the catalog, its live website
+(docs/) and the versioned releases; STRIGA (github.com/aglucaci/STRIGA) analyses
+a catalog; UMA (github.com/aglucaci/UMA) shows a release's findings and records.
 
-Harvesting (each finishes by rebuilding data/umdb.sqlite):
+Harvesting (each finishes by rebuilding data/umdb.sqlite and the live site data in docs/db):
   umdb crawl [opts]              paginate the query profiles, newest first
   umdb daily [opts]              records released in the last N days (--recent-days)
   umdb backfill-year --year Y    one calendar year, day by day
@@ -85,7 +85,7 @@ Deep harvest:
   umdb repair                    re-fetch BioProjects cached under the wrong accession
   umdb catalog push|pull|status  store the harvested catalog in GitHub Release assets
                                  (pull --merge keeps local records; push --snapshot dates it)
-  umdb scrub                     remove api_key/email from stored NCBI URLs (data/, reports/, logs/)
+  umdb scrub                     remove api_key/email from stored NCBI URLs (data/, docs/, reports/, logs/)
   umdb geo fetch [--force]       download the GeoNames gazetteer used to validate locations
   umdb geo check "USA: Portland, ME" [--lat N --lon E]
                                  show how one location string is resolved
@@ -107,13 +107,17 @@ Cohorts and collections:
   umdb cohort collection SLUG [-o DIR] [--max-per-cell N --max-per-project N --target N --seed S]
                                  research package for a curated collection
 
+Live-catalog website (aglucaci.github.io/UMDB; released data is browsed in UMA):
+  umdb export                    rebuild data/umdb.sqlite and docs/db from data/ (offline)
+  umdb serve [port]              preview the website (default port 8000)
+
 Information:
   umdb queries                   print the exact discovery queries
   umdb status                    catalog size, eligibility tiers, settings check
 
 Analyses and the website live in their own repositories:
   nextflow run aglucaci/STRIGA --catalog data      analyse this catalog (STRIGA)
-  uma build dist/releases/<V>                      build the website from a release (UMA)
+  uma build dist/releases/<V>                      build the release browser (UMA)
 
 Development:
   umdb test                      run the offline test suite
@@ -203,9 +207,13 @@ case "$cmd" in
   catalog)
     harvester catalog "${@:-status}"
     ;;
-  serve|preview|science)
-    echo "umdb $cmd moved: the website is UMA (github.com/aglucaci/UMA, 'uma serve') and the" >&2
-    echo "analysis pipeline is STRIGA (github.com/aglucaci/STRIGA, 'nextflow run aglucaci/STRIGA')." >&2
+  serve|preview)
+    port="${1:-8000}"
+    echo "Serving docs/ at http://localhost:$port  (Ctrl-C to stop)"
+    exec "$PY" -m http.server "$port" --directory docs
+    ;;
+  science)
+    echo "umdb science moved: the analysis pipeline is STRIGA (github.com/aglucaci/STRIGA, 'nextflow run aglucaci/STRIGA')." >&2
     exit 2
     ;;
   queries)

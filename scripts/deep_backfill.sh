@@ -26,7 +26,7 @@
 #                      environment profiles; `umdb queries` lists them all)
 #   --oldest-first     process years in ascending order (default: newest first)
 #   --ai               also run AI curation on new runs (needs OPENAI_API_KEY)
-#   --commit           git-commit the run reports (reports/) after each completed year
+#   --commit           git-commit the live site data and run reports (docs/, reports/) after each completed year
 #   --redo             ignore completion markers and re-run every year
 #   --yes              do not ask before overwriting uncommitted data
 #   -v, --verbose      show every NCBI request, cache hit and experiment
@@ -225,7 +225,7 @@ for year in "${years[@]}"; do
   completed=$((completed + 1))
 
   if [ $COMMIT -eq 1 ]; then
-    git add reports
+    git add docs reports
     if git diff --cached --quiet; then
       say "[$year] nothing to commit"
     else
