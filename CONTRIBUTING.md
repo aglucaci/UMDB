@@ -12,10 +12,10 @@ Thanks for helping improve the Urban Microbiome Database. Contributions of every
 | --- | --- |
 | Report a study UMDB is missing | Open a **Missing study** issue with the BioProject accession |
 | Report a wrong country, city, assay or urban label | Open a **Metadata correction** issue with the run or BioSample accession and the evidence |
-| Report a website or pipeline bug | Open a **Bug report** issue |
+| Report a harvester or release bug | Open a **Bug report** issue here; website bugs go to [UMA](https://github.com/aglucaci/UMA/issues), analysis-pipeline bugs to [STRIGA](https://github.com/aglucaci/STRIGA/issues) |
 | Improve discovery, classification or exports | Open a pull request (see below) |
-| Add or improve a research hypothesis test | Follow [pipeline/README.md](pipeline/README.md#adding-a-hypothesis): a script in `pipeline/bin/`, a registry row, a planted effect in the fixture |
-| Label BioSamples for the eligibility benchmark | Fill in the C8 labeling sheet from `nextflow run pipeline` (`hypotheses/C8/labeling_sheet.tsv`) |
+| Add or improve a research hypothesis test | In [STRIGA](https://github.com/aglucaci/STRIGA#adding-a-hypothesis): a script in `bin/`, a registry row, a planted effect in the fixture |
+| Label BioSamples for the eligibility benchmark | Fill in the C8 labeling sheet from STRIGA (`hypotheses/C8/labeling_sheet.tsv`) |
 
 ## Development setup
 
@@ -29,7 +29,7 @@ cp .env.example .env   # then add NCBI_API_KEY and NCBI_EMAIL
 
 `.env` is git-ignored and loaded automatically when the harvester runs from the repository root. Values already exported in your shell override it.
 
-**Run every command from the repository root.** The harvester resolves `data/` and `docs/` relative to the current directory.
+**Run every command from the repository root.** The harvester resolves `data/` and `reports/` relative to the current directory.
 
 ### Run the tests
 
@@ -39,12 +39,7 @@ umdb test -v        # or: python3 -m unittest discover tests -v
 
 Tests are offline: NCBI calls are mocked. Please keep it that way, so tests never need credentials or network access.
 
-The research pipeline has its own tests, which need numpy, pandas and scipy (`pipeline/envs/analysis.yml`) and, for the end-to-end run, Nextflow:
-
-```bash
-python3 -m unittest discover pipeline/tests     # statistics helpers
-umdb science test                               # whole pipeline on the synthetic fixture
-```
+Release tests need pyarrow (`pip install -r requirements-release.txt`) and are skipped without it. The analysis pipeline (STRIGA) and the website (UMA) have their own repositories and tests.
 
 ### The `umdb` command
 
@@ -63,26 +58,20 @@ Use `python3 -m scripts.umdb_harvester`, not `python3 -m scripts.umdb_harvester.
 
 For a deep, year-by-year harvest use `umdb backfill` (`scripts/deep_backfill.sh`) (see [MAINTAINING.md](MAINTAINING.md#backfill-years-deepest-search)).
 
-Every harvester command finishes by rebuilding `docs/db/`. To rebuild exports only:
+Every harvester command finishes by rebuilding `data/umdb.sqlite`. To rebuild it only:
 
 ```bash
-umdb export
+umdb db build
 ```
 
-### Preview the website
-
-```bash
-umdb serve          # or: cd docs && python3 -m http.server 8000
-```
-
-Open http://localhost:8000. A server is required: the pages `fetch()` JSON, which browsers block from `file://`.
+To see a change in the website, make a local release (`umdb release --version dev --no-bundle`) and build UMA from it (`uma build ../UMDB/dist/releases/dev` in a UMA checkout).
 
 ### Throw away a local harvest
 
-Local runs modify tracked files in `data/` and `docs/`. To discard them:
+Local runs modify `data/` (git-ignored; `umdb catalog pull --force` restores the published catalog) and the tracked run reports in `reports/`. To discard the reports:
 
 ```bash
-git restore data docs
+git restore reports
 ```
 
 ## Pull requests
@@ -110,7 +99,7 @@ Changes to `assay.py`, `biosample.py`, `eligibility.py` (bump `RULES_VERSION`) o
 
 ## Data guidelines
 
-- **Do not hand-edit** `docs/db/*.json` or `data/srr_catalog_*.jsonl`. Fix the code or the cache and regenerate. Hand edits are overwritten on the next rebuild and leave no provenance.
+- **Do not hand-edit** `data/srr_catalog_*.jsonl` or release files. Fix the code or the cache and regenerate. Hand edits are overwritten on the next rebuild and leave no provenance.
 - Corrections to individual records belong in the curation layer, not in the raw catalog. Until a manual-override file exists, open a **Metadata correction** issue.
 - Do not commit `.env`, API keys or anything under `data/debug/`.
 
@@ -118,14 +107,14 @@ Changes to `assay.py`, `biosample.py`, `eligibility.py` (bump `RULES_VERSION`) o
 
 | Path | What it is |
 | --- | --- |
-| `scripts/umdb_harvester/` | Harvester package (discovery, enrichment, classification, export) |
+| `scripts/umdb_harvester/` | Harvester package (discovery, enrichment, classification, database, cohorts, releases) |
 | `tests/` | Offline unit tests |
-| `pipeline/` | UMDB-SCIENCE Nextflow research pipeline (hypothesis tests, read profiling) |
-| `manuscript/` | Resource-paper draft, research programme, catalog findings |
-| `data/` | Working state: run catalog (JSONL), seen-ID lists, NCBI response caches |
-| `docs/` | Published GitHub Pages site and the `docs/db/` database release |
+| `manuscript/` | Resource-paper draft (research programme and catalog findings are in STRIGA) |
+| `data/` | Working state: run catalog (JSONL), seen-ID lists, NCBI response caches, GeoNames, `umdb.sqlite` |
+| `reports/` | Latest run reports, committed by the workflows |
+| `docs/` | Redirect from the old website address to UMA |
 | `.github/workflows/` | Scheduled crawl and on-demand AI curation |
-| `logo/`, `docs/press/` | Brand assets and press kit |
+| `logo/` | Brand assets (the press kit is in UMA) |
 
 Module-level detail is in the [README](README.md#what-lives-in-the-harvester-package); field-level detail is in [DATA_DICTIONARY.md](DATA_DICTIONARY.md).
 

@@ -4,9 +4,9 @@
 
 ## Type
 
-- [ ] Pipeline / code
+- [ ] Harvester / code
 - [ ] Annotation rules (geo, assay, discovery queries, AI curation)
-- [ ] Website
+- [ ] Releases
 - [ ] Documentation
 - [ ] Data refresh (generated files only)
 

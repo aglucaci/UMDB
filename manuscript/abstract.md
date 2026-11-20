@@ -47,7 +47,7 @@ largest share of experiments, followed by shotgun metagenomes and
 metatranscriptomes.
 
 **Use.** To show what the catalog supports, a companion Nextflow pipeline
-(UMDB-SCIENCE) tests pre-specified hypotheses on a frozen snapshot. Public urban
+(STRIGA) tests pre-specified hypotheses on a frozen snapshot. Public urban
 sequencing is highly concentrated relative to population (concentration index
 0.82, 95% CI 0.62–0.91): Africa contributes 0.06 times its population share,
 and 224 of 573 cities of more than a million people have no urban sample within
@@ -56,18 +56,19 @@ and 224 of 573 cities of more than a million people have no urban sample within
 The same pipeline selects a balanced cohort of 9,221 shotgun metagenomes from
 774 cities for uniform reprocessing.
 
-**Availability.** UMDB is distributed as a web explorer with filters by place,
-assay, year and eligibility tier; a SQLite database; and versioned Parquet and
-TSV releases with checksums. It is freely available under CC BY-NC-SA 4.0 at
-https://aglucaci.github.io/UMDB/.
+**Availability.** UMDB is distributed as versioned releases (Parquet and TSV
+tables, a SQLite database, curated collections and the STRIGA analyses of that
+release, with checksums), browsable in the UMA web browser with filters by
+place, assay, year and eligibility tier. The harvester (UMDB), the analysis
+pipeline (STRIGA) and the browser (UMA) are open source; data are freely
+available under CC BY-NC-SA 4.0 at https://aglucaci.github.io/UMA/.
 
 ## Notes for revision
 
-- **Research results.** The "Use" paragraph comes from Track A of `pipeline/`
-  (`manuscript/catalog_findings/README.md`, same database build). Full
-  programme: `manuscript/research_program.md`. Rerun with
-  `nextflow run pipeline --fetch_worldbank` after any catalog refresh and update
-  the numbers together.
+- **Research results.** The "Use" paragraph comes from Track A of STRIGA
+  (STRIGA `docs/catalog_findings/README.md`, same database build). Full
+  programme: STRIGA `docs/research_program.md`. For submission, cite the UMDB
+  release whose `analysis/` holds these results, so numbers and catalog match.
 - **Expert benchmark now has a sheet.** Hypothesis C8 writes a stratified,
   blinded labeling sheet of 500 BioSamples (`hypotheses/C8/labeling_sheet.tsv`);
   two raters plus `--labels` give catalog-weighted precision and recall for the

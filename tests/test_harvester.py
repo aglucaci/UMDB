@@ -2,6 +2,7 @@
 import json
 import os
 import sys
+import importlib.util
 import unittest
 from unittest import mock
 
@@ -609,7 +610,7 @@ class CatalogBundleTests(unittest.TestCase):
             catalog.unpack("out/umdb-catalog.tar.gz", manifest)
 
 
-class SiteTests(unittest.TestCase):
+class ReleaseTests(unittest.TestCase):
     def _build(self, d):
         import json
         from umdb_harvester import database, exports
@@ -631,61 +632,68 @@ class SiteTests(unittest.TestCase):
             database.build_database(dbp, geonames_dir=make_gazetteer(os.path.join(d, "geonames")))
         return dbp
 
-    def test_site_from_database(self):
-        import sqlite3, tempfile
-        from umdb_harvester import site
+    @staticmethod
+    def _striga_results(d, db_sha):
+        """A minimal STRIGA results folder (contract striga-results/1) for a database."""
+        res = os.path.join(d, "results")
+        os.makedirs(os.path.join(res, "hypotheses", "C1"))
+        os.makedirs(os.path.join(res, "snapshot"))
+        os.makedirs(os.path.join(res, "pipeline_info"))
+        json.dump({"contract": "striga-results/1", "pipeline": {"name": "STRIGA", "version": "0.2.0", "commit": "abc1234"},
+                   "input": {"database_sha256": db_sha, "built_utc": "2026-01-01", "rows": {"samples": 2}},
+                   "created_utc": "2026-11-20T00:00:00Z",
+                   "hypotheses": [{"id": "C1", "track": "catalog", "status": "supported"}]},
+                  open(os.path.join(res, "striga_manifest.json"), "w"))
+        with open(os.path.join(res, "hypotheses_status.tsv"), "w") as fh:
+            fh.write("id\ttrack\tprogram\ttitle\tstatus\tresult\nC1\tcatalog\tUMDB-GEO\tCoverage\tsupported\tok\n")
+        for rel in ("report.md", "hypotheses/C1/summary.json", "snapshot/snapshot.json", "snapshot/samples.tsv.gz",
+                    "pipeline_info/trace.txt"):
+            open(os.path.join(res, rel), "w").write("{}")
+        return res
+
+    @unittest.skipUnless(importlib.util.find_spec("pyarrow"), "releases need pyarrow (requirements-release.txt)")
+    def test_release_contract_with_striga_analysis(self):
+        """The release UMA and STRIGA read: contract, reference data, templates and verified STRIGA results."""
+        import hashlib, tarfile, tempfile
+        from umdb_harvester import release
         with tempfile.TemporaryDirectory() as d:
-            dbp, out = self._build(d), os.path.join(d, "site")
-            os.makedirs(out)
-            with open(os.path.join(out, "srr_records_part000.json"), "w") as fh:
-                fh.write("[]")
-            manifest = site.build_site(dbp, out)
-            load = lambda n: json.load(open(os.path.join(out, n)))
-            cube, samples, geo, summary = load("cube.json"), load("samples.json"), load("geo.json"), load("summary.json")
-            con = sqlite3.connect(dbp)
-            q = lambda sql: con.execute(sql).fetchone()[0]
+            dbp = self._build(d)
+            sha = hashlib.sha256(open(dbp, "rb").read()).hexdigest()
+            res = self._striga_results(d, sha)
+            geo = os.path.join(d, "geonames")
+            out = release.write_release("9.9.9", db_path=dbp, out_root=os.path.join(d, "dist"),
+                                        analysis_dir=res, geonames_dir=geo)
+            m = json.load(open(os.path.join(out, "manifest.json")))
+            self.assertEqual(m["contract"], "umdb-release/1")
+            self.assertEqual(m["analysis"]["pipeline"]["version"], "0.2.0")
+            self.assertTrue(m["analysis"]["database_verified"])
+            for rel in ("reference/geonames/countryInfo.txt", "documentation/cohort-templates.json",
+                        "collections/collections.json", "indexes/coverage.json", "analysis/striga_manifest.json",
+                        "analysis/hypotheses/C1/summary.json", "analysis/snapshot/snapshot.json"):
+                self.assertIn(rel, m["files"], rel)
+                self.assertTrue(os.path.exists(os.path.join(out, rel)), rel)
+            # the snapshot tables duplicate the catalog, and Nextflow's run records are not results
+            self.assertFalse(os.path.exists(os.path.join(out, "analysis", "snapshot", "samples.tsv.gz")))
+            self.assertFalse(os.path.exists(os.path.join(out, "analysis", "pipeline_info")))
+            self.assertTrue(any(n.startswith("umdb.sqlite.") for n in os.listdir(out)))
+            with tarfile.open(os.path.join(d, "dist", "umdb-9.9.9.tar.gz")) as tf:
+                self.assertIn("umdb-9.9.9/manifest.json", tf.getnames())
+            # every file in checksums.sha256 verifies
+            for line in open(os.path.join(out, "checksums.sha256")):
+                digest, name = line.split(None, 1)
+                self.assertEqual(hashlib.sha256(open(os.path.join(out, name.strip()), "rb").read()).hexdigest(), digest)
 
-            # Totals from the two cubes equal exact SQLite counts.
-            rix = {k: i for i, k in enumerate(cube["cols"])}
-            six = {k: i for i, k in enumerate(samples["cols"])}
-            self.assertEqual(sum(r[rix["runs"]] for r in cube["rows"]), q("SELECT count(*) FROM runs"))
-            n_samples = q("SELECT count(DISTINCT sample_accession) FROM runs")
-            self.assertEqual(sum(r[six["samples"]] for r in samples["rows"]), n_samples)
-            self.assertEqual((summary["totalRuns"], summary["totalBioSamples"], summary["totalProjects"]), (3, 2, 2))
-            self.assertNotIn("samples", cube["cols"])          # runs cube no longer carries sample counts
-
-            # The two-assay, two-project sample sits in one row, with set-valued dims.
-            D = samples["dims"]
-            multi = [r for r in samples["rows"] if len(D["assaysets"][r[six["assays"]]]) == 2]
-            self.assertEqual(len(multi), 1)
-            self.assertEqual(multi[0][six["samples"]], 1)
-            self.assertEqual(len(D["projsets"][multi[0][six["projects"]]]), 2)
-
-            # Geography comes from the validated table: NYC for SAMN1, none for SAMN2.
-            place_names = [p[1] for p in geo["places"]]
-            self.assertEqual(place_names, ["New York City"])
-            self.assertEqual([c[0] for c in geo["countries"]], ["US"])
-            us = [r for r in samples["rows"] if r[six["country"]] == 0]
-            self.assertEqual(sum(r[six["samples"]] for r in us),
-                             q("SELECT count(*) FROM sample_locations WHERE country_iso2='US' "
-                               "AND country_status IN ('verified','probable')"))
-            self.assertEqual(summary["countries"][0]["biosamples"], 1)
-            self.assertEqual(summary["countries"][0]["runs"], 2)
-            self.assertIn("GeoNames", geo["attribution"])
-
-            projects = load("projects.json")
-            acc = projects["rows"][0][0]
-            shard = load(os.path.join("p", site.shard_name(acc)))
-            self.assertEqual(len(shard["runs"]), projects["rows"][0][5])
-            sc = {k: i for i, k in enumerate(shard["sample_cols"])}
-            s1 = [s for s in shard["samples"] if s[0] == "SAMN1"][0]
-            self.assertEqual((s1[sc["city"]], s1[sc["country_iso2"]], s1[sc["geo_loc_raw"]]),
-                             ("New York City", "US", "USA: New York City"))
-            self.assertFalse(os.path.exists(os.path.join(out, "srr_records_part000.json")))  # legacy removed
-            mtime = os.path.getmtime(os.path.join(out, "p", site.shard_name(acc)))
-            site.build_site(dbp, out)  # unchanged content is not rewritten
-            self.assertEqual(os.path.getmtime(os.path.join(out, "p", site.shard_name(acc))), mtime)
-            self.assertEqual(manifest["counts"]["biosamples"], n_samples)
+    def test_release_refuses_results_from_another_database(self):
+        import tempfile
+        from umdb_harvester import release
+        with tempfile.TemporaryDirectory() as d:
+            dbp = self._build(d)
+            with self.assertRaisesRegex(RuntimeError, "different database"):
+                release.check_analysis(self._striga_results(d, "0" * 64), dbp)
+            unhashed = self._striga_results(os.path.join(d, "x"), None)
+            with self.assertRaisesRegex(RuntimeError, "did not hash"):
+                release.check_analysis(unhashed, dbp)
+            self.assertEqual(release.check_analysis(unhashed, dbp, allow_unverified=True)["contract"], "striga-results/1")
 
     def test_database_enforces_location_consistency(self):
         import sqlite3, tempfile

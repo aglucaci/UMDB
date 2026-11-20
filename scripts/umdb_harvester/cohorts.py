@@ -2,7 +2,7 @@
 
 A cohort is a JSON document that says which BioSamples to take from one UMDB
 release, using the same filters as the website Explorer (the `filters` object
-mirrors docs/assets/db.js), plus optional balancing:
+mirrors docs/assets/db.js in the UMA repository), plus optional balancing:
 
     {
       "name": "Temperate wastewater",
@@ -13,14 +13,14 @@ mirrors docs/assets/db.js), plus optional balancing:
     }
 
 `export_cohort` writes a research package (README, cohort.json with the
-release and database versions, metadata.tsv, runs.tsv that UMDB-SCIENCE accepts
+release and database versions, metadata.tsv, runs.tsv that STRIGA accepts
 as --cohort, accessions.txt, download_fastq.sh, an nf-core/taxprofiler
 samplesheet.csv, cohort_summary.json, analysis.py, analysis.R, CITATION.bib).
 The website Workspace writes the same package in the browser; both use the same
 seeded shuffle (mulberry32), so a balanced cohort is identical either way.
 
 COLLECTIONS are curated, citable cohorts with written inclusion criteria; the
-site build publishes their statistics and run lists (docs/db/collections/).
+release ships their statistics and run lists (collections/), which UMA shows.
 """
 from __future__ import annotations
 
@@ -53,7 +53,7 @@ COLLECTIONS: List[Dict[str, Any]] = [
             "Country validated against ISO 3166 (verified or probable)",
         ],
         "use": "Resistome, pathogen and virome surveillance; cross-city comparisons of sewage communities.",
-        "workflow": "UMDB-SCIENCE Track B (sylph or MetaPhlAn 4, KMA/ResFinder), or nf-core/taxprofiler with samplesheet.csv",
+        "workflow": "STRIGA Track B (sylph or MetaPhlAn 4, KMA/ResFinder), or nf-core/taxprofiler with samplesheet.csv",
     },
     {
         "slug": "global-transit",
@@ -66,7 +66,7 @@ COLLECTIONS: List[Dict[str, Any]] = [
             "Any sequencing assay",
         ],
         "use": "Transit microbiomes across cities (MetaSUB-like comparisons) with assay-aware analyses.",
-        "workflow": "Shotgun runs: UMDB-SCIENCE Track B; amplicon runs: DADA2 or QIIME 2",
+        "workflow": "Shotgun runs: STRIGA Track B; amplicon runs: DADA2 or QIIME 2",
     },
     {
         "slug": "urban-air",
@@ -92,7 +92,7 @@ COLLECTIONS: List[Dict[str, Any]] = [
             "Any sequencing assay",
         ],
         "use": "Homogenization of urban soils; comparisons with non-urban soils from the same regions.",
-        "workflow": "16S/ITS runs: DADA2; shotgun runs: UMDB-SCIENCE Track B",
+        "workflow": "16S/ITS runs: DADA2; shotgun runs: STRIGA Track B",
     },
     {
         "slug": "urban-virome",
@@ -105,7 +105,7 @@ COLLECTIONS: List[Dict[str, Any]] = [
             "Any urban context",
         ],
         "use": "RNA virus discovery and viral persistence; includes targeted SARS-CoV-2 runs, so check library strategy.",
-        "workflow": "Assembly + geNomad (UMDB-SCIENCE --viral) or targeted variant pipelines",
+        "workflow": "Assembly + geNomad (STRIGA --viral) or targeted variant pipelines",
     },
     {
         "slug": "urban-resistome",
@@ -118,7 +118,7 @@ COLLECTIONS: List[Dict[str, Any]] = [
             "Place validated against GeoNames (verified or probable)",
         ],
         "use": "Antimicrobial resistance across connected urban habitats (UMDB-AMR).",
-        "workflow": "UMDB-SCIENCE Track B with --amr (KMA against ResFinder)",
+        "workflow": "STRIGA Track B with --amr (KMA against ResFinder)",
     },
 ]
 
@@ -195,7 +195,7 @@ def filters_sql(f: Dict[str, Any]) -> Tuple[str, List[Any]]:
 # ----------------------------------------------------------------- seeded balancing
 
 def mulberry32(seed: int):
-    """The same 32-bit PRNG as docs/assets/workspace.js, so both shuffle identically."""
+    """The same 32-bit PRNG as UMA's docs/assets/workspace.js, so both shuffle identically."""
     state = seed & 0xFFFFFFFF
 
     def rand() -> float:
@@ -401,7 +401,7 @@ def package_files(cohort: Dict[str, Any], samples: List[Dict[str, Any]], runs: L
 
 README_TEMPLATE = """# {NAME}
 
-A research cohort from **UMDB (Urban Microbiome Database)**, https://aglucaci.github.io/UMDB/
+A research cohort from **UMDB (Urban Microbiome Database)**, https://aglucaci.github.io/UMA/
 
 | | |
 | --- | --- |
@@ -426,7 +426,7 @@ umdb cohort export cohort.json -o rebuilt/
 | File | Contents |
 | --- | --- |
 | `metadata.tsv` | One row per BioSample: eligibility tier, habitat, validated country/region/city, coordinates, collection date, assays |
-| `runs.tsv` | One row per sequencing run; also the `--cohort` input of the UMDB-SCIENCE Nextflow pipeline |
+| `runs.tsv` | One row per sequencing run; also the `--cohort` input of the STRIGA Nextflow pipeline |
 | `accessions.txt` | Run accessions, one per line (nf-core/fetchngs, SRA Toolkit, ENA) |
 | `download_fastq.sh` | Downloads every run with SRA Toolkit (`prefetch` + `fasterq-dump`) into `fastq/` |
 | `samplesheet.csv` | nf-core/taxprofiler samplesheet pointing at `fastq/` |
@@ -459,7 +459,7 @@ def readme(name: str, cohort: Dict[str, Any], summ: Dict[str, Any], release: Dic
 
 
 def write_templates(path: str) -> None:
-    """docs/assets/cohort-templates.json: the package templates the website Workspace uses."""
+    """documentation/cohort-templates.json in a release: the package templates UMA's Workspace uses."""
     doc = {"readme": README_TEMPLATE, "download": DOWNLOAD_SH, "py": ANALYSIS_PY, "r": ANALYSIS_R}
     os.makedirs(os.path.dirname(path), exist_ok=True)
     _write_if_changed(path, (json.dumps(doc, indent=1) + "\n").encode("utf-8"))
@@ -524,7 +524,7 @@ def citation_bib(release: Dict[str, Any]) -> str:
   title  = {{UMDB: Urban Microbiome Database}},
   author = {{Lucaci, Alexander G.}},
   year   = {{{built[:4] or '2026'}}},
-  url    = {{https://aglucaci.github.io/UMDB/}},
+  url    = {{https://aglucaci.github.io/UMA/}},
   note   = {{Database built {built or 'unknown'}; eligibility rules {release.get('eligibility_rules_version', '?')}}}
 }}
 """
@@ -572,10 +572,10 @@ def collection_cohort(slug: str) -> Dict[str, Any]:
     raise KeyError(f"unknown collection {slug!r}; choose from {', '.join(c['slug'] for c in COLLECTIONS)}")
 
 
-# ----------------------------------------------------------------- site build
+# ----------------------------------------------------------------- release
 
 def build_collections(con: sqlite3.Connection, out_dir: str) -> Dict[str, Any]:
-    """docs/db/collections.json (definitions + statistics) and collections/<slug>.tsv.gz (runs)."""
+    """collections.json (definitions + statistics) and collections/<slug>.tsv.gz (runs) for a release."""
     cdir = os.path.join(out_dir, "collections")
     os.makedirs(cdir, exist_ok=True)
     docs = []
