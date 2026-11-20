@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="logo/umdb-logo-dark.svg">
+    <img src="logo/umdb-logo-light.svg" alt="UMDB: Urban Microbiome Database" width="440">
+  </picture>
+</p>
+
 # UMDB (Urban Microbiome Database)
 
 **UMDB** harvests, curates and releases public urban microbiome sequencing metadata. It finds urban environmental sequencing studies in the INSDC archives (NCBI SRA, BioSample, BioProject), screens every BioSample for urban evidence, validates its location against GeoNames, and publishes the result as versioned, citable data releases.
@@ -165,7 +172,7 @@ UMDB/
 ├── bin/umdb                    the command line
 ├── manuscript/abstract.md      resource-paper draft
 ├── tests/
-├── logo/
+├── logo/                       the UMDB logo (SVG, light and dark) and its generator
 ├── .env.example
 ├── ARCHITECTURE.md, INCLUSION_CRITERIA.md, CONTRIBUTING.md, MAINTAINING.md, DATA_DICTIONARY.md, CURATION.md, ROADMAP.md
 ├── CHANGELOG.md, SECURITY.md, CITATION.cff, LICENSE
