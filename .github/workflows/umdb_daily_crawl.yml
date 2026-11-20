@@ -181,14 +181,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: python3 -m scripts.umdb_harvester catalog push
 
-      - name: Commit the run reports
+      - name: Commit the live-catalog website data and run reports
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          # The catalog lives in Release assets (git-ignored); only the small run reports are committed.
-          # The website (UMA) changes only when a versioned release is published.
-          git add reports || true
+          # The catalog lives in Release assets (git-ignored). docs/ is the live-catalog browser;
+          # released data is browsed in UMA, which changes only when a release is published.
+          git add docs reports || true
 
           git commit -m "UMDB daily crawl $(date -u +'%Y-%m-%d')" || echo "No changes"
           git push

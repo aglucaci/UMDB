@@ -1,5 +1,5 @@
 name: Bug report
-description: Something in the harvester, database or releases does not work (website bugs: github.com/aglucaci/UMA/issues)
+description: Something on the live-catalog website, in the harvester, database or releases does not work (release-browser bugs: github.com/aglucaci/UMA/issues)
 labels: ["bug"]
 body:
   - type: dropdown
@@ -7,6 +7,7 @@ body:
     attributes:
       label: Where
       options:
+        - Website
         - Harvester / CLI
         - Release files
         - GitHub Actions workflow

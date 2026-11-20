@@ -1,6 +1,6 @@
 # UMDB data architecture
 
-How UMDB stores, queries and releases its data, and why. UMDB is the harvesting and release repository; analyses run in [STRIGA](https://github.com/aglucaci/STRIGA) and the website is [UMA](https://github.com/aglucaci/UMA). Both read only what UMDB hands them: STRIGA a catalog (`data/` or a release), UMA a release. Field definitions are in [DATA_DICTIONARY.md](DATA_DICTIONARY.md). Day-to-day operation is in [MAINTAINING.md](MAINTAINING.md).
+How UMDB stores, queries and releases its data, and why. UMDB is the harvesting and release repository; analyses run in [STRIGA](https://github.com/aglucaci/STRIGA) and released data are browsed in [UMA](https://github.com/aglucaci/UMA). Both read only what UMDB hands them: STRIGA a catalog (`data/` or a release), UMA a release. UMDB also has its own browser of the live catalog (`docs/`, below). Field definitions are in [DATA_DICTIONARY.md](DATA_DICTIONARY.md). Day-to-day operation is in [MAINTAINING.md](MAINTAINING.md).
 
 ```
 NCBI SRA · BioSample · BioProject
@@ -9,8 +9,8 @@ NCBI SRA · BioSample · BioProject
 data/srr_catalog_*.jsonl  +  data/cache/*.json        ← source of truth, git-ignored;
   (slim run records, append-only;                         stored in the GitHub release
    newest record per run wins)                            catalog-latest (umdb catalog push/pull)
-        │  umdb db build        (automatic after every harvest)
-        ▼
+        │  umdb db build / umdb export  (automatic after every harvest; export also writes docs/db/,
+        ▼                                the live-catalog website at aglucaci.github.io/UMDB)
 data/umdb.sqlite                                       ← query database, derived, git-ignored
   normalized tables · indexes · FTS5 search · views    ← data/reference/geonames (GeoNames, CC BY):
   sample_locations: one validated location per sample     every location validated at build time
@@ -37,11 +37,39 @@ aglucaci.github.io/UMA                                 ← website data built fr
 | Query database | SQLite (`umdb.sqlite`) | `data/` (git-ignored) | Normalized, indexed, full-text searchable, with gazetteer-validated locations. Rebuilt deterministically from the catalog and the GeoNames extract, with the current geography, assay and eligibility rules |
 | Gazetteer | GeoNames text/zip files | `data/reference/geonames/` (git-ignored), bundled with the catalog | ISO countries, admin1 regions, populated places (≥ 500 people). Downloaded once (`umdb geo fetch`); checksums and download date recorded in the database `meta`; shipped in every release (`reference/geonames/`) |
 | Releases | Parquet (Zstandard), gzipped TSV, compressed SQLite, JSON | `dist/releases/<version>/` (not in git; GitHub Releases, Zenodo) | Compact, typed, versioned snapshots with checksums, for DuckDB, R, Python or spreadsheets, plus the STRIGA results for that catalog. What STRIGA and UMA read |
-| Website | Compact JSON | the UMA repository (`docs/db/`, GitHub Pages) | Built by UMA from one release; see UMA's ARCHITECTURE.md |
+| Live-catalog website | Compact JSON | `docs/db/` (git, GitHub Pages) | Aggregated index for filters, charts and the map, plus one file per project loaded on demand; rebuilt after every harvest |
+| Release website | JSON | the UMA repository | Findings and records of one release; see UMA's ARCHITECTURE.md |
 
 **Why SQLite is derived, not stored.** A binary file that changes on every harvest makes a poor git object: each change adds the whole file to history, and git cannot diff or merge it. Keeping the slim JSONL as the record means the database can always be rebuilt identically.
 
 **Why the catalog is in Release assets, not git.** After the 2026 deep backfill the JSONL catalog passed 1 GB, and every harvest rewrites large parts of it, so each commit added hundreds of MB to history. As one gzipped bundle it is about 18 times smaller, and replacing a release asset adds nothing to the repository. `umdb catalog push` refuses to overwrite a bundle uploaded by someone else since your last pull; `pull --merge` combines them (append-only log, newest record per run wins).
+
+## Live-catalog website data (`docs/db/`)
+
+The site loads `summary.json`, `geo.json`, `samples.json`, `cube.json` and `projects.json` (about 5 MB uncompressed for 477,000 runs) and fetches `p/<ACC>.json` when a project is opened or exported. Runs and BioSamples are aggregated separately so that both are counted exactly:
+
+- `samples.json` has one row contribution per BioSample. A sample's projects and assays are encoded as sets, so a sample with runs of two assays, or shared by two studies, is still counted once (26,785 rows for 406,177 BioSamples).
+- `cube.json` aggregates runs by the same dimensions (23,797 rows for 477,166 runs).
+- `geo.json` is the validated location hierarchy both cubes index into.
+
+`docs/assets/db.js` turns these into a query engine shared by the Explorer and the Map. A single pass over each cube computes the totals and, for every filter, the counts it would have with all other filters applied, so cascading country → region → city lists only offer combinations that exist. Filters live in the page address (`?country=US&region=US.NY&city_id=5128581&cyear=2018-2020`), so a selection on one page opens identically on the other. A test checks the cube totals against `COUNT(DISTINCT …)` in SQLite. Built by `site.py`; unchanged files are left untouched. Field reference: [DATA_DICTIONARY.md](DATA_DICTIONARY.md#published-files-docs).
+
+### v1.0 platform pages
+
+The site is static (no build step, no server). Every page reads the files above through `docs/assets/db.js`:
+
+| Page | Route | What it reads |
+| --- | --- | --- |
+| Explorer, Atlas | `explorer.html`, `global-map.html` | the cubes (`samples.json`, `cube.json`), `geo.json`, `population.json` (per-capita layer) |
+| Study, BioSample, run | `study.html?acc=`, `sample.html?acc=`, `run.html?acc=` | `p/<ACC>.json`; BioSamples and runs are found through `ix/<NN>.json` |
+| City, country, habitat | `city.html?id=`, `country.html?iso=`, `habitat.html?id=` | the cubes, filtered like the Explorer |
+| Collections | `collections.html[?slug=]` | `collections.json`, `collections/<slug>.tsv.gz` |
+| Workspace | `workspace.html` | the cubes (exact set operations over sample-cube rows) and project files (export) |
+| Analytics | `analytics.html` | `cube.json`, `summary.json`, `analytics.json` |
+
+`404.html` maps the routes `/study/<acc>`, `/sample/<acc>`, `/run/<acc>`, `/city/<id>`, `/country/<iso>`, `/habitat/<slug>` and `/collection/<slug>` to these pages on GitHub Pages. `assets/ui.js` holds shared labels, charts (each downloadable as CSV, and SVG charts as SVG or PNG) and Workspace storage (`localStorage`, key `umdb.workspace.v1`).
+
+Because each BioSample is in exactly one sample-cube row, a cohort is a 0/1 mask over rows, and union, intersection and difference of cohorts are exact. Exporting a cohort loads the project files it touches and applies the same filters per sample (`sampleMatchesFull`); `scripts/umdb_harvester/cohorts.py` implements the same filters in SQL, and the same seeded balancing, so `umdb cohort export cohort.json` gives the same samples as the browser.
 
 ## Location validation
 
@@ -134,7 +162,7 @@ This writes `dist/releases/1.0.0/` and the single-file bundle `dist/releases/umd
 
 * **STRIGA** reads `umdb.sqlite[.zst|.gz]` and `reference/geonames/` with `--catalog <folder>`. A UMDB checkout's `data/` folder has the same layout, which is how a release's analyses are run before the release exists.
 * **STRIGA → UMDB.** STRIGA writes `striga_manifest.json` (contract `striga-results/1`) with the SHA-256 of the uncompressed database it analysed. `umdb release --analysis` copies the results into `analysis/` only if that hash equals `data/umdb.sqlite`'s, so results and catalog always match. Results from a run without hashing need `--allow-unverified-analysis`, and the manifest records `database_verified: false`.
-* **UMA** reads `manifest.json`, the database, `collections/`, `documentation/cohort-templates.json`, `reference/geonames/countryInfo.txt` and `analysis/`, and refuses a release whose contract it does not know.
+* **UMA** reads `manifest.json`, the database and `analysis/`, and refuses a release whose contract it does not know.
 
 Parquet files use Zstandard compression, typed integers, floats and dates, and NULL for unknown values. Analyse them directly with DuckDB:
 

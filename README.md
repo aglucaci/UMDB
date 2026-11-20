@@ -6,9 +6,9 @@ UMDB is one of three repositories:
 
 | Repository | Role |
 | --- | --- |
-| **UMDB** (this one) | Harvesting and curation: the catalog (`data/`, `umdb.sqlite`), curated collections, and the versioned **data releases** |
+| **UMDB** (this one) | Harvesting and curation: the catalog (`data/`, `umdb.sqlite`), curated collections, the versioned **data releases**, and the **live-catalog browser** at **https://aglucaci.github.io/UMDB/** (Explorer, Atlas, Analytics, Collections, Workspace; rebuilt after every harvest) |
 | [STRIGA](https://github.com/aglucaci/STRIGA) | The analysis workflow (Nextflow): catalog-level tests, a balanced shotgun cohort, read profiling and ecological hypothesis tests on a UMDB catalog |
-| [UMA](https://github.com/aglucaci/UMA) | The data browser at **https://aglucaci.github.io/UMA/**: Explorer, Atlas, Analytics and STRIGA findings, Collections and Workspace over the latest release |
+| [UMA](https://github.com/aglucaci/UMA) | The release browser at **https://aglucaci.github.io/UMA/**: STRIGA findings and searchable records of one versioned release |
 
 ```text
 NCBI SRA / BioSample / BioProject ──► UMDB harvest + curation ──► data/umdb.sqlite
@@ -24,7 +24,7 @@ NCBI SRA / BioSample / BioProject ──► UMDB harvest + curation ──► da
                                                        uma build ◄────────────┘ ──► aglucaci.github.io/UMA
 ```
 
-A release is the unit everything else refers to: STRIGA records the SHA-256 of the database it analysed and `umdb release --analysis` refuses results from a different one, and every UMA page states which release it shows. The old address, aglucaci.github.io/UMDB, redirects to UMA.
+Two browsers, two purposes. **UMDB's browser** (aglucaci.github.io/UMDB) shows the catalog as it is harvested, rebuilt after every harvest and labelled as unreleased: use it to explore, build cohorts and check curation. **UMA** shows one versioned release, its findings and its records exactly as released: use it to cite. A release is the unit analyses and citations refer to: STRIGA records the SHA-256 of the database it analysed, `umdb release --analysis` refuses results from a different one, and every UMA page states which release it shows.
 
 > **How does UMDB decide a study is urban?** A broad keyword search of NCBI SRA decides what enters the catalog. A strict, sample-level **eligibility screen** then labels every BioSample `confirmed_urban`, `probable_urban`, `uncertain`, `non_urban` or `non_environmental`, with the evidence behind the label. A city name alone never confirms a sample. Nothing is deleted: filter by tier in UMA or on `urban_status`. See **[INCLUSION_CRITERIA.md](INCLUSION_CRITERIA.md)** for the exact queries, rules and limitations.
 
@@ -59,14 +59,16 @@ umdb crawl --sort date --page-size 100 --stop-after-new-srr 10 --fetch-bioprojec
 
 | Command | Does |
 | --- | --- |
-| `umdb crawl` / `daily` / `backfill-year` / `curate-ai` | Harvester commands (also `umdb run <command>`); add `--help` for options. Each finishes by rebuilding `data/umdb.sqlite` |
+| `umdb crawl` / `daily` / `backfill-year` / `curate-ai` | Harvester commands (also `umdb run <command>`); add `--help` for options. Each finishes by rebuilding `data/umdb.sqlite` and the live-catalog site data in `docs/db/` |
+| `umdb export` | Rebuild `data/umdb.sqlite` and `docs/db/` offline (re-applies geo, assay and eligibility rules) |
+| `umdb serve [port]` | Preview the live-catalog website |
 | `umdb deepest [START END]` | Deepest possible search, year by year from 2007: every profile, every hit, re-fetches existing records and overwrites superseded data |
 | `umdb backfill [START END]` | Resumable year-by-year search for new records only (`--dry-run`, `--commit`, `--profile`, `--refresh`, …) |
 | `umdb compact` | Rewrite `data/` keeping only the newest record per run |
-| `umdb scrub` | Remove `api_key=` / `email=` from stored NCBI URLs in `data/`, `reports/` and `logs/` |
+| `umdb scrub` | Remove `api_key=` / `email=` from stored NCBI URLs in `data/`, `docs/`, `reports/` and `logs/` |
 | `umdb db build` / `info` / `shell` / `query "SQL"` | Build and query the SQLite database `data/umdb.sqlite` (normalized, indexed, full-text search) |
 | `umdb release --version V [--analysis DIR]` | Write release V: Parquet tables, TSV, compressed SQLite, collections, GeoNames reference, documentation, STRIGA results from `DIR`, schema, manifest, checksums, Zenodo metadata and one `umdb-V.tar.gz` bundle (`pip install -r requirements-release.txt`) |
-| `umdb cohort list` / `collection SLUG` / `export cohort.json` | Research packages for curated collections or for cohorts saved in the UMA Workspace (`--max-per-cell`, `--max-per-project`, `--target`, `--seed` to balance) |
+| `umdb cohort list` / `collection SLUG` / `export cohort.json` | Research packages for curated collections or for cohorts saved in the website Workspace (`--max-per-cell`, `--max-per-project`, `--target`, `--seed` to balance) |
 | `umdb catalog pull` / `push` | Restore or upload the harvested catalog (`data/`), which lives in GitHub Release assets, not git |
 | `umdb repair` | Re-fetch BioProjects cached under the wrong accession |
 | `umdb geo fetch` / `umdb geo check "USA: Portland, ME"` | Download the GeoNames gazetteer; show how one location string is validated |
@@ -141,7 +143,7 @@ When present, `ai_curation` can include fields such as:
 - `reasoning_summary`
 - `evidence`
 
-UMA can then distinguish between original-only records and AI-fixed records.
+The website can then distinguish between original-only records and AI-fixed records.
 
 ## Repository Layout
 
@@ -155,7 +157,8 @@ UMDB/
 │   └── umdb.sqlite             the query database (`umdb db build`)
 ├── dist/releases/<V>/          versioned releases and umdb-<V>.tar.gz (git-ignored; published as GitHub Releases)
 ├── reports/                    latest_srr.json and debug/latest_report.json, committed by the scheduled workflows
-├── docs/                       redirect from the old website address to UMA
+├── docs/                       the live-catalog website (GitHub Pages): pages, assets/ (db.js query engine, ui.js,
+│                               entity.js, collections.js, workspace.js), db/ (site data built by `umdb export`)
 ├── scripts/
 │   ├── umdb_harvester/         the harvester, database, curation, cohorts and release code
 │   └── deep_backfill.sh
@@ -188,7 +191,7 @@ What is fetched from NCBI, data volumes, formats and every field are documented 
 ## Design Principles
 
 - auditable files over opaque backend state: the JSONL catalog is the source of truth, everything else is rebuilt from it
-- versioned releases as the unit of reuse: analyses (STRIGA) and the website (UMA) refer to a release, never to a moving catalog
+- versioned releases as the unit of reuse: analyses (STRIGA) and the release browser (UMA) refer to a release; only UMDB's own browser follows the moving catalog, and says so
 - public metadata reuse over proprietary infrastructure
 - low-cost maintenance: GitHub Actions, Release assets and Pages
 
@@ -252,7 +255,7 @@ To run it in GitHub:
 5. Leave `year` blank to process all years, or set a single year for a targeted pass.
 6. Turn on `overwrite` only when you want to replace cached AI reviews.
 
-This workflow runs the harvester CLI, uploads the updated catalog to the `catalog-latest` release assets, rebuilds `data/umdb.sqlite` and commits the run reports in `reports/`.
+This workflow runs the harvester CLI, uploads the updated catalog to the `catalog-latest` release assets, rebuilds `data/umdb.sqlite` and the site data, and commits `docs/` and `reports/`.
 
 ## Limitations
 
@@ -273,7 +276,7 @@ The project is intentionally lightweight.
 | --- | --- | --- |
 | Compute | Local runs or GitHub-based workflows | Low to free |
 | Storage | GitHub Release assets (catalog, releases) | Free |
-| Hosting | GitHub Pages (UMA) | Free |
+| Hosting | GitHub Pages (UMDB live browser, UMA) | Free |
 | Metadata access | NCBI public utilities | Free within usage guidance |
 
 ## License

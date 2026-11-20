@@ -2,18 +2,307 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>UMDB has moved to UMA</title>
-  <link rel="canonical" href="https://aglucaci.github.io/UMA/" />
-  <script>
-    // The UMDB website is now UMA (github.com/aglucaci/UMA). Keep the page, query and hash:
-    // /UMDB/study.html?acc=X -> /UMA/study.html?acc=X, /UMDB/study/X -> /UMA/study/X.
-    var rest = location.pathname.replace(/^\/UMDB/, "");
-    location.replace("https://aglucaci.github.io/UMA" + rest + location.search + location.hash);
-  </script>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UMDB — Urban Microbiome Database</title>
+  <meta name="description" content="UMDB is a public urban microbiome database with BioProject search, analytics, downloads, and global coverage views." />
+  <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon_16.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon_32.png" />
+  <link rel="icon" href="./assets/favicon.ico" />
+  <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
+  <meta property="og:image" content="./assets/umdb-logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./assets/site.css" />
 </head>
-<body style="font-family:system-ui,sans-serif;max-width:40rem;margin:4rem auto;padding:0 1rem">
-  <p>The Urban Microbiome Database website is now <a href="https://aglucaci.github.io/UMA/">UMA</a>.</p>
-  <p>Harvesting code: <a href="https://github.com/aglucaci/UMDB">UMDB</a> · analyses: <a href="https://github.com/aglucaci/STRIGA">STRIGA</a> · website: <a href="https://github.com/aglucaci/UMA">UMA</a>.</p>
+<body>
+  <div class="site-shell">
+    <nav class="site-nav">
+      <a class="site-brand" href="./index.html">
+        <div class="site-brand-mark"><img src="./assets/umdb-logo.png" alt="UMDB logo" /></div>
+        <div class="site-brand-copy">
+          <strong>UMDB</strong>
+          <span>Urban Microbiome Database</span>
+        </div>
+      </a>
+      <div class="site-links">
+        <a class="is-active" href="./index.html">Home</a>
+        <a href="./explorer.html">Explorer</a>
+        <a href="./global-map.html">Atlas</a>
+        <a href="./analytics.html">Analytics</a>
+        <a href="./collections.html">Collections</a>
+        <a href="./workspace.html">Workspace</a>
+        <a href="./data.html">Downloads</a>
+        <a href="./methodology.html">Methods</a>
+        <a href="./about.html">About</a>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div class="eyebrow">Urban Microbiome Database</div>
+      <h1>Explore the microbial world of cities.</h1>
+      <p>
+        A global, rule-screened catalog of public urban environmental sequencing data. Go from a scientific question to an
+        analysis-ready cohort without writing code, or do the same programmatically from versioned Parquet releases.
+      </p>
+      <form class="search-hero" id="home-search" role="search">
+        <input type="search" id="home-q" placeholder="Search studies, or paste a BioProject, BioSample or run accession…" aria-label="Search UMDB" autocomplete="off" />
+        <button type="submit" class="btn primary">Search</button>
+      </form>
+      <div class="sub" id="home-hint" style="margin-top:6px">Try <a href="./study.html?acc=PRJNA271013">PRJNA271013</a>, “subway”, or browse a <a href="./habitat.html?id=municipal-wastewater">habitat</a>.</div>
+      <div class="hero-stats" id="heroStats">
+        <div class="metric"><span class="label">Loading</span><span class="value">...</span><span class="note">Reading the current public release</span></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="product-grid">
+        <a class="product" href="./explorer.html"><strong>Catalog</strong><span>Search and filter studies, BioSamples and runs by place, habitat, assay, date and quality.</span><span class="tag">Explorer →</span></a>
+        <a class="product" href="./global-map.html"><strong>Atlas</strong><span>Sample and study density, habitats, per-capita gaps and location confidence on a global map.</span><span class="tag">Atlas →</span></a>
+        <a class="product" href="./analytics.html"><strong>Analytics</strong><span>Coverage, growth, concentration, library sizes and metadata completeness, with downloadable figures.</span><span class="tag">Analytics →</span></a>
+        <a class="product" href="./workspace.html"><strong>Workspace</strong><span>Save, combine, compare and balance cohorts, then download a reproducible research package.</span><span class="tag">Workspace →</span></a>
+        <a class="product" href="./collections.html"><strong>Collections</strong><span>Curated cohorts: global wastewater, transit, urban air, greenspace, virome and resistome.</span><span class="tag">Collections →</span></a>
+        <a class="product" href="./data.html"><strong>Data</strong><span>Versioned releases (Parquet, SQLite, TSV), schema, checksums and programmatic access.</span><span class="tag">Downloads →</span></a>
+      </div>
+      <p class="sub" style="margin-top:10px">Coming in UMDB 2.0: <strong>Profiles</strong>, standardized taxonomic and functional abundance profiles from uniformly reprocessed shotgun metagenomes (the <a href="https://github.com/aglucaci/STRIGA">STRIGA</a> pipeline).</p>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>Why UMDB Exists</h2>
+      </div>
+      <div class="card-grid">
+        <article class="panel">
+          <div class="kicker">Discover</div>
+          <h3>Find urban sequencing studies quickly</h3>
+          <p>
+            Search BioProjects, cities, countries, assay classes, and sequencing centers with a dedicated explorer designed for public
+            urban environmental omics records.
+          </p>
+        </article>
+        <article class="panel">
+          <div class="kicker">Compare</div>
+          <h3>See the database as a landscape</h3>
+          <p>
+            Use summary analytics and geographic views to understand how the current release is distributed across
+            years, locations, assay classes, and institutions.
+          </p>
+        </article>
+        <article class="panel">
+          <div class="kicker">Reuse</div>
+          <h3>Move from metadata to cohorts</h3>
+          <p>
+            Export matched result sets as JSON bundles, accession lists, and raw-read download scripts so the database supports actual
+            downstream study assembly rather than passive browsing.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>Database Overview</h2>
+      </div>
+      <div class="metric-grid" id="overviewMetrics">
+        <div class="metric"><span class="label">Loading</span><span class="value">...</span><span class="note">Computing current release metrics</span></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="card-grid">
+        <article class="panel">
+          <div class="kicker">Core Workflow</div>
+          <h3>BioProject Explorer</h3>
+          <p>
+            The dedicated explorer page groups SRR-level records into BioProjects, supports natural-language search, and exposes
+            project expansion, cohort bundling, and download-oriented actions.
+          </p>
+          <p style="margin-top:14px"><a class="button-link primary" href="./explorer.html">Open Explorer</a></p>
+        </article>
+        <article class="panel">
+          <div class="kicker">High-Level Summary</div>
+          <h3>Analytics Dashboard</h3>
+          <p>
+            Review release-wide counts, distribution charts, summary tables, and statistical tests that describe the current database
+            snapshot in manuscript-friendly terms.
+          </p>
+          <p style="margin-top:14px"><a class="button-link primary" href="./analytics.html">Open Analytics</a></p>
+        </article>
+        <article class="panel">
+          <div class="kicker">Visual Exploration</div>
+          <h3>Analytics and Map</h3>
+          <p>
+            Explore filtered year-by-location analytics and a global country map to understand where public urban sequencing activity is
+            concentrated within the current release.
+          </p>
+          <div class="hero-actions" style="margin-top:14px">
+            <a class="button-link primary" href="./analytics.html">Analytics</a>
+            <a class="button-link" href="./global-map.html">Atlas</a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>Current Release Snapshot</h2>
+      </div>
+      <div class="table-shell panel" id="snapshotTable" style="padding:0"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>For Collaborators</h2>
+      </div>
+      <div class="text-columns">
+        <div class="panel">
+          <div class="info-list">
+            <div class="info-item">
+              <strong>Transparent methodology</strong>
+              The public methods page explains provenance, enrichment, caveats, and the logic behind key database fields.
+            </div>
+            <div class="info-item">
+              <strong>Inspectable release artifacts</strong>
+              The database is distributed as a manifest plus part files in <span class="mono">docs/db/</span>, which makes the release easy to inspect and archive.
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="info-list">
+            <div class="info-item">
+              <strong>Human and machine access</strong>
+              UMDB supports browser exploration, JSON distribution, run bundling, and raw-read download preparation from one public interface.
+            </div>
+            <div class="info-item">
+              <strong>Geography-aware views</strong>
+              The analytics and map pages make it easier to understand how the indexed database is distributed across place and time.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      UMDB is a public, versioned urban environmental omics database built from repository metadata and presented as a dynamic scientific resource.
+    </footer>
+  </div>
+
+  <script src="./assets/db.js"></script>
+  <script src="./assets/page-loading.js"></script>
+  <script>
+    (async () => {
+      const heroStats = document.getElementById("heroStats");
+      const overviewMetrics = document.getElementById("overviewMetrics");
+      const snapshotTable = document.getElementById("snapshotTable");
+
+      function formatTimestamp(value) {
+        if (!value) return "Unknown";
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return value;
+        return d.toLocaleString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          timeZoneName: "short"
+        });
+      }
+
+      function renderTable(target, columns, rows, emptyMessage) {
+        const body = rows.length
+          ? rows.map((row) => `
+              <tr>${row.map((cell) => `<td>${cell}</td>`).join("")}</tr>
+            `).join("")
+          : `<tr><td colspan="${columns.length}" class="muted">${emptyMessage}</td></tr>`;
+
+        target.innerHTML = `
+          <table>
+            <thead>
+              <tr>${columns.map((label) => `<th>${label}</th>`).join("")}</tr>
+            </thead>
+            <tbody>${body}</tbody>
+          </table>
+        `;
+      }
+
+      renderTable(snapshotTable, ["Feature", "What It Means", "Where To Explore It"], [], "Loading release snapshot...");
+
+      try {
+        const [manifest, summary] = await Promise.all([
+          window.UMDBDB.fetchManifest(),
+          window.UMDBDB.fetchSummary()
+        ]);
+        const countries = summary.countries.filter((x) => x.name !== "(unknown)");
+        const cities = summary.cities.filter((x) => x.name !== "(unknown)");
+        const assays = summary.assays.filter((x) => x.name !== "Unknown");
+        const years = summary.years.slice().sort((a, b) => Number(a.name) - Number(b.name));
+        const geoPct = Math.round((summary.geoResolvedRuns / Math.max(summary.totalRuns, 1)) * 100);
+        const downloadPct = Math.round((summary.downloadableRuns / Math.max(summary.totalRuns, 1)) * 100);
+        const largestProject = summary.largestProject;
+
+        heroStats.innerHTML = `
+          <div class="metric"><span class="label">BioSamples</span><span class="value">${window.UMDBDB.formatNumber(summary.totalBioSamples)}</span><span class="note">Distinct samples, from ${window.UMDBDB.formatNumber(summary.totalRuns)} sequencing runs</span></div>
+          <div class="metric"><span class="label">BioProjects</span><span class="value">${window.UMDBDB.formatNumber(summary.totalProjects)}</span><span class="note">Studies in the current release</span></div>
+          <div class="metric"><span class="label">Countries</span><span class="value">${window.UMDBDB.formatNumber(summary.totalCountries)}</span><span class="note">Validated against ISO 3166</span></div>
+          <div class="metric"><span class="label">Located to a city</span><span class="value">${Math.round(100 * (summary.geoResolvedBioSamples || 0) / Math.max(summary.totalBioSamples, 1))}%</span><span class="note">BioSamples with a validated city or town (GeoNames)</span></div>
+        `;
+
+        overviewMetrics.innerHTML = `
+          <div class="metric"><span class="label">Generated</span><span class="value" style="font-size:22px">${formatTimestamp(manifest.generated_utc || manifest.generated || "")}</span><span class="note">Timestamp of the public release manifest</span></div>
+          <div class="metric"><span class="label">Cities and towns</span><span class="value">${window.UMDBDB.formatNumber(summary.totalCities)}</span><span class="note">Distinct validated GeoNames places</span></div>
+          <div class="metric"><span class="label">Assay Classes</span><span class="value" style="font-size:20px">${assays.slice(0, 6).map((x) => x.name).join(", ") || "Unavailable"}</span><span class="note">Observed assay categories in the current release${assays.length > 6 ? " with additional lower-frequency classes in the analytics view" : ""}</span></div>
+          <div class="metric"><span class="label">Year Span</span><span class="value">${years.length ? years[0].name + " to " + years[years.length - 1].name : "NA"}</span><span class="note">Observed dated run years in the loaded records</span></div>
+          <div class="metric"><span class="label">Download Paths</span><span class="value">${downloadPct}%</span><span class="note">Runs carrying a source download path</span></div>
+        `;
+
+        renderTable(snapshotTable,
+          ["Feature", "What It Means", "Where To Explore It"],
+          [
+            [
+              "Largest BioProject",
+              largestProject ? `${largestProject.accession} with ${window.UMDBDB.formatNumber(largestProject.run_count)} runs` : "Unavailable",
+              `<a href="./explorer.html">BioProject Explorer</a>`
+            ],
+            [
+              "Top Country Bucket",
+              countries[0] ? `${countries[0].name} with ${window.UMDBDB.formatNumber(countries[0].count)} runs` : "Unavailable",
+              `<a href="./global-map.html">Atlas</a>`
+            ],
+            [
+              "Top City Bucket",
+              cities[0] ? `${cities[0].name} with ${window.UMDBDB.formatNumber(cities[0].count)} runs` : "Unavailable",
+              `<a href="./analytics.html">Analytics</a>`
+            ],
+            [
+              "Largest Assay Bucket",
+              assays[0] ? `${assays[0].name} with ${((assays[0].count / Math.max(summary.totalRuns, 1)) * 100).toFixed(1)}% of runs` : "Unavailable",
+              `<a href="./analytics.html">Analytics</a>`
+            ],
+            [
+              "Public Access Pattern",
+              "Manifest-driven chunked JSON release with browser exploration and cohort export workflows",
+              `<a href="./data.html">Data Access</a>`
+            ]
+          ],
+          "No release snapshot rows are available."
+        );
+      } catch (err) {
+        heroStats.innerHTML = `<div class="metric"><span class="label">Status</span><span class="value">Unavailable</span><span class="note">${err.message}</span></div>`;
+        overviewMetrics.innerHTML = `<div class="metric"><span class="label">Status</span><span class="value">Unavailable</span><span class="note">${err.message}</span></div>`;
+        renderTable(snapshotTable, ["Feature", "What It Means", "Where To Explore It"], [], err.message);
+      }
+    })();
+  </script>
+  <script src="./assets/ui.js"></script>
+  <script>
+  document.getElementById("home-search").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const q = document.getElementById("home-q").value.trim();
+    if (!q) return;
+    document.getElementById("home-hint").textContent = "Looking up…";
+    location.href = await window.UMDBUI.resolveSearch(q);
+  });
+  </script>
 </body>
 </html>

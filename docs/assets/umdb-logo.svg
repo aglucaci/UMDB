@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">UMDB logo</title>
+  <desc id="desc">UMDB logo with a stylized urban microbiome emblem and the words UMDB and Urban Microbiome Database.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#08111b" />
+      <stop offset="55%" stop-color="#101a29" />
+      <stop offset="100%" stop-color="#0b1421" />
+    </linearGradient>
+    <linearGradient id="ring" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffb347" />
+      <stop offset="50%" stop-color="#4ec5a8" />
+      <stop offset="100%" stop-color="#73a7ff" />
+    </linearGradient>
+    <linearGradient id="skyline" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffb347" />
+      <stop offset="100%" stop-color="#b8d7ff" />
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="56" fill="url(#bg)" />
+  <circle cx="256" cy="182" r="126" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="22" />
+  <circle cx="256" cy="182" r="118" fill="none" stroke="url(#ring)" stroke-width="8" />
+  <circle cx="256" cy="182" r="88" fill="none" stroke="rgba(184,215,255,0.28)" stroke-width="1.5" />
+  <circle cx="256" cy="182" r="56" fill="none" stroke="rgba(184,215,255,0.22)" stroke-width="1.5" />
+
+  <g stroke="rgba(184,215,255,0.4)" stroke-width="1.5">
+    <line x1="256" y1="78" x2="256" y2="286" />
+    <line x1="152" y1="182" x2="360" y2="182" />
+  </g>
+
+  <g fill="url(#skyline)" filter="url(#glow)">
+    <rect x="171" y="196" width="14" height="54" rx="2" />
+    <rect x="190" y="176" width="18" height="74" rx="2" />
+    <rect x="214" y="160" width="20" height="90" rx="2" />
+    <rect x="240" y="131" width="24" height="119" rx="2" />
+    <rect x="270" y="150" width="16" height="100" rx="2" />
+    <rect x="292" y="168" width="22" height="82" rx="2" />
+    <rect x="320" y="187" width="16" height="63" rx="2" />
+    <rect x="340" y="201" width="10" height="49" rx="2" />
+  </g>
+
+  <path d="M161 250h190" stroke="url(#skyline)" stroke-width="3" stroke-linecap="round" />
+  <path d="M172 267c18-10 24 5 39-4 11-7 22-9 34 1 15 13 23 8 34-3 14-13 25-7 39 4 11 9 20 8 32-2" fill="none" stroke="#4ec5a8" stroke-width="2.5" stroke-linecap="round" />
+
+  <g fill="#ffb347" filter="url(#glow)">
+    <circle cx="162" cy="133" r="6" />
+    <circle cx="146" cy="156" r="5" />
+    <circle cx="187" cy="148" r="4.5" />
+    <circle cx="360" cy="142" r="6" />
+    <circle cx="378" cy="163" r="5" />
+    <circle cx="336" cy="152" r="4.5" />
+  </g>
+
+  <g stroke="#ffb347" stroke-width="2">
+    <line x1="162" y1="133" x2="146" y2="156" />
+    <line x1="162" y1="133" x2="187" y2="148" />
+    <line x1="360" y1="142" x2="378" y2="163" />
+    <line x1="360" y1="142" x2="336" y2="152" />
+  </g>
+
+  <text x="256" y="362" text-anchor="middle" font-family="'IBM Plex Sans', 'Segoe UI', sans-serif" font-size="72" font-weight="700" fill="#edf3ff" letter-spacing="6">UMDB</text>
+  <text x="256" y="402" text-anchor="middle" font-family="'IBM Plex Sans', 'Segoe UI', sans-serif" font-size="22" font-weight="500" fill="#9cb4d7">Urban Microbiome Database</text>
+</svg>

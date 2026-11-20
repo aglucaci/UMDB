@@ -695,6 +695,62 @@ class ReleaseTests(unittest.TestCase):
                 release.check_analysis(unhashed, dbp)
             self.assertEqual(release.check_analysis(unhashed, dbp, allow_unverified=True)["contract"], "striga-results/1")
 
+    def test_site_from_database(self):
+        import sqlite3, tempfile
+        from umdb_harvester import site
+        with tempfile.TemporaryDirectory() as d:
+            dbp, out = self._build(d), os.path.join(d, "site")
+            os.makedirs(out)
+            with open(os.path.join(out, "srr_records_part000.json"), "w") as fh:
+                fh.write("[]")
+            manifest = site.build_site(dbp, out)
+            load = lambda n: json.load(open(os.path.join(out, n)))
+            cube, samples, geo, summary = load("cube.json"), load("samples.json"), load("geo.json"), load("summary.json")
+            con = sqlite3.connect(dbp)
+            q = lambda sql: con.execute(sql).fetchone()[0]
+
+            # Totals from the two cubes equal exact SQLite counts.
+            rix = {k: i for i, k in enumerate(cube["cols"])}
+            six = {k: i for i, k in enumerate(samples["cols"])}
+            self.assertEqual(sum(r[rix["runs"]] for r in cube["rows"]), q("SELECT count(*) FROM runs"))
+            n_samples = q("SELECT count(DISTINCT sample_accession) FROM runs")
+            self.assertEqual(sum(r[six["samples"]] for r in samples["rows"]), n_samples)
+            self.assertEqual((summary["totalRuns"], summary["totalBioSamples"], summary["totalProjects"]), (3, 2, 2))
+            self.assertNotIn("samples", cube["cols"])          # runs cube no longer carries sample counts
+
+            # The two-assay, two-project sample sits in one row, with set-valued dims.
+            D = samples["dims"]
+            multi = [r for r in samples["rows"] if len(D["assaysets"][r[six["assays"]]]) == 2]
+            self.assertEqual(len(multi), 1)
+            self.assertEqual(multi[0][six["samples"]], 1)
+            self.assertEqual(len(D["projsets"][multi[0][six["projects"]]]), 2)
+
+            # Geography comes from the validated table: NYC for SAMN1, none for SAMN2.
+            place_names = [p[1] for p in geo["places"]]
+            self.assertEqual(place_names, ["New York City"])
+            self.assertEqual([c[0] for c in geo["countries"]], ["US"])
+            us = [r for r in samples["rows"] if r[six["country"]] == 0]
+            self.assertEqual(sum(r[six["samples"]] for r in us),
+                             q("SELECT count(*) FROM sample_locations WHERE country_iso2='US' "
+                               "AND country_status IN ('verified','probable')"))
+            self.assertEqual(summary["countries"][0]["biosamples"], 1)
+            self.assertEqual(summary["countries"][0]["runs"], 2)
+            self.assertIn("GeoNames", geo["attribution"])
+
+            projects = load("projects.json")
+            acc = projects["rows"][0][0]
+            shard = load(os.path.join("p", site.shard_name(acc)))
+            self.assertEqual(len(shard["runs"]), projects["rows"][0][5])
+            sc = {k: i for i, k in enumerate(shard["sample_cols"])}
+            s1 = [s for s in shard["samples"] if s[0] == "SAMN1"][0]
+            self.assertEqual((s1[sc["city"]], s1[sc["country_iso2"]], s1[sc["geo_loc_raw"]]),
+                             ("New York City", "US", "USA: New York City"))
+            self.assertFalse(os.path.exists(os.path.join(out, "srr_records_part000.json")))  # legacy removed
+            mtime = os.path.getmtime(os.path.join(out, "p", site.shard_name(acc)))
+            site.build_site(dbp, out)  # unchanged content is not rewritten
+            self.assertEqual(os.path.getmtime(os.path.join(out, "p", site.shard_name(acc))), mtime)
+            self.assertEqual(manifest["counts"]["biosamples"], n_samples)
+
     def test_database_enforces_location_consistency(self):
         import sqlite3, tempfile
         with tempfile.TemporaryDirectory() as d:

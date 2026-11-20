@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Tag
 
 ## [Unreleased]
 
+### Changed: UMDB keeps its own browser of the live catalog (2026-11-20)
+- The website is back in `docs/` at https://aglucaci.github.io/UMDB/ (Explorer, Atlas, Analytics, record pages, Collections, Workspace), rebuilt after every harvest by `umdb export` and labelled on every page as the live, unreleased catalog. `umdb serve` is back; the workflows commit `docs/` and `reports/` again.
+- UMA (https://aglucaci.github.io/UMA/) is rebuilt as a different site: the findings and records of one versioned release.
+
 ### Changed: UMDB is split into three repositories (2026-11-20)
 - **UMDB** keeps harvesting, curation, the catalog, collections and the versioned data releases.
 - **STRIGA** ([github.com/aglucaci/STRIGA](https://github.com/aglucaci/STRIGA)) is the former `pipeline/` (UMDB-SCIENCE), with its history; `manuscript/research_program.md` and `manuscript/catalog_findings/` moved with it to its `docs/`. `umdb science` is gone: run `nextflow run aglucaci/STRIGA --catalog data`.

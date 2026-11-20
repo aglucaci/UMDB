@@ -135,7 +135,7 @@ jobs:
           print("\n".join(lines))
           PY
 
-      - name: Rebuild the database
+      - name: Rebuild the database and the live-catalog website data
         run: python3 -m scripts.umdb_harvester export
 
       - name: Summarize published AI field coverage
@@ -168,7 +168,7 @@ jobs:
       - name: Summarize file changes
         run: |
           set -euo pipefail
-          CHANGED="$(git status --short reports .gitignore || true)"
+          CHANGED="$(git status --short docs reports .gitignore || true)"
           {
             echo ""
             echo "## Repository Changes"
@@ -190,8 +190,8 @@ jobs:
           git config user.email "github-actions@github.com"
 
           git restore scripts/umdb_harvester/__pycache__ || true
-          # The catalog lives in Release assets (git-ignored); only the small run reports are committed.
-          git add .gitignore reports || true
+          # The catalog lives in Release assets (git-ignored); the live site data and run reports are committed.
+          git add .gitignore docs reports || true
 
           git commit -m "UMDB AI curation $(date -u +'%Y-%m-%d')" || echo "No changes"
           git push

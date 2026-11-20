@@ -30,7 +30,7 @@ The core rule is **confirmed urban = E ∧ U ∧ ¬X**: evidence of an environme
 
 How to filter:
 
-- In the [UMA Explorer](https://aglucaci.github.io/UMA/explorer.html), use the **Urban eligibility** filter. Each run shows its tier and urban context; hover for the evidence.
+- In the [Explorer](https://aglucaci.github.io/UMDB/explorer.html), use the **Urban eligibility** filter. Each run shows its tier and urban context; hover for the evidence.
 - In downloaded data, use `eligibility.status` on each record. Tier counts are in `summary.json` → `eligibility`.
 
 The screen is rule-based and has **not yet been benchmarked** against expert labels (see [limitations](#known-limitations)).
@@ -236,8 +236,8 @@ The sequencing center's or submitter's location is **never** used as the collect
 - **Run table, BioSample and BioProject retrieval** adds context only.
 - **Geography** ([CURATION.md](CURATION.md#geography)) labels country and city. A record with no location, or a non-urban one, stays in.
 - **Assay classification** labels the method only.
-- **AI review** (`ai_curation.urban_origin`: `urban` / `non_urban` / `uncertain`) is stored next to the record and never removes it. **No AI reviews appear in the current published files** (releases and the UMA website data), although an AI curation run was recorded in April 2026.
-- **Website (UMA):** the Explorer's *AI urban only* option keeps BioProjects with at least one run labelled `urban`. With no published reviews it currently returns nothing. Use the **Urban eligibility** filter instead.
+- **AI review** (`ai_curation.urban_origin`: `urban` / `non_urban` / `uncertain`) is stored next to the record and never removes it. **No AI reviews appear in the current published files** (`docs/db/` and releases), although an AI curation run was recorded in April 2026.
+- **Website:** the Explorer's *AI urban only* option keeps BioProjects with at least one run labelled `urban`. With no published reviews it currently returns nothing. Use the **Urban eligibility** filter instead.
 
 ---
 
