@@ -29,11 +29,6 @@ data/.catalog-state.json
 # GeoNames gazetteer (downloaded by `umdb geo fetch`; shipped in the catalog bundle)
 data/reference/
 
-# Nextflow research pipeline (pipeline/): work directories, run logs, results, conda cache
-pipeline/work/
-work/
-.nextflow/
-.nextflow.log*
+# STRIGA results placed here for `umdb release --analysis` (the pipeline itself is github.com/aglucaci/STRIGA)
 results/
 results-*/
-pipeline/.conda/

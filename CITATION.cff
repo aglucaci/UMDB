@@ -1,7 +1,8 @@
 cff-version: 1.2.0
 message: >-
-  If you use UMDB, please cite it as below and state the date or commit of the
-  release you used, since the catalog is updated continuously.
+  If you use UMDB, please cite it as below and state the release version (and its
+  DOI) you used; the catalog is updated continuously, releases are fixed. Analyses
+  bundled in a release were produced by STRIGA (https://github.com/aglucaci/STRIGA).
 title: "UMDB: Urban Microbiome Database"
 abstract: >-
   An openly accessible, continuously updated index of public urban environmental
@@ -13,7 +14,7 @@ authors:
   - family-names: Lucaci
     given-names: Alexander G.
 repository-code: "https://github.com/aglucaci/UMDB"
-url: "https://aglucaci.github.io/UMDB/"
+url: "https://aglucaci.github.io/UMA/"
 keywords:
   - urban microbiome
   - metagenomics

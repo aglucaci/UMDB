@@ -11,7 +11,7 @@ Include what is affected, how to reproduce it, and the impact. You should get an
 In scope:
 - Leaked credentials in the repository, its history or workflow logs
 - Workflow injection (e.g. untrusted `workflow_dispatch` inputs reaching shell commands)
-- Script injection or XSS in the website from harvested metadata (record titles and attributes are untrusted text submitted to NCBI)
+- Script injection or XSS in the website (UMA) from harvested metadata (record titles and attributes are untrusted text submitted to NCBI); report those in either repository
 - Generated download scripts (`download.sh`) that could run unintended commands
 
 ## Handling secrets

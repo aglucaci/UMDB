@@ -244,11 +244,11 @@ DEFAULT_QUERY = QUERY_PROFILES["municipal_wastewater"]
 
 # Paths
 DATA_DIR = "data"
-DOCS_DIR = "docs"
-DB_DIR = f"{DOCS_DIR}/db"
+# Small run reports committed to git by the scheduled workflows (the website lives in UMA).
+REPORTS_DIR = "reports"
 CACHE_DIR = f"{DATA_DIR}/cache"
 DEBUG_DIR = f"{DATA_DIR}/debug"
-DOCS_DEBUG_DIR = f"{DOCS_DIR}/debug"
+REPORTS_DEBUG_DIR = f"{REPORTS_DIR}/debug"
 
 SEEN_SRA_UIDS = f"{DATA_DIR}/seen_sra_uids.txt"
 SEEN_SRR_RUNS = f"{DATA_DIR}/seen_srr_runs.txt"
@@ -258,8 +258,8 @@ BIOPROJECT_CACHE = f"{CACHE_DIR}/bioproject.json"
 BIOPROJECT_UID_CACHE = f"{CACHE_DIR}/bioproject_uid.json"
 AI_CURATION_CACHE = f"{CACHE_DIR}/ai_curation.json"
 
-DOCS_LATEST_SRR = f"{DOCS_DIR}/latest_srr.json"
-DOCS_LATEST_DEBUG = f"{DOCS_DEBUG_DIR}/latest_report.json"
+LATEST_SRR = f"{REPORTS_DIR}/latest_srr.json"
+LATEST_DEBUG = f"{REPORTS_DEBUG_DIR}/latest_report.json"
 
 BIOPROJECT_RE = re.compile(r"\bPRJ(?:NA|EB|DB)\d+\b", re.I)
 

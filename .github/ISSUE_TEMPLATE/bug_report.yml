@@ -1,5 +1,5 @@
 name: Bug report
-description: Something on the website or in the harvester does not work
+description: Something in the harvester, database or releases does not work (website bugs: github.com/aglucaci/UMA/issues)
 labels: ["bug"]
 body:
   - type: dropdown
@@ -7,8 +7,8 @@ body:
     attributes:
       label: Where
       options:
-        - Website
         - Harvester / CLI
+        - Release files
         - GitHub Actions workflow
         - Downloaded data files
     validations:
@@ -23,7 +23,7 @@ body:
     id: steps
     attributes:
       label: Steps to reproduce
-      description: For the website, include the page URL and filters. For the harvester, include the exact command and its output.
+      description: For the harvester, include the exact command and its output. For a release, its version and the file.
       render: shell
   - type: input
     id: env

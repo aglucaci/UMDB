@@ -1,8 +1,12 @@
-"""Versioned UMDB data releases from the SQLite database.
+"""Versioned UMDB data releases: the catalog, plus STRIGA's analyses of it.
 
-Writes dist/releases/<version>/:
+    umdb release --version 1.0.0 --analysis ../STRIGA/results
 
-  manifest.json            version, build metadata, licences, row counts, sizes, SHA-256 of every file
+Writes dist/releases/<version>/ (release contract `umdb-release/1`, which UMA
+reads to build the website) and the bundle dist/releases/umdb-<version>.tar.gz:
+
+  manifest.json            contract, version, build metadata, licences, row counts, sizes, SHA-256 of
+                           every file, and `analysis` (which STRIGA version analysed this catalog)
   schema.json              columns and types of every table
   checksums.sha256         `shasum -a 256 -c checksums.sha256` verifies the release
   .zenodo.json             deposit metadata for a versioned Zenodo record (DOI)
@@ -15,9 +19,15 @@ Writes dist/releases/<version>/:
                              curation_evidence each sample's tier, context, reason and evidence
                              environmental_metadata  MIxS/environment fields and submitted attributes
   tsv/                     umdb_samples.tsv.gz, umdb_runs.tsv.gz for any tool
-  indexes/                 summary.json, coverage.json (per country, with population), projects.json
+  indexes/coverage.json    urban BioSamples, BioProjects and places per country, with population
   collections/             collections.json and <slug>.tsv.gz run lists (see cohorts.py)
-  documentation/           DATA_DICTIONARY.md, ARCHITECTURE.md, INCLUSION_CRITERIA.md, CURATION.md, LICENSE
+  reference/geonames/      countryInfo.txt and cities500.zip used to validate locations (CC BY 4.0)
+  documentation/           DATA_DICTIONARY.md, ARCHITECTURE.md, INCLUSION_CRITERIA.md, CURATION.md, LICENSE,
+                           cohort-templates.json (research-package templates used by UMA's Workspace)
+  analysis/                STRIGA results (striga_manifest.json, report.md/json, hypotheses_status.tsv,
+                           hypotheses/<ID>/, cohort/, covariates/ with the outside sources, profiles/),
+                           only when --analysis is given. The analysed database must be this one:
+                           its SHA-256 in striga_manifest.json is checked.
 
 Parquet needs pyarrow (pip install -r requirements-release.txt). Everything
 else in UMDB stays standard-library only. Releases are not committed to git:
@@ -34,13 +44,23 @@ import json
 import os
 import shutil
 import sqlite3
+import tarfile
 import time
 from typing import Any, Dict, List
 
 from .database import DB_PATH, SCHEMA_VERSION
-from .utils import log, paint, num, fmt_duration
+from .utils import log, paint, num, fmt_duration, warn
+from .config import DATA_DIR
+
+GEONAMES_DIR = os.path.join(DATA_DIR, "reference", "geonames")
 
 RELEASE_ROOT = os.path.join("dist", "releases")
+CONTRACT = "umdb-release/1"
+STRIGA_CONTRACTS = {"striga-results/1"}
+# STRIGA output that is not copied into a release: the snapshot tables duplicate the catalog,
+# and Nextflow's own run records are not results.
+ANALYSIS_SKIP = {"snapshot/samples.tsv.gz", "snapshot/runs.tsv.gz"}
+ANALYSIS_SKIP_DIRS = {"pipeline_info", "work", ".nextflow"}
 
 # Large verbatim columns stay in SQLite and the git JSONL; releases carry the
 # curated fields plus the submitted BioSample attributes.
@@ -121,7 +141,44 @@ def _arrow_type(pa, col: str, decl: str):
     return pa.string()
 
 
-def write_release(version: str = "", db_path: str = DB_PATH, out_root: str = RELEASE_ROOT) -> str:
+def check_analysis(analysis_dir: str, db_path: str, allow_unverified: bool = False) -> Dict[str, Any]:
+    """Read STRIGA's striga_manifest.json and make sure it analysed exactly this database."""
+    mf = os.path.join(analysis_dir, "striga_manifest.json")
+    if not os.path.exists(mf):
+        raise FileNotFoundError(f"{mf} not found: --analysis must be a STRIGA results folder (STRIGA >= 0.2.0)")
+    with open(mf, encoding="utf-8") as fh:
+        m = json.load(fh)
+    if m.get("contract") not in STRIGA_CONTRACTS:
+        raise RuntimeError(f"{mf}: unsupported STRIGA results contract {m.get('contract')!r}")
+    analysed = (m.get("input") or {}).get("database_sha256")
+    if not analysed:
+        if not allow_unverified:
+            raise RuntimeError("the STRIGA run did not hash its input database (--hash_db false), so it cannot be "
+                               "matched to this release; rerun STRIGA with hashing or pass --allow-unverified-analysis")
+        warn("bundling STRIGA results whose input database could not be verified")
+    elif analysed != _sha256(db_path):
+        raise RuntimeError(f"STRIGA analysed a different database (SHA-256 {analysed[:12]}…) than {db_path} "
+                           f"({_sha256(db_path)[:12]}…); rerun STRIGA on this catalog or release the database it used")
+    return m
+
+
+def _copy_analysis(analysis_dir: str, out: str, files: Dict[str, Dict[str, Any]]) -> None:
+    for root, dirs, names in os.walk(analysis_dir):
+        dirs[:] = [d for d in dirs if d not in ANALYSIS_SKIP_DIRS]
+        for name in names:
+            src = os.path.join(root, name)
+            rel = os.path.relpath(src, analysis_dir).replace(os.sep, "/")
+            if rel in ANALYSIS_SKIP or name.startswith("."):
+                continue
+            dst = os.path.join(out, "analysis", rel)
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.copyfile(src, dst)
+            files[f"analysis/{rel}"] = {}
+
+
+def write_release(version: str = "", db_path: str = DB_PATH, out_root: str = RELEASE_ROOT,
+                  analysis_dir: str = "", allow_unverified_analysis: bool = False,
+                  geonames_dir: str = GEONAMES_DIR, bundle: bool = True) -> str:
     try:
         import pyarrow as pa
         import pyarrow.parquet as pq
@@ -131,6 +188,7 @@ def write_release(version: str = "", db_path: str = DB_PATH, out_root: str = REL
         raise FileNotFoundError(f"{db_path} not found; run `umdb db build` first")
 
     t0 = time.time()
+    striga = check_analysis(analysis_dir, db_path, allow_unverified_analysis) if analysis_dir else None
     version = version or dt.date.today().strftime("%Y.%m.%d")
     out = os.path.join(out_root, version)
     if os.path.exists(out) and os.listdir(out):
@@ -177,17 +235,11 @@ def write_release(version: str = "", db_path: str = DB_PATH, out_root: str = REL
         cols = [(d[0], _infer(rows, i)) for i, d in enumerate(cur.description)]
         write_table(name, cols, rows)
 
-    # ---- web indexes and collections (the same files the website loads)
-    from .site import SITE_DB_DIR
-    from .cohorts import build_collections
+    # ---- coverage index and collections (UMA builds its own website indexes from this release)
+    from .cohorts import build_collections, write_templates
     os.makedirs(os.path.join(out, "indexes"), exist_ok=True)
-    for fname in ("summary.json", "projects.json", "geo.json"):
-        src = os.path.join(SITE_DB_DIR, fname)
-        if os.path.exists(src):
-            shutil.copyfile(src, os.path.join(out, "indexes", fname))
-            files[f"indexes/{fname}"] = {}
     with open(os.path.join(out, "indexes", "coverage.json"), "w", encoding="utf-8") as fh:
-        json.dump(_coverage(con), fh, indent=1)
+        json.dump(_coverage(con, geonames_dir), fh, indent=1)
     files["indexes/coverage.json"] = {}
     coll = build_collections(con, os.path.join(out, "collections_tmp"))
     shutil.move(os.path.join(out, "collections_tmp", "collections"), os.path.join(out, "collections"))
@@ -203,7 +255,25 @@ def write_release(version: str = "", db_path: str = DB_PATH, out_root: str = REL
         if os.path.exists(doc):
             shutil.copyfile(doc, os.path.join(out, "documentation", doc))
             files[f"documentation/{doc}"] = {}
+    write_templates(os.path.join(out, "documentation", "cohort-templates.json"))
+    files["documentation/cohort-templates.json"] = {}
     con.close()
+
+    # ---- the gazetteer the locations were validated against (STRIGA and UMA read it from the release)
+    for name in ("countryInfo.txt", "cities500.zip"):
+        src = os.path.join(geonames_dir, name)
+        if os.path.exists(src):
+            os.makedirs(os.path.join(out, "reference", "geonames"), exist_ok=True)
+            shutil.copyfile(src, os.path.join(out, "reference", "geonames", name))
+            files[f"reference/geonames/{name}"] = {}
+        else:
+            warn(f"{src} not found; the release has no GeoNames {name} (run `umdb geo fetch`)")
+
+    # ---- STRIGA's analyses of this catalog
+    if striga:
+        _copy_analysis(analysis_dir, out, files)
+        log(f"  analysis/: STRIGA {striga['pipeline'].get('version')} results "
+            f"({sum(1 for f in files if f.startswith('analysis/'))} files)")
     dbrel = _compress_db(db_path, out)
     files[dbrel] = {}
 
@@ -216,7 +286,10 @@ def write_release(version: str = "", db_path: str = DB_PATH, out_root: str = REL
     counts = {k[len("count_"):]: int(v) for k, v in meta.items() if k.startswith("count_")}
     manifest = {
         "name": "UMDB: Urban Microbiome Database",
+        "contract": CONTRACT,
         "version": version,
+        "doi": None,  # filled in after the Zenodo deposit (see MAINTAINING.md)
+        "url": f"https://github.com/aglucaci/UMDB/releases/tag/v{version}",
         "created_utc": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
         "schema_version": SCHEMA_VERSION,
         "database_built_utc": meta.get("built_utc"),
@@ -227,16 +300,25 @@ def write_release(version: str = "", db_path: str = DB_PATH, out_root: str = REL
         "licenses": LICENSES,
         "counts": counts,
         "collections": [c["slug"] for c in coll["collections"]],
+        "analysis": None if not striga else {
+            "pipeline": striga.get("pipeline"), "created_utc": striga.get("created_utc"),
+            "database_verified": bool((striga.get("input") or {}).get("database_sha256")),
+            "hypotheses": striga.get("hypotheses")},
         "files": files,
     }
     with open(os.path.join(out, "manifest.json"), "w", encoding="utf-8") as fh:
         json.dump(manifest, fh, indent=2)
     with open(os.path.join(out, ".zenodo.json"), "w", encoding="utf-8") as fh:
-        json.dump(_zenodo(version, meta, counts), fh, indent=2)
+        json.dump(_zenodo(version, meta, counts, striga), fh, indent=2)
     with open(os.path.join(out, "checksums.sha256"), "w", encoding="utf-8") as fh:
         for fname in sorted(files) + ["manifest.json", ".zenodo.json"]:
             fh.write(f"{_sha256(os.path.join(out, fname))}  {fname}\n")
     total = sum(os.path.getsize(os.path.join(d, f)) for d, _, fs in os.walk(out) for f in fs) / 1e6
+    if bundle:  # one asset for GitHub Releases / Zenodo; `uma fetch` unpacks it
+        tar = os.path.join(out_root, f"umdb-{version}.tar.gz")
+        with tarfile.open(tar, "w:gz") as tf:
+            tf.add(out, arcname=f"umdb-{version}")
+        log(f"  bundle {tar}: {os.path.getsize(tar) / 1e6:.1f} MB")
     log(f"{paint('Release ready', 'good')}: {out}/ ({total:.1f} MB) in {fmt_duration(time.time() - t0)}")
     return out
 
@@ -270,10 +352,25 @@ def _compress_db(db_path: str, out: str) -> str:
     return rel
 
 
-def _coverage(con: sqlite3.Connection) -> Dict[str, Any]:
-    """Urban BioSamples, BioProjects and places per validated country (population added by site.py's reader)."""
-    from .site import _country_population
-    pop = _country_population()
+def _country_population(geonames_dir: str) -> Dict[str, int]:
+    """Country populations from GeoNames countryInfo.txt."""
+    path = os.path.join(geonames_dir, "countryInfo.txt")
+    out: Dict[str, int] = {}
+    if not os.path.exists(path):
+        return out
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            if line.startswith("#"):
+                continue
+            f = line.rstrip("\n").split("\t")
+            if len(f) > 7 and f[7].isdigit():
+                out[f[0]] = int(f[7])
+    return out
+
+
+def _coverage(con: sqlite3.Connection, geonames_dir: str = GEONAMES_DIR) -> Dict[str, Any]:
+    """Urban BioSamples, BioProjects and places per validated country, with GeoNames population."""
+    pop = _country_population(geonames_dir)
     rows = con.execute("""
         SELECT l.country_iso2, co.name, co.continent,
                count(DISTINCT s.accession) AS biosamples,
@@ -295,7 +392,9 @@ def _coverage(con: sqlite3.Connection) -> Dict[str, Any]:
     return {"unit": "BioSamples with a validated country", "countries": out}
 
 
-def _zenodo(version: str, meta: Dict[str, str], counts: Dict[str, int]) -> Dict[str, Any]:
+def _zenodo(version: str, meta: Dict[str, str], counts: Dict[str, int], striga: Any = None) -> Dict[str, Any]:
+    analysis = (f" Includes analyses by STRIGA {striga['pipeline'].get('version')} "
+                f"(https://github.com/aglucaci/STRIGA) run on this exact catalog." if striga else "")
     return {
         "title": f"UMDB: Urban Microbiome Database, release {version}",
         "upload_type": "dataset",
@@ -305,9 +404,12 @@ def _zenodo(version: str, meta: Dict[str, str], counts: Dict[str, int]) -> Dict[
                         f"metadata: {counts.get('runs', 0):,} runs, {counts.get('samples', 0):,} BioSamples and "
                         f"{counts.get('projects', 0):,} BioProjects. Database built {meta.get('built_utc')}, "
                         f"eligibility rules {meta.get('rules_version')}. Includes Parquet tables, the SQLite "
-                        f"database, web indexes, curated collections and documentation."),
+                        f"database, curated collections, the GeoNames reference and documentation.{analysis} Browse it at "
+                        f"https://aglucaci.github.io/UMA/."),
         "license": "cc-by-nc-sa-4.0",
         "keywords": ["urban microbiome", "metagenomics", "wastewater", "built environment", "SRA", "metadata"],
-        "related_identifiers": [{"identifier": "https://github.com/aglucaci/UMDB", "relation": "isSupplementTo",
-                                 "scheme": "url"}],
+        "related_identifiers": [
+            {"identifier": "https://github.com/aglucaci/UMDB", "relation": "isSupplementTo", "scheme": "url"},
+            {"identifier": "https://github.com/aglucaci/STRIGA", "relation": "isSupplementTo", "scheme": "url"},
+            {"identifier": "https://aglucaci.github.io/UMA/", "relation": "isDocumentedBy", "scheme": "url"}],
     }

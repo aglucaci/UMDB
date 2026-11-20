@@ -1,10 +1,17 @@
 # Changelog
 
-User-visible changes to the UMDB pipeline, data schema and website. Data refreshes from scheduled crawls are not listed individually.
+User-visible changes to the UMDB harvester, data schema and releases (and, before 2026-11-20, the website and research pipeline). Data refreshes from scheduled crawls are not listed individually.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Tagged releases will follow semantic versioning once versioned database releases begin (see [MAINTAINING.md](MAINTAINING.md#releases)).
 
 ## [Unreleased]
+
+### Changed: UMDB is split into three repositories (2026-11-20)
+- **UMDB** keeps harvesting, curation, the catalog, collections and the versioned data releases.
+- **STRIGA** ([github.com/aglucaci/STRIGA](https://github.com/aglucaci/STRIGA)) is the former `pipeline/` (UMDB-SCIENCE), with its history; `manuscript/research_program.md` and `manuscript/catalog_findings/` moved with it to its `docs/`. `umdb science` is gone: run `nextflow run aglucaci/STRIGA --catalog data`.
+- **UMA** ([github.com/aglucaci/UMA](https://github.com/aglucaci/UMA)) is the former website (`docs/`, `site.py`), with the history of its code, now at https://aglucaci.github.io/UMA/. It is built from a release, not after every harvest. `umdb serve` is gone; `umdb export` now only rebuilds the database. `docs/` here redirects the old address to UMA, keeping the page and query.
+- `umdb release --analysis DIR` bundles STRIGA results into `analysis/` after checking that STRIGA analysed this exact database (SHA-256 in `striga_manifest.json`); `--allow-unverified-analysis` for unhashed runs. Releases now carry `contract: umdb-release/1`, `doi`, `url` and `analysis` in `manifest.json`, the GeoNames reference (`reference/geonames/`), `documentation/cohort-templates.json`, and a single `umdb-<V>.tar.gz` bundle. `indexes/` now holds only `coverage.json` (UMA builds the website indexes itself).
+- Run reports moved from `docs/latest_srr.json` and `docs/debug/latest_report.json` to `reports/`; the scheduled workflows commit `reports/` only. The website therefore changes only when a release is published.
 
 ### Security
 - NCBI E-utilities URLs stored for provenance (`debug.runinfo_url`, BioSample `efetch_url`) included the `api_key` and `email` query parameters, so the API key was written to `data/` and published in `docs/db/`. URLs are now stored without them, every JSON writer scrubs them as a safeguard, and `umdb scrub` removes them from existing files. Rotate any key used before this change.

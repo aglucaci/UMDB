@@ -2,7 +2,7 @@ from __future__ import annotations
 import os, re, glob
 from typing import Any, Dict, Iterator, List
 
-from .config import DATA_DIR, DOCS_LATEST_SRR, MAX_OUTPUT_BYTES
+from .config import DATA_DIR, LATEST_SRR, MAX_OUTPUT_BYTES
 from .utils import utc_now, iter_jsonl_glob, file_size, slim_record
 
 def _find_year_catalog_prefixes() -> List[str]:
@@ -148,15 +148,15 @@ def refresh_derived_annotations(rec: Dict[str, Any], bs_cache: Dict[str, Any],
 def write_latest_srr_safe(latest_items: List[Dict[str, Any]]):
     payload = {"generated_utc": utc_now(), "count": len(latest_items), "items": latest_items}
 
-    tmp = DOCS_LATEST_SRR + ".tmp"
+    tmp = LATEST_SRR + ".tmp"
     import json
-    os.makedirs(os.path.dirname(DOCS_LATEST_SRR) or ".", exist_ok=True)
+    os.makedirs(os.path.dirname(LATEST_SRR) or ".", exist_ok=True)
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
     sz = file_size(tmp)
 
     if sz <= MAX_OUTPUT_BYTES:
-        os.replace(tmp, DOCS_LATEST_SRR)
+        os.replace(tmp, LATEST_SRR)
         return
 
     lo, hi = 0, len(latest_items)
@@ -175,4 +175,4 @@ def write_latest_srr_safe(latest_items: List[Dict[str, Any]]):
     final = {"generated_utc": utc_now(), "count": len(latest_items), "items": latest_items[:best]}
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(final, f, ensure_ascii=False, indent=2)
-    os.replace(tmp, DOCS_LATEST_SRR)
+    os.replace(tmp, LATEST_SRR)

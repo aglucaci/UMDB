@@ -62,9 +62,13 @@ HARVESTER_CMDS=" crawl daily backfill-year curate-ai "
 
 usage() {
   cat <<'EOF'
-umdb: Urban Microbiome Database command line
+umdb: Urban Microbiome Database command line (harvesting, curation, releases)
 
-Harvesting (each finishes by rebuilding docs/db):
+UMDB is one of three repositories: UMDB builds the catalog and the versioned
+releases, STRIGA (github.com/aglucaci/STRIGA) analyses a catalog, and UMA
+(github.com/aglucaci/UMA) is the website that browses a release.
+
+Harvesting (each finishes by rebuilding data/umdb.sqlite):
   umdb crawl [opts]              paginate the query profiles, newest first
   umdb daily [opts]              records released in the last N days (--recent-days)
   umdb backfill-year --year Y    one calendar year, day by day
@@ -81,7 +85,7 @@ Deep harvest:
   umdb repair                    re-fetch BioProjects cached under the wrong accession
   umdb catalog push|pull|status  store the harvested catalog in GitHub Release assets
                                  (pull --merge keeps local records; push --snapshot dates it)
-  umdb scrub                     remove api_key/email from stored NCBI URLs (data/, docs/, logs/)
+  umdb scrub                     remove api_key/email from stored NCBI URLs (data/, reports/, logs/)
   umdb geo fetch [--force]       download the GeoNames gazetteer used to validate locations
   umdb geo check "USA: Portland, ME" [--lat N --lon E]
                                  show how one location string is resolved
@@ -91,25 +95,25 @@ Database and releases:
   umdb db info                   build metadata and samples per eligibility tier
   umdb db shell                  open the database in sqlite3
   umdb db query "SQL"            run one SQL query (tab-separated output)
-  umdb release [--version V]     write a Parquet/TSV release to dist/releases/<V>/
-                                 (needs: pip install -r requirements-release.txt)
+  umdb release --version V [--analysis DIR]
+                                 write release V to dist/releases/<V>/ and umdb-<V>.tar.gz,
+                                 bundling STRIGA results from DIR (must have analysed this
+                                 database); needs: pip install -r requirements-release.txt
 
 Cohorts and collections:
   umdb cohort list               the curated collections
   umdb cohort export cohort.json [-o DIR]
-                                 research package for a cohort saved in the website Workspace
+                                 research package for a cohort saved in the UMA Workspace
   umdb cohort collection SLUG [-o DIR] [--max-per-cell N --max-per-project N --target N --seed S]
                                  research package for a curated collection
 
-Data and site:
-  umdb export                    rebuild docs/db from data/ (offline)
-  umdb serve [port]              preview the website (default port 8000)
+Information:
   umdb queries                   print the exact discovery queries
   umdb status                    catalog size, eligibility tiers, settings check
 
-Research pipeline (Nextflow; see pipeline/README.md):
-  umdb science [opts]            hypothesis tests on the catalog (= nextflow run pipeline ...)
-  umdb science test              the same on the synthetic fixture (-profile test)
+Analyses and the website live in their own repositories:
+  nextflow run aglucaci/STRIGA --catalog data      analyse this catalog (STRIGA)
+  uma build dist/releases/<V>                      build the website from a release (UMA)
 
 Development:
   umdb test                      run the offline test suite
@@ -199,10 +203,10 @@ case "$cmd" in
   catalog)
     harvester catalog "${@:-status}"
     ;;
-  serve|preview)
-    port="${1:-8000}"
-    echo "Serving docs/ at http://localhost:$port  (Ctrl-C to stop)"
-    exec "$PY" -m http.server "$port" --directory docs
+  serve|preview|science)
+    echo "umdb $cmd moved: the website is UMA (github.com/aglucaci/UMA, 'uma serve') and the" >&2
+    echo "analysis pipeline is STRIGA (github.com/aglucaci/STRIGA, 'nextflow run aglucaci/STRIGA')." >&2
+    exit 2
     ;;
   queries)
     PYTHONPATH="$REPO_ROOT/scripts" exec "$PY" -c \
@@ -212,15 +216,18 @@ for k, v in Q.items(): print(k, v, sep='\n', end='\n\n')"
     ;;
   status)
     PYTHONPATH="$REPO_ROOT/scripts" exec "$PY" -c "
-import json, os
+import os, sqlite3
 from umdb_harvester import config as c
-s = json.load(open('docs/db/summary.json')) if os.path.exists('docs/db/summary.json') else {}
-print('Published release :', s.get('generated_utc', 'none'))
-print('Runs / BioSamples / BioProjects :', s.get('totalRuns'), '/', s.get('totalBioSamples'), '/', s.get('totalProjects'))
-for t in s.get('eligibility', []) or []:
-    print(f\"  {t['name']:16} {t['runs']:>8} runs {t['biosamples']:>8} BioSamples\")
-if not s.get('eligibility'):
-    print('  (no eligibility tiers in this release; run: umdb export)')
+db = os.path.join(c.DATA_DIR, 'umdb.sqlite')
+if os.path.exists(db):
+    con = sqlite3.connect(db)
+    m = dict(con.execute('SELECT key, value FROM meta'))
+    print('Database built :', m.get('built_utc', '?'), '| schema', m.get('schema_version', '?'))
+    print('Runs / BioSamples / BioProjects :', m.get('count_runs'), '/', m.get('count_samples'), '/', m.get('count_projects'))
+    for tier, n in con.execute('SELECT urban_status, count(*) FROM samples GROUP BY 1 ORDER BY 2 DESC'):
+        print(f\"  {str(tier):18} {n:>8} BioSamples\")
+else:
+    print('No database yet: umdb catalog pull && umdb db build')
 seen = sum(1 for _ in open(c.SEEN_SRR_RUNS)) if os.path.exists(c.SEEN_SRR_RUNS) else 0
 print('Runs ingested (seen list) :', seen)
 print('NCBI_API_KEY set :', bool(c.NCBI_API_KEY), '| NCBI_EMAIL set :', bool(c.NCBI_EMAIL), '| OPENAI_API_KEY set :', bool(c.OPENAI_API_KEY))
@@ -229,14 +236,6 @@ print('Query profiles version :', c.QUERY_PROFILES_VERSION)
     ;;
   test|tests)
     exec "$PY" -m unittest discover tests "$@"
-    ;;
-  science)
-    command -v nextflow >/dev/null || { echo "nextflow not found: https://www.nextflow.io/docs/latest/install.html" >&2; exit 1; }
-    if [ "${1:-}" = "test" ]; then
-      shift
-      exec nextflow run "$REPO_ROOT/pipeline" -profile test "$@"
-    fi
-    exec nextflow run "$REPO_ROOT/pipeline" "$@"
     ;;
   install)
     target="${1:-$HOME/.local/bin}"

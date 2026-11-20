@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 from .config import (
     DEFAULT_QUERY, QUERY_PROFILES, DEFAULT_QUERY_PROFILE_NAMES, QUERY_PROFILES_VERSION,
     BIOSAMPLE_CACHE, BIOPROJECT_CACHE, BIOPROJECT_UID_CACHE, AI_CURATION_CACHE, OPENAI_MODEL, OPENAI_API_KEY,
-    DOCS_LATEST_DEBUG, DATA_DIR, DB_DIR
+    LATEST_DEBUG, DATA_DIR
 )
 import sys
 import time
@@ -139,14 +139,14 @@ def build_argparser() -> argparse.ArgumentParser:
 
     sub.add_parser("compact", help="rewrite data/srr_catalog_*.jsonl keeping only the newest record per run")
     sub.add_parser("repair-bioprojects", help="re-fetch cached BioProjects stored under the wrong accession")
-    sub.add_parser("scrub-secrets", help="remove api_key=/email= from stored URLs in data/, docs/ and logs/")
+    sub.add_parser("scrub-secrets", help="remove api_key=/email= from stored URLs in data/, reports/ and logs/")
     cat = sub.add_parser("catalog", help="move the harvested catalog to/from GitHub Release assets")
     cat.add_argument("action", choices=["push", "pull", "status", "pack"])
     cat.add_argument("--tag", default="catalog-latest", help="release to pull from (default catalog-latest)")
     cat.add_argument("--merge", action="store_true", help="pull: keep local records and add published ones")
     cat.add_argument("--force", action="store_true", help="pull: replace local changes; push: overwrite a newer upload")
     cat.add_argument("--snapshot", action="store_true", help="push: also create a dated catalog-YYYY.MM.DD release")
-    sub.add_parser("export", help="rebuild data/umdb.sqlite and the website data in docs/db (offline)")
+    sub.add_parser("export", help="rebuild data/umdb.sqlite from data/ (offline; same as `umdb db build`)")
     sub.add_parser("db-build", help="(re)build data/umdb.sqlite from the catalog and caches")
     sub.add_parser("db-info", help="show database build metadata and sample tiers")
     g = sub.add_parser("geo", help="GeoNames reference files and location checks")
@@ -160,6 +160,11 @@ def build_argparser() -> argparse.ArgumentParser:
     rel = sub.add_parser("release", help="write a versioned Parquet/TSV release from data/umdb.sqlite")
     rel.add_argument("--version", default="", help="release version (default: today's date, YYYY.MM.DD)")
     rel.add_argument("--rebuild-db", action="store_true", help="rebuild the database first")
+    rel.add_argument("--analysis", default="", metavar="DIR",
+                     help="STRIGA results folder to bundle (its striga_manifest.json must name this database)")
+    rel.add_argument("--allow-unverified-analysis", action="store_true",
+                     help="bundle STRIGA results from a run that did not hash its input database")
+    rel.add_argument("--no-bundle", action="store_true", help="skip dist/releases/umdb-<version>.tar.gz")
 
     co = sub.add_parser("cohort", help="reproducible research cohorts and curated collections")
     cosub = co.add_subparsers(dest="cohort_cmd", required=True)
@@ -195,14 +200,11 @@ def resolve_query_specs(args) -> List[Dict[str, str]]:
 
     return [{"name": "custom", "query": query}]
 
-def publish_site():
-    """Rebuild data/umdb.sqlite from the catalog, then the website data (docs/db)."""
+def rebuild_database():
+    """Rebuild data/umdb.sqlite from the catalog. The website (UMA) is built from releases, not from here."""
     from .database import build_database
-    from .site import build_site
     header("Rebuilding the SQLite database (data/umdb.sqlite)")
     build_database()
-    header("Rebuilding the website data (docs/db)")
-    build_site()
 
 
 def run():
@@ -232,7 +234,7 @@ def run():
         log(paint(f"Cleaned {len(changed)} file(s)", "good") if changed else "No credentials found in stored files")
         return
     if args.cmd == "export":
-        publish_site()
+        rebuild_database()
         return
     if args.cmd == "catalog":
         from . import catalog
@@ -295,7 +297,8 @@ def run():
             if args.rebuild_db:
                 from .database import build_database
                 build_database()
-            write_release(args.version)
+            write_release(args.version, analysis_dir=args.analysis,
+                          allow_unverified_analysis=args.allow_unverified_analysis, bundle=not args.no_bundle)
         except (RuntimeError, FileNotFoundError, FileExistsError) as exc:
             from .utils import error
             error(str(exc))
@@ -345,7 +348,7 @@ def run():
     if ((getattr(args, "ai_curate", False) or args.cmd == "curate-ai") and not OPENAI_API_KEY):
         raise RuntimeError("OPENAI_API_KEY is required for AI-assisted curation")
 
-    from .config import SEEN_SRA_UIDS, SEEN_SRR_RUNS, DOCS_LATEST_SRR
+    from .config import SEEN_SRA_UIDS, SEEN_SRR_RUNS, LATEST_SRR
 
     seen_sra = load_set(SEEN_SRA_UIDS)
     seen_srr = load_set(SEEN_SRR_RUNS)
@@ -658,23 +661,6 @@ def run():
                 if args.max_records and len(records) >= args.max_records:
                     break
 
-            if not records:
-                manifest = read_json(f"{DB_DIR}/srr_records_manifest.json", {})
-                parts = manifest.get("parts", []) if isinstance(manifest, dict) else []
-                for part in parts:
-                    part_path = part.get("path", "") if isinstance(part, dict) else ""
-                    if not part_path:
-                        continue
-                    chunk = read_json(part_path, [])
-                    if not isinstance(chunk, list):
-                        continue
-                    for rec in chunk:
-                        records.append(rec)
-                        if args.max_records and len(records) >= args.max_records:
-                            break
-                    if args.max_records and len(records) >= args.max_records:
-                        break
-
             log(f"AI curation with {paint(args.model, 'magenta')}: {num(len(records))} record(s) loaded"
                 + (" (overwriting cached reviews)" if args.overwrite else ""))
             ai_counts = curate_records(
@@ -699,7 +685,7 @@ def run():
             reports.append(report)
 
         write_latest_srr_safe(latest_added[:5000])
-        write_json(DOCS_LATEST_DEBUG, {
+        write_json(LATEST_DEBUG, {
             "generated_utc": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
             "query_profiles_version": QUERY_PROFILES_VERSION,
             "query_profiles": [spec["name"] for spec in query_specs],
@@ -710,9 +696,9 @@ def run():
         # site re-apply the rules from the caches on disk.
         save_caches()
         if getattr(args, "no_db", False):
-            warn("--no-db: skipped rebuilding data/umdb.sqlite and the website data (run `umdb export` later)")
+            warn("--no-db: skipped rebuilding data/umdb.sqlite (run `umdb db build` later)")
         else:
-            publish_site()
+            rebuild_database()
 
         totals: Dict[str, int] = {}
         for rep in reports:
